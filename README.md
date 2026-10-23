@@ -48,7 +48,9 @@ from a file, the game falls back to its built-in synthesised effects.
 | `js/rooms.js` | All interiors: town buildings and abandoned buildings |
 | `js/horse.js` | Horse art and riding |
 | `js/sprites.js` | Character/creature pixel art (text grids) |
-| `js/props.js` | Buildings, cacti, furniture art |
+| `js/buildings.js` | Town and abandoned building exteriors, street dressing |
+| `js/town.js` | Town life: animals, smoke, schedules, greetings |
+| `js/props.js` | Cacti, rocks, signs, small props |
 | `js/backgrounds.js` | Sky by time of day, parallax layers |
 | `js/audio.js` | Chiptune music + sound effects |
 | `js/ui.js` | HUD, dialogue, menus, title screen |

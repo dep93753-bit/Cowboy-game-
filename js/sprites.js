@@ -400,6 +400,19 @@ const Sprites = (() => {
     gambler: { head: HEAD_TOPHAT, torso: TORSO_COAT, legsFn: coatLegs, glasses: false, pal: variant(hat([30, 26, 30], [20, 16, 20], [12, 10, 12]), { b: [170, 40, 50], G: [30, 26, 30] },
       coat([30, 26, 30], [18, 14, 18]), shirt([150, 40, 50], [110, 26, 36]), { D: [230, 230, 220], d: [190, 190, 180] },
       pants([40, 36, 40], [28, 24, 28], [60, 56, 60]), hair([20, 16, 14], [10, 8, 8]), skin([224, 170, 126], [188, 130, 90], [146, 92, 62])) },
+    townswoman: { head: paint(HEAD_WOMAN, 6, 3, ['   AAAAA', '  AHHHHHHh', ' AHHHHHHHHHh', 'bbbbbbbbbbbbb', 'hHh']), torso: TORSO_DRESS, legs: SKIRT,
+      pal: variant(hat([236, 226, 200], [214, 200, 170], [176, 160, 130]), { b: [150, 80, 110] }, vest([110, 76, 130], [80, 54, 96], [140, 104, 160]),
+        shirt([240, 236, 226], [200, 196, 186]), hair([150, 96, 50], [110, 66, 32]), skin([238, 194, 156], [204, 156, 118], [164, 116, 84]), { L: [240, 236, 226], o: [50, 34, 24] }) },
+    cowhand: { pal: variant(hat([120, 84, 52], [96, 64, 38], [70, 46, 28]), shirt([170, 70, 56], [124, 48, 40]), vest([150, 120, 86], [110, 86, 60], [176, 146, 110]),
+      pants([86, 106, 146], [62, 78, 112], [112, 134, 176]), { D: [220, 200, 150], d: [180, 160, 110] }, hair([60, 40, 26], [40, 26, 16]), skin([216, 160, 116], [180, 122, 84], [140, 90, 60])) },
+    oldtimer: { head: HEAD_PROSPECTOR, pal: variant(hat([90, 80, 70], [70, 60, 52], [50, 42, 36]), shirt([200, 190, 160], [160, 150, 124]), { z: [236, 234, 228], N: [210, 208, 200], n: [170, 168, 160] },
+      vest([60, 70, 60], [42, 50, 42], [84, 96, 84]), pants([80, 70, 60], [58, 50, 42], [104, 94, 82]), skin([214, 156, 116], [176, 118, 84], [136, 88, 60])) },
+    smith: { head: paint(HEAD_BALD, 8, 13, ['zSSSSNNNNNNNz', 'zzzzzzzzzzzz', ' zzzzzzzzz', '  zzzzzzz']), torso: TORSO_APRON, legsFn: apronLegs,
+      pal: variant(shirt([196, 184, 160], [156, 144, 120]), { X: [120, 78, 46], x: [86, 54, 30], D: [196, 184, 160], d: [156, 144, 120], z: [70, 44, 28] },
+        hair([70, 44, 28], [50, 30, 18]), skin([214, 150, 108], [176, 112, 76], [136, 84, 54]), pants([70, 62, 56], [50, 44, 40], [92, 84, 76])) },
+    preacher: { torso: TORSO_COAT, legsFn: coatLegs, pal: variant(hat([46, 42, 42], [30, 28, 28], [20, 18, 18]), { b: [30, 28, 28] },
+      coat([34, 32, 36], [22, 20, 24]), shirt([236, 236, 230], [196, 196, 190]), { D: [240, 240, 236], d: [210, 210, 206] },
+      pants([40, 38, 42], [28, 26, 30], [60, 58, 62]), hair([180, 180, 176], [140, 140, 136]), skin([230, 186, 150], [196, 146, 112], [156, 106, 78])) },
     deputy: { fighter: true, pal: Object.assign({}, LAWMAN, hat([120, 90, 60], [96, 70, 44], [70, 50, 30]), vest([60, 70, 50], [42, 50, 34], [84, 96, 70]),
       shirt([200, 180, 150], [160, 140, 112]), hair([180, 120, 60], [140, 88, 40]), skin([240, 190, 150], [206, 152, 112], [166, 112, 80]),
       { Y: [200, 200, 210], y: [150, 150, 160], Z: [250, 250, 255] }) },
@@ -611,6 +624,33 @@ const Sprites = (() => {
     ],
   };
 
+  const DOG_PAL = { D: [150, 100, 60], d: [108, 68, 40], T: [214, 176, 128], E: [20, 14, 12], n: [30, 22, 20] };
+  const dogBody = tail => [
+    '...............dd...',
+    '..............dDDD..',
+    '..............DDEDDn',
+    (tail ? '.d' : 'd.') + '............DDDDD.',
+    (tail ? 'd..' : '.d.') + '.DDDDDDDDDDDDDd..',
+    '..dDDDDDDDDDDDDDD...',
+    '...DDDDDDDDDDDDDD...',
+    '...DDDTTTTTTTDDDD...',
+  ];
+  const DOG = {
+    stand: [...dogBody(0), '...DD.D......DD.D...', '...DD.D......DD.D...', '...dd.d......dd.d...'],
+    wag: [...dogBody(1), '...DD.D......DD.D...', '...DD.D......DD.D...', '...dd.d......dd.d...'],
+    run0: [...dogBody(1), '..DD...D....DD...D..', '.DD.....D..DD.....D.', 'dd......d.dd......d.'],
+    run1: [...dogBody(0), '....DDD.....DDD.....', '....D.D.....D.D.....', '....d.d.....d.d.....'],
+    sit: ['..............dd....', '.............dDDD...', '.............DDEDDn.', '.............DDDDD..', '..........DDDDDDd...', '........DDDDDDDD....',
+      '.......DDDDDDDDD....', '......dDDDDTTDD.....', '.....dDDDDDTTDD.....', '....ddDDDDDD.DD.....', '...dddDDDDDD.DD.....'],
+  };
+  const CHICK_PAL = { W: [238, 234, 222], w: [200, 196, 184], R: [210, 50, 40], Y: [236, 180, 60], E: [20, 14, 12] };
+  const CHICK_BROWN = Object.assign({}, CHICK_PAL, { W: [180, 112, 62], w: [140, 84, 44] });
+  const CHICK = {
+    stand: ['......RR..', '.....WWWW.', '.....WEWWY', '.WW..WWWW.', 'WWWWWWWWW.', '.wWWWWWWW.', '..wwWWWW..', '....Y.Y...', '....Y.Y...'],
+    peck: ['..........', '..........', '.WW.......', 'WWWWWWW...', '.wWWWWWRR.', '..wWWWWWWW', '..wwWWWWEY', '....Y.Y...', '....Y.Y...'],
+    walk: ['......RR..', '.....WWWW.', '.....WEWWY', '.WW..WWWW.', 'WWWWWWWWW.', '.wWWWWWWW.', '..wwWWWW..', '...Y...Y..', '..Y.....Y.'],
+  };
+
   function creatureSet(def, pal) {
     const out = {};
     for (const k in def) out[k] = { img: build(def[k], pal), flash: silhouette(def[k], [255, 255, 255]) };
@@ -620,6 +660,9 @@ const Sprites = (() => {
   const creatures = {
     snake: creatureSet(SNAKE, SNAKE_PAL),
     coyote: creatureSet(COYOTE, COYOTE_PAL),
+    dog: creatureSet(DOG, DOG_PAL),
+    chicken: creatureSet(CHICK, CHICK_PAL),
+    chickenBrown: creatureSet(CHICK, CHICK_BROWN),
   };
 
   // The lawman's x anchor inside his sprite (centre of the body column).

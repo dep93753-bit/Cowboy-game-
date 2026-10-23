@@ -32,6 +32,15 @@ Built in small, playable stages. Each stage is pushed to the repo when it's done
   ride (H), gallop (Shift), whistle it over, horse hunger bar, horse feed,
   trade-ins. No jumping or fighting in the saddle.
 
+## Stage 2.5 — A living town (done)
+- Every building redrawn to scale with real detail (siding, cornices, shutters,
+  curtains, awnings, balconies, brick, steeples, hanging signs, chimneys)
+- New town buildings: Doctor's Office, Post & Telegraph, Blacksmith, Church
+  (all walk-in), and the stable rebuilt as a livery barn
+- Street life: more townsfolk with daily schedules and greetings, Rusty the
+  dog, chickens, horses at hitching posts, chimney smoke, the blacksmith's
+  hammer, lamp posts, a water tower, windmill, well, wagon, corral
+
 ## Stage 3 — The Canyon & Town 2
 - Canyon biome art and music, new enemies (scorpions, buzzards, mountain lions)
 
