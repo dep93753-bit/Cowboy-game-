@@ -56,10 +56,9 @@ const Game = (() => {
   function startGame(slot, data, isNew = !data) {
     G.slot = slot;
     G.data = data || Save.fresh();
+    enterZone(G.data.zone || 'road');
     G.player = new Player(G.data.x);
-    G.enemies = []; G.pickups = []; G.particles = []; G.floaters = [];
-    G.npcs = World.NPCS.map(n => new NPC(n));
-    G.critters = World.CRITTERS.map(c => new Town.Critter(c));
+    G.pickups = []; G.particles = []; G.floaters = [];
     G.bubbles = [];
     Town.bind(G);
     makeHorse();
@@ -75,6 +74,35 @@ const Game = (() => {
     else UI.toast(`Day ${day()}. The trail west is waiting.`);
   }
 
+  // Make a map current and fill it with its people and animals.
+  function enterZone(zone) {
+    World.use(zone);
+    G.data.zone = World.zone;
+    G.npcs = World.NPCS.map(n => new NPC(n));
+    G.critters = World.CRITTERS.map(c => new Town.Critter(c));
+    G.enemies = []; G.rocks = [];
+    G.biome = null; G.spawnT = 6;
+  }
+  // Walk through a trail to another map; your horse comes along.
+  function travel(exit) {
+    if (G.travelling) return;
+    G.travelling = true;
+    UI.fade(true);
+    Sound.sfx('door');
+    setTimeout(() => {
+      const d = G.data, p = G.player;
+      d.campfire = null;
+      enterZone(exit.to);
+      p.x = exit.toX; p.vx = 0;
+      if (G.horse) { G.horse.x = p.mounted ? p.x : p.x - 30 * (p.face || 1); G.horse.vx = 0; }
+      G.camX = U.clamp(p.x - W / 2, 0, World.END + 120 - W);
+      G.travelling = false;
+      UI.fade(false);
+      UI.place(World.biomeAt(p.x).name);
+      save();
+    }, 650);
+  }
+
   function toTitle() {
     save();
     G.state = 'title';
@@ -87,10 +115,11 @@ const Game = (() => {
 
   function showTitle() {
     G.state = 'title';
+    World.use('road');   // the title screen pans along the badlands road
     Sound.play('title');
     const slots = [1, 2, 3].map(n => {
       const data = Save.load(n);
-      const where = data ? (World.biomeAt(data.x).name + ' · ' + U.fmtTime(data.time)) : '';
+      const where = data ? (World.biomeAt(data.x, data.zone || 'road').name + ' · ' + U.fmtTime(data.time)) : '';
       return {
         n, data, where,
         play: () => {
@@ -207,6 +236,7 @@ const Game = (() => {
         dismount(true);
         d.time += 120;
         d.hp = 60; d.energy = Math.max(d.energy, 40); d.hunger = Math.max(d.hunger, 30);
+        if ((d.respawn.zone || 'road') !== World.zone) { d.campfire = null; enterZone(d.respawn.zone || 'road'); }
         G.player = new Player(d.respawn.x);
         if (G.horse) { G.horse.x = d.respawn.x + 30; G.horse.follow = false; }
         G.enemies = []; G.pickups = [];
@@ -230,7 +260,7 @@ const Game = (() => {
       d.energy = 100;
       d.hunger = Math.max(0, d.hunger - hours * HUNGER_PER_HOUR * 0.5);
       d.hp = Math.min(100, d.hp + 35);
-      d.respawn = { x: Math.round(x), label };
+      d.respawn = { x: Math.round(x), label, zone: World.zone };
       d.sleeping = false;
       G.enemies = G.enemies.filter(e => e.fixedId !== undefined && e.alive);
       save();
@@ -504,10 +534,8 @@ const Game = (() => {
     G.npcs.forEach(n => n.present !== false && list.push({ x: n.x, r: 20, label: `Talk to ${n.name}`, box: [n.x - 10, GROUND - 62, 20, 62], act: () => talk(n) }));
     if (G.horse && !G.player.mounted) list.push({ x: G.horse.x, r: 22, label: `Ride ${G.data.horse.name}`, box: [G.horse.x - 38, GROUND - 62, 76, 62], act: mount });
     if (G.data.campfire !== null) list.push({ x: G.data.campfire, r: 20, label: 'Rest at campfire', box: [G.data.campfire - 10, GROUND - 20, 20, 20], act: campMenu });
-    list.push({ x: World.END - 40, r: 40, label: 'Look at the rockslide', act: () => UI.dialogue([
-      [null, 'A rockslide has buried Canyon Pass. Jack must have brought it down behind him.'],
-      [null, 'End of the road for now: the canyon and beyond open up in the next update.'],
-    ]) });
+    World.EXITS.forEach(e => list.push({ x: e.x, r: 24, label: e.label, box: [e.x - 24, 44, 48, 110], act: () => travel(e) }));
+    list.push({ x: World.END - 40, r: 40, label: World.blockedEnd ? 'Look at the rockslide' : 'Look ahead', act: () => UI.dialogue(World.endLines) });
     return list;
   }
 
@@ -660,25 +688,92 @@ const Game = (() => {
     if (G.scene !== 'world' || !G.biome || G.biome.town) return;
     const p = G.player, d = G.data, today = day();
     // fixed enemies come back each new day
-    World.FIXED_ENEMIES.forEach((f, i) => {
+    const hard = G.biome.hard;
+    World.FIXED_ENEMIES.forEach((f, n) => {
+      const i = World.zone === 'road' ? n : World.zone + ':' + n;
       if (Math.abs(f.x - p.x) > 360 || d.fixedKilled[i] === today) return;
       if (G.enemies.some(e => e.fixedId === i)) return;
       if (f.type === 'coyote' && !G.isNight()) return;
-      G.enemies.push(new Enemy(f.type, f.x, { fixedId: i }));
+      G.enemies.push(new Enemy(f.type, f.x, { fixedId: i, tough: hard }));
     });
     // random wanderers, more at night
     G.spawnT -= dt;
     if (G.spawnT > 0) return;
     const night = G.isNight();
-    G.spawnT = (night ? 9 : 16) + Math.random() * 10;
+    // the canyon is harder: enemies turn up more often, more at once, and hit harder
+    G.spawnT = (hard ? (night ? 6 : 10) : (night ? 9 : 16)) + Math.random() * (hard ? 6 : 10);
     const alive = G.enemies.filter(e => e.alive && e.fixedId === undefined).length;
-    if (alive >= (night ? 3 : 1)) return;
+    if (alive >= (night ? 3 : 1) + (hard ? 1 : 0)) return;
     const type = night ? U.weighted(Math.random, { coyote: 6, outlaw: 3, snake: 1 }) : U.weighted(Math.random, { snake: 5, outlaw: 3 });
     const dir = Math.random() < 0.7 ? p.face : -p.face;
     const x = p.x + dir * (190 + Math.random() * 40);
     if (x < World.TOWN_END + 150 || x > World.END - 80) return;
     if (G.campfireNear(x, 120)) return;
-    G.enemies.push(new Enemy(type, x));
+    G.enemies.push(new Enemy(type, x, { tough: hard }));
+  }
+
+  // ------------------------------------------------------------ rockfalls
+  // In the canyon, rocks break off the cliffs now and then: pebbles trickle
+  // down and a shadow grows on the ground for a second, then the rock lands.
+  const ROCK_IMG = (() => {
+    const p = U.pix(9, 8), col = [176, 92, 60];
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 9; x++) {
+      if (((x - 4) / 4.5) ** 2 + ((y - 4) / 4) ** 2 > 1) continue;
+      p.put(x, y, y < 2 ? [214, 130, 88] : x > 5 ? [130, 66, 44] : col);
+    }
+    Props.outline(p, [40, 22, 18]);
+    return U.dbl(p.done());
+  })();
+  let rockT = 8;
+  function rockfalls(dt) {
+    const p = G.player;
+    if (G.scene === 'world' && G.biome && G.biome.hard && !p.dead) {
+      rockT -= dt;
+      if (rockT <= 0) {
+        rockT = 9 + Math.random() * 10;
+        const x = U.snap(p.x + (Math.random() < 0.6 ? p.face : -p.face) * (20 + Math.random() * 90));
+        G.rocks.push({ x, y: -20, vy: 0, warn: 1.1, landed: false, rest: 0 });
+        Sound.sfx('land');
+      }
+    }
+    for (const k of G.rocks) {
+      if (k.warn > 0) {
+        k.warn -= dt;
+        if (Math.random() < dt * 14) G.particles.push({ x: k.x + (Math.random() - 0.5) * 10, y: 20 + Math.random() * 30, vx: 0, vy: 80, life: 0.5, col: '#b06a44' });
+        continue;
+      }
+      if (k.landed) { k.rest -= dt; continue; }
+      k.vy += 700 * dt; k.y += k.vy * dt;
+      if (k.y >= GROUND - 14) {
+        k.y = GROUND - 14; k.landed = true; k.rest = 2.5;
+        G.shake(4); Sound.sfx('ko'); G.dust(k.x, GROUND, 10);
+        if (Math.abs(p.x - k.x) < 18 && p.y > GROUND - 50 && p.invuln <= 0) {
+          Sound.sfx('hurt');
+          p.invuln = 0.8; p.flashT = 0.15;
+          p.vx = Math.sign(p.x - k.x || 1) * 90; p.vy = -70; p.onGround = false;
+          G.damage(14);
+          UI.toast('Rockfall! Watch for falling pebbles and the shadow.', 3);
+        }
+        for (const e of G.enemies) if (e.alive && Math.abs(e.x - k.x) < 18) e.hit(20, k.x);
+      }
+    }
+    G.rocks = G.rocks.filter(k => !(k.landed && k.rest <= 0));
+  }
+  function drawRocks(c, camX) {
+    for (const k of G.rocks) {
+      const x = U.snap(k.x - camX);
+      if (k.warn > 0 || k.y < GROUND - 14) {
+        // shadow grows as the rock gets close
+        const t = k.warn > 0 ? 1 - k.warn / 1.1 : 1;
+        const w = U.snap(6 + t * 14);
+        c.fillStyle = `rgba(40,20,14,${(0.25 + t * 0.35).toFixed(2)})`;
+        c.fillRect(x - w / 2, GROUND - 2, w, 4);
+      }
+      if (k.warn <= 0) {
+        if (k.landed && k.rest < 0.6 && Math.floor(k.rest * 10) % 2 === 0) continue;
+        c.drawImage(ROCK_IMG, x - 9, U.snap(k.y) - 2);
+      }
+    }
   }
 
   // ---------------------------------------------------------------- update
@@ -759,6 +854,7 @@ const Game = (() => {
     for (const e of G.enemies) e.update(dt, p);
     G.enemies = G.enemies.filter(e => (e.alive || e.deadT > 0) && (e.fixedId !== undefined || Math.abs(e.x - p.x) < 480));
     spawning(dt);
+    rockfalls(dt);
     if (G.scene === 'world') { for (const n of G.npcs) if (n.present !== false) n.update(dt, p); Town.update(dt, G, hour()); }
 
     // pickups
@@ -797,7 +893,7 @@ const Game = (() => {
     else if (I && I.kind === 'town' && I.building.id === 'saloon') song = 'saloon';
     else if (I && I.kind === 'house') song = 'house';
     else if (I || (G.biome && G.biome.town)) song = 'town';
-    else song = G.isNight() ? 'night' : 'desert';
+    else song = G.isNight() ? 'night' : G.biome && G.biome.music === 'canyon' ? 'canyon' : 'desert';
     Sound.play(song);
     Sound.musicVolume(I && I.kind === 'town' && song === 'town' ? 0.45 : 1);
 
@@ -819,10 +915,10 @@ const Game = (() => {
 
   // ---------------------------------------------------------------- render
   function drawWorld(c, camX, withPlayer) {
-    BG.drawLayers(c, 'desert', camX);
+    BG.drawLayers(c, (World.biomeAt(camX + W / 2) || {}).bg || 'desert', camX);
     const vis = (x, w) => x + w > camX - 10 && x < camX + W + 10;
     // rockslide closing the road
-    if (vis(World.END - 110, 140)) c.drawImage(World.rockslide, Math.round(World.END - 110 - camX), 164 - World.rockslide.height);
+    if (World.blockedEnd && vis(World.END - 110, 140)) c.drawImage(World.rockslide, Math.round(World.END - 110 - camX), 164 - World.rockslide.height);
     const lit = G.data && BG.night(hour()) > 0.3;
     for (const p of World.PROPS) {
       if (!p.back || !vis(p.x, p.img.width)) continue;
@@ -889,7 +985,7 @@ const Game = (() => {
     if (inside) {
       // the view out of the doorway and windows: the desert outside, lit for
       // the hour, moving with the room so it looks like it's really out there
-      BG.drawLayers(ctx, 'desert', G.interior.doorWorld - 40 + camX);
+      BG.drawLayers(ctx, (World.biomeAt(G.interior.doorWorld) || {}).bg || 'desert', G.interior.doorWorld - 40 + camX);
       ctx.globalCompositeOperation = 'multiply';
       ctx.fillStyle = U.rgb(BG.light(hr));
       ctx.fillRect(0, 60, W, H - 60);
@@ -924,6 +1020,7 @@ const Game = (() => {
     }
     if (G.state !== 'title') {
       drawPickups(lctx, camX);
+      if (G.scene === 'world') drawRocks(lctx, camX);
       for (const e of G.enemies) e.draw(lctx, camX);
       if (G.player.mounted && G.scene === 'world') Horses.draw(lctx, G.horse, G.player.x - camX, { img: G.player.set.ride.img, hip: G.player.set.rideHip });
       else G.player.draw(lctx, camX);

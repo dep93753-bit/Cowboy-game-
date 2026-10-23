@@ -9,6 +9,7 @@ const Save = (() => {
       time: START_TIME,
       x: 92,
       scene: 'world',
+      zone: 'road',        // which map: 'road' or 'canyon'
       hp: 100, hunger: 85, energy: 90,
       money: 0,
       inv: { jerky: 2 },
@@ -16,7 +17,7 @@ const Save = (() => {
       looted: {},          // houseId -> [container idx searched]
       cleared: {},         // houseId -> true once its danger is dealt with
       fixedKilled: {},     // fixed enemy index -> day it was beaten
-      respawn: { x: 92, label: "the Sheriff's Office" },
+      respawn: { x: 92, label: "the Sheriff's Office", zone: 'road' },
       campfire: null,      // x of the current campfire, if any
       flags: {},
       look: { g: 'm', skin: 0, hair: 0, hat: 0, face: 1 },   // set in the character customiser

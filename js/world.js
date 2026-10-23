@@ -1,13 +1,17 @@
-// The road west. x is measured in pixels from the start of town.
+// The maps. Each is one long side-scrolling strip; x is measured in pixels
+// from its left end. 'road' runs from Redemption Gulch through the badlands to
+// the rockslide; beside the rockslide a trail leads into the 'canyon' map.
+// World.use(id) makes a map current: World.END, World.BUILDINGS, ... then
+// refer to that map.
 const World = (() => {
-  const END = 7400;        // the rockslide that closes this part of the road
+  const END = 7400;        // the rockslide that closes the badlands road
   const TOWN_END = 1700;
+  const TRAIL_X = END - 300;   // the canyon trail, just before the rockslide
 
   const BIOMES = [
     { id: 'town1', name: 'Redemption Gulch', x0: -1e9, x1: TOWN_END, town: true, bg: 'desert', music: 'town' },
     { id: 'desert', name: 'The Badlands', x0: TOWN_END, x1: 1e9, bg: 'desert', heat: true, music: 'desert' },
   ];
-  const biomeAt = x => BIOMES.find(b => x >= b.x0 && x < b.x1);
 
   // Town buildings, left to right. Art comes from Buildings.TOWN[id].
   const BUILDINGS = [
@@ -89,13 +93,16 @@ const World = (() => {
     { kind: 'chicken', x: 520, range: 30, brown: true },
   ];
 
+  // every prop is turned into the chunky 2x2 pixel grid and placed on it
+  const adder = list => (img, x, base, o = {}) => list.push(Object.assign({ img: U.chunky(img), x: U.snap(x), base: U.snap(base) }, o));
+
   // Scenery scattered along the road (seeded so it's the same every time).
   const PROPS = [];
   function scatter() {
     const r = U.rng(2024);
-    const keepClear = x => HOUSES.some(h => x > h.x - 30 && x < h.x + (h.w || 80) + 20) || Math.abs(x - END) < 120;
-    // every prop is turned into the chunky 2x2 pixel grid and placed on it
-    const add = (img, x, base, o = {}) => PROPS.push(Object.assign({ img: U.chunky(img), x: U.snap(x), base: U.snap(base) }, o));
+    const keepClear = x => HOUSES.some(h => x > h.x - 30 && x < h.x + (h.w || 80) + 20) || Math.abs(x - END) < 120 || Math.abs(x - TRAIL_X - 50) < 80;
+    const add = adder(PROPS);
+    add(Buildings.canyonGate('CANYON'), TRAIL_X, 154, { back: true });
     // behind the buildings
     add(Buildings.waterTower(), 1430, 150, { back: true });
     add(Buildings.windmill(0), 1590, 150, { back: true, windmill: true });
@@ -134,6 +141,66 @@ const World = (() => {
     for (let x = TOWN_END + 200; x < END; x += 260 + r() * 400) add(Props.rock(Math.floor(r() * 1e6)), Math.round(x), 178, { front: true });
   }
 
+  // ------------------------------------------------------------- canyon
+  // Deep red canyon. Silverbend and the canyon's abandoned places come in
+  // later updates; the far end opens toward the prairie (not built yet).
+  const C_END = 6400;
+  const C_BIOMES = [
+    { id: 'canyon', name: 'Canyon Pass', x0: -1e9, x1: 1e9, bg: 'canyon', heat: true, hard: true, music: 'canyon' },
+  ];
+  const C_FIXED = [
+    { type: 'outlaw', x: 900 }, { type: 'snake', x: 1500 }, { type: 'coyote', x: 2200 }, { type: 'outlaw', x: 4500 },
+    { type: 'snake', x: 5000 }, { type: 'outlaw', x: 5600 }, { type: 'coyote', x: 6000 },
+  ];
+  const C_PROPS = [];
+  function scatterCanyon() {
+    const r = U.rng(77);
+    const add = adder(C_PROPS);
+    add(Buildings.canyonGate('BADLANDS'), 20, 154, { back: true });
+    add(Props.signpost('SILVERBEND|>'), 260, 153);
+    add(Props.signpost('PRAIRIE|COMING SOON'), C_END - 120, 153);
+    add(Buildings.boulders(5), C_END - 40, 156);
+    for (let x = 360; x < C_END - 160; x += 40 + r() * 80) {
+      const n = r();
+      let img, base = 150 + Math.floor(r() * 6), o = {};
+      if (n < 0.14) { img = Buildings.hoodoo(Math.floor(r() * 1e6)); o.back = true; base = 148; }
+      else if (n < 0.3) img = Buildings.boulders(Math.floor(r() * 1e6));
+      else if (n < 0.52) img = Props.rock(Math.floor(r() * 1e6));
+      else if (n < 0.6) img = Props.skull();
+      else if (n < 0.7) img = Props.deadTree(Math.floor(r() * 1e6));
+      else if (n < 0.76) img = Props.barrelCactus();
+      else continue;
+      add(img, Math.round(x), base, o);
+    }
+    for (let x = 300; x < C_END; x += 220 + r() * 300) add(Props.rock(Math.floor(r() * 1e6)), Math.round(x), 178, { front: true });
+  }
+
+  const MAPS = {
+    road: {
+      END, TOWN_END, BIOMES, BUILDINGS, HOUSES, NPCS, PROPS, FIXED_ENEMIES, HITCHED, CRITTERS, blockedEnd: true,
+      EXITS: [{ x: TRAIL_X + 64, label: 'Take the canyon trail', to: 'canyon', toX: 110 }],
+      endLines: [
+        [null, 'A rockslide has buried the road. Jack must have brought it down behind him.'],
+        [null, 'There is a trail into the canyon just back from here.'],
+      ],
+    },
+    canyon: {
+      END: C_END, TOWN_END: 0, BIOMES: C_BIOMES, BUILDINGS: [], HOUSES: [], NPCS: [], PROPS: C_PROPS, FIXED_ENEMIES: C_FIXED, HITCHED: [], CRITTERS: [],
+      EXITS: [{ x: 84, label: 'Head back to the badlands', to: 'road', toX: TRAIL_X + 64 }],
+      endLines: [
+        [null, 'The canyon opens out onto wide grassland. The prairie lies ahead.'],
+        [null, 'The prairie opens up in a future update.'],
+      ],
+    },
+  };
+
+  function use(id) {
+    const m = MAPS[id] || MAPS.road;
+    api.zone = MAPS[id] ? id : 'road';
+    for (const k of ['END', 'TOWN_END', 'BIOMES', 'BUILDINGS', 'HOUSES', 'NPCS', 'PROPS', 'FIXED_ENEMIES', 'HITCHED', 'CRITTERS', 'EXITS', 'endLines', 'blockedEnd']) api[k] = m[k];
+  }
+  const biomeAtIn = (x, zone) => (MAPS[zone] || MAPS.road).BIOMES.find(b => x >= b.x0 && x < b.x1);
+
   function init() {
     BUILDINGS.forEach(b => {
       const art = Buildings.TOWN[b.id]();
@@ -146,8 +213,12 @@ const World = (() => {
       h.img = art.img; h.doorWorld = h.x + art.door; h.w = art.w;
     });
     scatter();
-    this.rockslide = U.chunky(Props.rockslide());
+    scatterCanyon();
+    api.rockslide = U.chunky(Props.rockslide());
+    use('road');
   }
 
-  return { END, TOWN_END, BIOMES, BUILDINGS, HOUSES, NPCS, PROPS, FIXED_ENEMIES, HITCHED, CRITTERS, biomeAt, init };
+  const api = { MAPS, init, use, biomeAt: (x, zone) => biomeAtIn(x, zone || api.zone) };
+  use('road');
+  return api;
 })();

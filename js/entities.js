@@ -170,7 +170,9 @@ class Enemy {
   constructor(type, x, opts = {}) {
     this.type = type; this.def = ENEMY_TYPES[type];
     this.x = x; this.y = GROUND; this.vx = 0;
-    this.hp = this.def.hp; this.face = -1;
+    // canyon enemies are tougher: more health, harder hits
+    this.mul = opts.tough ? 1.25 : 1;
+    this.hp = Math.round(this.def.hp * this.mul); this.face = -1;
     this.state = 'idle'; this.t = 0; this.animT = 0;
     this.flashT = 0; this.deadT = 0;
     this.home = x; this.fixedId = opts.fixedId;
@@ -260,7 +262,7 @@ class Enemy {
           this.state = 'attack'; this.t = 0.18;
           // lunge
           this.x += this.face * (this.type === 'coyote' ? 10 : this.type === 'snake' ? 8 : 4);
-          if (dist < d.range + 8 && player.y > GROUND - 22) player.hurt(d.dmg, this.x, this);
+          if (dist < d.range + 8 && player.y > GROUND - 22) player.hurt(Math.round(d.dmg * this.mul), this.x, this);
         }
         break;
       case 'attack':

@@ -45,7 +45,7 @@ const Sound = (() => {
 
   // Real recordings (all CC0, see assets/CREDITS.md). The synth songs and
   // synth effects below are only used if a file can't be loaded.
-  const MUSIC_FILES = { title: 'title', town: 'town', saloon: 'saloon', desert: 'desert', night: 'night', fight: 'fight', house: 'house', death: 'death' };
+  const MUSIC_FILES = { title: 'title', canyon: 'canyon', town: 'town', saloon: 'saloon', desert: 'desert', night: 'night', fight: 'fight', house: 'house', death: 'death' };
   const SFX_FILES = {
     punch: { f: ['sounds_impact3', 'sounds_impact4'], v: 0.35 },
     hit: { f: ['wpn_punch1', 'wpn_punch2', 'wpn_punch3'], v: 0.8 },
@@ -212,7 +212,7 @@ const Sound = (() => {
       old.gain.setTargetAtTime(0, ac.currentTime, 0.4);
       setTimeout(() => old.disconnect(), 2500);
     }
-    song = SONGS[name] || null;
+    song = SONGS[name] || (name === 'canyon' ? SONGS.desert : null);
     if (!song) { songGain = null; return; }
     songGain = ac.createGain();
     songGain.gain.setValueAtTime(0, ac.currentTime);

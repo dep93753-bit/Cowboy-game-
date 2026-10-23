@@ -616,7 +616,55 @@ const Buildings = (() => {
     return p.done();
   }
 
+  // ------------------------------------------------------------ canyon
+  // Red rock with horizontal strata, drawn on the chunky grid.
+  function redRock(p, r, x0, y0, w, h, inside) {
+    const bands = [[196, 86, 54], [178, 74, 48], [210, 104, 64], [186, 80, 52], [222, 138, 94]];
+    for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) {
+      if (inside && !inside(x - x0, y - y0)) continue;
+      let c = bands[Math.floor((y - y0) / 3) % bands.length];
+      if ((x * 5 + y) % 13 === 0) c = sh(c, 0.82);
+      if (r() < 0.06) c = sh(c, r() < 0.5 ? 0.88 : 1.1);
+      p.put(x, y, c);
+    }
+  }
+  // The trail into (or out of) the canyon: a cleft between two rock
+  // buttresses with a timber frame and a sign over the top.
+  function canyonGate(text) {
+    const r = U.rng(U.hash(text)), { p, yb, gy } = sheet(64, 66);
+    const lw = 20, gap = 24, x1 = lw + gap;
+    redRock(p, r, 0, 4, lw, gy - 4, (x, y) => x < lw - Math.max(0, 6 - y) && x > Math.max(0, 5 - y / 3));
+    redRock(p, r, x1, 0, 64 - x1, gy, (x, y) => x > Math.max(0, 4 - y) && x < 64 - x1 - Math.max(0, 3 - y / 4));
+    rect(p, lw, 14, gap, gy - 14, (i, j) => (j < 4 ? [44, 26, 22] : [28, 16, 14]));
+    for (const px of [lw, x1 - 2]) pillar(p, px, 14, gy, [140, 100, 62]);
+    rect(p, lw - 2, 13, gap + 4, 2, [120, 84, 52]);
+    const sg = sign(p, lw - 6, 4, gap + 12, 9, [236, 214, 164], [110, 76, 46]);
+    label(sg, text, '#5a2a1a');
+    rect(p, 0, gy, 64, 3, [176, 124, 86]);
+    void yb;
+    return finish(p);
+  }
+  // A hoodoo: a tall rock column with a harder cap stone.
+  function hoodoo(seed) {
+    const r = U.rng(seed), h = 34 + Math.floor(r() * 20), w = 10 + Math.floor(r() * 6);
+    const p = U.pix(w + 8, h + 6);
+    redRock(p, r, 4, 6, w, h, (x, y) => Math.abs(x - w / 2) < w / 2 - Math.sin(y / h * Math.PI * 2.2 + seed) * 1.5 - (y < 4 ? 2 : 0));
+    rect(p, 1, 2, w + 6, 4, (i, j) => (j === 0 ? [176, 150, 120] : j === 3 ? [96, 76, 62] : [140, 118, 96]));
+    return finish(p);
+  }
+  // A heap of fallen boulders.
+  function boulders(seed) {
+    const r = U.rng(seed), p = U.pix(40, 22);
+    for (let i = 0; i < 4; i++) {
+      const bw = 9 + r() * 10, bh = 7 + r() * 8, bx = 2 + r() * (36 - bw), by = 21 - bh;
+      redRock(p, r, Math.round(bx), Math.round(by), Math.round(bw), Math.round(bh), (x, y) => ((x - bw / 2) / (bw / 2)) ** 2 + ((y - bh) / bh) ** 2 < 1);
+      for (let x = 0; x < bw; x++) if (p.has(bx + x, by + 1)) p.put(bx + x, by + 1, [232, 160, 112]);
+    }
+    return finish(p);
+  }
+
   return {
     TOWN, abandoned, waterTower, windmill, wagon, well, lampPost, bench, laundry, corral, telegraphPole, DOOR_H,
+    canyonGate, hoodoo, boulders,
   };
 })();
