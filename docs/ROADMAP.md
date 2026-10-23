@@ -17,11 +17,22 @@ Built in small, playable stages. Each stage is pushed to the repo when it's done
 - Keyboard + mouse and touch controls
 - Road ends at a rockslide (Canyon Pass) for now
 
-## Stage 2 — Horses
-- Town 2 at the canyon edge with a stocked stable (mule, horse, stallion), naming
-- Riding: faster travel, no jumping, no fighting on horseback, horse hunger bar
+## Stage 2 — Interiors, townsfolk & horses (done)
+- Walk-in interiors for every town building: Sheriff's Office (desk, wanted
+  posters, jail cell cot, Deputy Ned), General Store (shelves, counter, Martha),
+  Saloon & Hotel (bar, bottles, piano, stairs, Gus, Miss Lila, Slick Doyle),
+  Bank (teller cage, open vault, Eustace), Stable (stalls, Pete)
+- Unique townsfolk bodies: bowler hats, top hats, dresses, bald bartender with
+  apron, bearded prospector, long-coated doctor and gambler, deputy, kid
+- 6 abandoned building types along the road (8 buildings): shack, farmhouse,
+  adobe ruin, barn, way station, chapel, each with its own interior style and
+  searchable furniture (wardrobes, desks, bookshelves, clay pots, sacks, hay,
+  offering box...)
+- Horses from Pete's stable: mule, bay horse, black stallion; name your horse,
+  ride (H), gallop (Shift), whistle it over, horse hunger bar, horse feed,
+  trade-ins. No jumping or fighting in the saddle.
 
-## Stage 3 — The Canyon
+## Stage 3 — The Canyon & Town 2
 - Canyon biome art and music, new enemies (scorpions, buzzards, mountain lions)
 
 ## Stage 4 — Town life

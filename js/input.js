@@ -5,7 +5,7 @@ const Input = (() => {
     left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], up: ['ArrowUp', 'KeyW'], down: ['ArrowDown', 'KeyS'],
     run: ['ShiftLeft', 'ShiftRight'], jump: ['KeyW', 'ArrowUp', 'Space'],
     punch: ['KeyJ', 'KeyZ'], block: ['KeyK', 'KeyX'], use: ['KeyE'],
-    camp: ['KeyC'], bag: ['KeyI', 'Tab'], pause: ['Escape', 'KeyP'], mute: ['KeyM'],
+    camp: ['KeyC'], horse: ['KeyH'], bag: ['KeyI', 'Tab'], pause: ['Escape', 'KeyP'], mute: ['KeyM'],
     confirm: ['Enter', 'Space', 'KeyE', 'NumpadEnter'], back: ['Escape', 'Backspace'],
   };
   const held = new Set();
@@ -21,6 +21,7 @@ const Input = (() => {
   }
 
   window.addEventListener('keydown', e => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
     Sound.resume();
     if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
     if (e.repeat) return;

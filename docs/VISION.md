@@ -92,8 +92,21 @@ several in-game days to catch him.
 - Horse has its **own hunger bar** and eats horse feed. If it hits empty, the
   horse **slows down**.
 - Enemies **cannot** hurt the horse.
-- **Several horse types** (mule → average → fast stallion) sold at stables.
+- **Several horse types** (mule → bay horse → black stallion) sold at stables,
+  starting with Pete's stable in the home town. Controls: H to mount/dismount
+  or whistle, Shift to gallop.
 - Player can **name** the horse.
+
+## Interiors
+- Every town building is a walk-in room with furniture and people inside.
+- Abandoned building types: shack, farmhouse, adobe ruin, barn, way station,
+  chapel. Each has its own wall/floor style and loot furniture.
+
+## Townsfolk (Redemption Gulch)
+Hollis (banker, bowler), Eustace (bank teller), Martha (store, dress), Gus
+(bald bartender), Miss Lila (saloon singer), Slick Doyle (gambler, top hat),
+Doc Halloway (top hat, glasses), Deputy Ned, Pete (stablehand), Old Dusty
+(bearded prospector), Walt, Tommy (kid).
 
 ## Saving
 - **3 save slots** (local to the device/browser).

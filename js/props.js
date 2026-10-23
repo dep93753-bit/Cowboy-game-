@@ -155,6 +155,209 @@ const Props = (() => {
     return { img: p.done(), w: cw, h: ch, door: dx + 6 };
   }
 
+  // ---------------------------------------------- other abandoned buildings
+  function shadeWood(c, r) { return r() < 0.08 ? U.shade(c, 0.82) : c; }
+
+  function farmhouse(seed) {
+    const r = U.rng(seed);
+    const w = 84, h = 74, cw = w + 16, ch = h + 4;
+    const p = U.pix(cw, ch);
+    const x0 = 8, yb = ch - 1, wall = [176, 168, 150], roofC = [92, 74, 66];
+    const eave = yb - 50;
+    // clapboard body
+    for (let y = eave; y < yb; y++) for (let x = x0; x < x0 + w; x++) {
+      const band = (y - eave) % 4;
+      let c = band === 0 ? U.shade(wall, 1.1) : band === 3 ? U.shade(wall, 0.8) : wall;
+      p.put(x, y, shadeWood(c, r));
+    }
+    // gable roof with missing shingles
+    for (let y = yb - h; y < eave + 2; y++) {
+      const half = Math.round(((y - (yb - h)) / (eave + 2 - (yb - h))) * (w / 2 + 6));
+      for (let x = x0 + w / 2 - half; x < x0 + w / 2 + half; x++) {
+        const row = Math.floor(y / 3);
+        let c = (x + row * 3) % 7 === 0 ? U.shade(roofC, 0.7) : y % 3 === 0 ? U.shade(roofC, 0.85) : roofC;
+        if (r() < 0.04) c = [40, 30, 26];
+        p.put(x, y, c);
+      }
+    }
+    // attic window in the gable
+    for (let y = eave - 16; y < eave - 6; y++) for (let x = x0 + w / 2 - 4; x < x0 + w / 2 + 4; x++) p.put(x, y, (x === x0 + w / 2 - 4 || x === x0 + w / 2 + 3 || y === eave - 16 || y === eave - 7) ? [90, 70, 56] : [24, 20, 22]);
+    // windows: one broken, one shuttered, upstairs
+    const win = (wx, wy, broken) => {
+      for (let y = wy; y < wy + 13; y++) for (let x = wx; x < wx + 10; x++) {
+        let c = [28, 24, 26];
+        if (x === wx || x === wx + 9 || y === wy || y === wy + 12) c = [110, 96, 80];
+        else if (broken && (x - wx) + (y - wy) < 6) c = [120, 140, 160];
+        p.put(x, y, c);
+      }
+    };
+    win(x0 + 10, eave + 6, true); win(x0 + 62, eave + 6, false);
+    for (let y = eave + 6; y < eave + 19; y++) { p.put(x0 + 72, y + 2, [80, 90, 70]); p.put(x0 + 73, y + 3, [64, 72, 56]); } // hanging shutter
+    // porch roof (sagging) and posts
+    const pr = yb - 26;
+    for (let i = 0, x = x0 - 6; x < x0 + w + 6; i++, x++) {
+      const sag = Math.round(2 * Math.sin((i / (w + 12)) * Math.PI));
+      for (let k = 0; k < 4; k++) p.put(x, pr + k + sag, k === 0 ? [150, 120, 96] : [96, 78, 64]);
+    }
+    for (const px of [x0 - 3, x0 + 30, x0 + w + 1]) for (let y = pr + 4; y < yb; y++) { p.put(px, y, [130, 110, 90]); p.put(px + 1, y, [96, 80, 66]); }
+    // door hanging open
+    const dx = x0 + 38;
+    for (let y = yb - 22; y < yb; y++) for (let x = dx; x < dx + 12; x++) p.put(x, y, x < dx + 3 ? [22, 16, 14] : x < dx + 9 ? [16, 12, 10] : [120, 100, 80]);
+    // boardwalk
+    for (let x = x0 - 6; x < x0 + w + 6; x++) { p.put(x, yb, [120, 90, 60]); p.put(x, yb - 1, [150, 116, 80]); }
+    Props.outline(p);
+    return { img: p.done(), w: cw, h: ch, door: dx + 6 };
+  }
+
+  function adobe(seed) {
+    const r = U.rng(seed);
+    const w = 66, h = 38, cw = w + 16, ch = h + 6;
+    const p = U.pix(cw, ch);
+    const x0 = 8, yb = ch - 1, top = yb - h, base = [204, 158, 112];
+    for (let y = top; y < yb; y++) for (let x = x0; x < x0 + w; x++) {
+      // crumbling, rounded parapet
+      const edge = y - top;
+      if (edge < 3 && (x - x0 < 3 - edge || x0 + w - x < 4 - edge)) continue;
+      if (edge < 2 && Math.sin(x * 1.7 + seed) > 0.5) continue;
+      let c = base;
+      const n = r();
+      if (n < 0.08) c = U.shade(base, 0.92); else if (n < 0.12) c = U.shade(base, 1.06);
+      if (x > x0 + w - 6) c = U.shade(c, 0.85);
+      if (edge < 2) c = U.shade(base, 1.12);
+      p.put(x, y, c);
+    }
+    // missing plaster showing bricks
+    for (let y = top + 18; y < top + 30; y++) for (let x = x0 + 46; x < x0 + 60; x++) {
+      if (((x - x0 - 53) / 7) ** 2 + ((y - top - 24) / 6) ** 2 > 1) continue;
+      p.put(x, y, y % 4 === 0 || (x + Math.floor(y / 4) * 3) % 7 === 0 ? [150, 110, 80] : [180, 128, 88]);
+    }
+    // vigas poking out
+    for (const vx of [x0 + 6, x0 + 22, x0 + 38, x0 + 54]) for (let k = -4; k < 4; k++) { p.put(vx + k, top + 5, [110, 76, 46]); p.put(vx + k, top + 6, [80, 54, 34]); }
+    // arched doorway
+    const dx = x0 + 10;
+    for (let y = yb - 24; y < yb; y++) for (let x = dx; x < dx + 13; x++) {
+      if (y < yb - 18 && Math.hypot(x - dx - 6, y - (yb - 18)) > 6.5) continue;
+      p.put(x, y, [26, 18, 14]);
+    }
+    // small window
+    for (let y = top + 12; y < top + 21; y++) for (let x = x0 + 34; x < x0 + 42; x++) p.put(x, y, x === x0 + 38 ? [100, 70, 44] : [28, 20, 16]);
+    Props.outline(p, [110, 76, 50]);
+    return { img: p.done(), w: cw, h: ch, door: dx + 6 };
+  }
+
+  function barn(seed) {
+    const r = U.rng(seed);
+    const w = 96, h = 76, cw = w + 12, ch = h + 4;
+    const p = U.pix(cw, ch);
+    const x0 = 6, yb = ch - 1, top = yb - h, eave = yb - 44;
+    const reds = [[150, 64, 48], [136, 56, 42], [160, 74, 56]];
+    // gambrel roof outline: steep lower slope then shallow top
+    const roofW = y => {
+      const t = (y - top) / (eave - top);
+      return t < 0.45 ? 14 + t / 0.45 * 22 : 36 + (t - 0.45) / 0.55 * 16;
+    };
+    for (let y = top; y < yb; y++) {
+      const half = y < eave ? roofW(y) : w / 2;
+      for (let x = x0 + w / 2 - half; x < x0 + w / 2 + half; x++) {
+        let c;
+        if (y < eave) { c = y % 3 === 0 ? [70, 62, 60] : [92, 82, 78]; if (r() < 0.03) c = [40, 34, 32]; }
+        else { c = reds[Math.floor((x - x0) / 8) % 3]; if ((x - x0) % 8 === 0) c = U.shade(c, 0.6); c = shadeWood(c, r); }
+        p.put(x, y, c);
+      }
+    }
+    // hayloft door
+    for (let y = eave - 18; y < eave - 4; y++) for (let x = x0 + 40; x < x0 + 56; x++) p.put(x, y, x === x0 + 40 || x === x0 + 55 || y === eave - 18 ? [230, 220, 200] : [40, 24, 20]);
+    // big doors: left one closed with a white X, right one swung open
+    const dx = x0 + 30, dw = 36, dy = yb - 34;
+    for (let y = dy; y < yb; y++) for (let x = dx; x < dx + dw; x++) {
+      let c = x < dx + 18 ? [150, 64, 48] : [20, 14, 12];
+      if (x < dx + 18) {
+        const lx = x - dx, ly = (y - dy) * 18 / 34;
+        if (x === dx || x === dx + 17 || y === dy || y === yb - 1 || Math.abs(lx - ly) < 1.2 || Math.abs(lx - (18 - ly)) < 1.2) c = [230, 220, 200];
+      }
+      p.put(x, y, c);
+    }
+    for (let y = dy + 2; y < yb; y++) for (let x = dx + dw; x < dx + dw + 4; x++) p.put(x, y, [126, 54, 40]);
+    Props.outline(p);
+    return { img: p.done(), w: cw, h: ch, door: dx + 26 };
+  }
+
+  function chapel(seed) {
+    const r = U.rng(seed);
+    const w = 56, cw = w + 16, ch = 100;
+    const p = U.pix(cw, ch);
+    const x0 = 8, yb = ch - 1, eave = yb - 40, wall = [218, 212, 196];
+    for (let y = eave; y < yb; y++) for (let x = x0; x < x0 + w; x++) {
+      const band = (y - eave) % 4;
+      p.put(x, y, shadeWood(band === 0 ? U.shade(wall, 1.05) : band === 3 ? U.shade(wall, 0.84) : wall, r));
+    }
+    // roof
+    for (let y = eave - 18; y < eave + 2; y++) {
+      const half = Math.round(((y - (eave - 18)) / 20) * (w / 2 + 5));
+      for (let x = x0 + w / 2 - half; x < x0 + w / 2 + half; x++) p.put(x, y, y % 3 === 0 ? [70, 60, 60] : [96, 86, 84]);
+    }
+    // steeple with a bell opening and a cross
+    const sx = x0 + w / 2 - 7;
+    for (let y = eave - 44; y < eave - 10; y++) for (let x = sx; x < sx + 14; x++) {
+      let c = (y % 4 === 0) ? U.shade(wall, 0.85) : wall;
+      if (y > eave - 38 && y < eave - 28 && x > sx + 3 && x < sx + 10) c = [30, 26, 28];
+      p.put(x, y, c);
+    }
+    for (let y = eave - 52; y < eave - 44; y++) { const half = Math.round((y - (eave - 52)) / 8 * 9); for (let x = sx + 7 - half; x < sx + 7 + half; x++) p.put(x, y, [80, 70, 68]); }
+    for (let y = eave - 60; y < eave - 52; y++) p.put(sx + 7, y, [70, 56, 44]);
+    for (let x = sx + 4; x < sx + 11; x++) p.put(x, eave - 58, [70, 56, 44]);
+    // arched coloured window and door
+    for (let y = eave + 6; y < eave + 22; y++) for (let x = x0 + 40; x < x0 + 50; x++) {
+      if (y < eave + 10 && Math.hypot(x - x0 - 45, y - eave - 10) > 5) continue;
+      p.put(x, y, [[170, 50, 50], [60, 90, 170], [220, 180, 60]][(x + y) % 3]);
+    }
+    const dx = x0 + 14;
+    for (let y = yb - 24; y < yb; y++) for (let x = dx; x < dx + 14; x++) {
+      if (y < yb - 18 && Math.hypot(x - dx - 7, y - (yb - 18)) > 7) continue;
+      p.put(x, y, x < dx + 9 ? [20, 14, 12] : [110, 80, 54]);
+    }
+    for (let x = x0 - 2; x < x0 + w + 2; x++) { p.put(x, yb, [150, 120, 90]); }
+    Props.outline(p);
+    return { img: p.done(), w: cw, h: ch, door: dx + 6 };
+  }
+
+  function waystation(seed) {
+    const r = U.rng(seed);
+    const w = 106, h = 46, cw = w + 16, ch = h + 4;
+    const p = U.pix(cw, ch);
+    const x0 = 8, yb = ch - 1, top = yb - h + 10, wall = [176, 136, 96];
+    for (let y = top; y < yb; y++) for (let x = x0; x < x0 + w; x++) {
+      let c = (x - x0) % 5 === 0 ? U.shade(wall, 0.7) : wall;
+      p.put(x, y, shadeWood(c, r));
+    }
+    // flat roof with a sign board
+    for (let y = top - 4; y < top; y++) for (let x = x0 - 3; x < x0 + w + 3; x++) p.put(x, y, y === top - 4 ? [150, 120, 90] : [100, 76, 54]);
+    const sw = Font.width('WAY STATION') + 8, sxx = x0 + Math.floor((w - sw) / 2);
+    for (let y = top - 14; y < top - 4; y++) for (let x = sxx; x < sxx + sw; x++) p.put(x, y, y === top - 14 || x === sxx || x === sxx + sw - 1 ? [110, 80, 50] : [190, 160, 116]);
+    // porch roof + posts
+    const pr = yb - 26;
+    for (let x = x0 - 6; x < x0 + w + 6; x++) for (let k = 0; k < 3; k++) p.put(x, pr + k + (x > x0 + 70 ? 1 : 0), k === 0 ? [150, 120, 90] : [96, 72, 50]);
+    for (const px of [x0 - 4, x0 + 50, x0 + w + 2]) for (let y = pr + 3; y < yb; y++) { p.put(px, y, [120, 90, 60]); p.put(px + 1, y, [86, 64, 44]); }
+    // door + windows
+    const dx = x0 + 18;
+    for (let y = yb - 22; y < yb; y++) for (let x = dx; x < dx + 12; x++) p.put(x, y, x < dx + 9 ? [22, 16, 14] : [130, 100, 70]);
+    for (const wx of [x0 + 60, x0 + 84]) for (let y = yb - 20; y < yb - 9; y++) for (let x = wx; x < wx + 11; x++) p.put(x, y, x === wx || x === wx + 10 || y === yb - 20 ? [110, 86, 60] : [26, 22, 22]);
+    for (let k = 0; k < 11; k++) { p.put(x0 + 84 + k, yb - 20 + k, [160, 120, 80]); }
+    Props.outline(p);
+    const c = p.done();
+    Font.draw(c.getContext('2d'), 'WAY STATION', sxx + 4, top - 12, '#5a3a22');
+    return { img: c, w: cw, h: ch, door: dx + 6 };
+  }
+
+  function abandoned(type, seed) {
+    if (type === 'farmhouse') return farmhouse(seed);
+    if (type === 'adobe') return adobe(seed);
+    if (type === 'barn') return barn(seed);
+    if (type === 'chapel') return chapel(seed);
+    if (type === 'waystation') return waystation(seed);
+    return shack(seed);
+  }
+
   // ------------------------------------------------------------- scenery
   function saguaro(seed, hgt) {
     const r = U.rng(seed);
@@ -336,7 +539,7 @@ const Props = (() => {
   };
 
   return {
-    building, shack, saguaro, barrelCactus, skull, rock, deadTree, fence, signpost, tumbleweed, rockslide,
+    building, shack, abandoned, saguaro, barrelCactus, skull, rock, deadTree, fence, signpost, tumbleweed, rockslide,
     trough, barrels, hitchPost, containers, decor, outline,
   };
 })();

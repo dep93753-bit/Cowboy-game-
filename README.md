@@ -21,6 +21,7 @@ Plain HTML, CSS and JavaScript. No build step, no libraries.
 | Punch | J | PUNCH |
 | Block | K (hold) | BLK (hold) |
 | Talk / enter / search | E, or click/tap the thing | USE, or tap |
+| Get on/off horse, whistle | H | HORSE |
 | Make camp | C | CAMP |
 | Saddlebag | I | BAG |
 | Pause | Esc | II |
@@ -38,7 +39,8 @@ Tip: block right as an enemy strikes for a **PERFECT** block, which leaves it da
 | `js/game.js` | Main loop, rules, menus, saving, lighting |
 | `js/entities.js` | Player, enemies, townsfolk, campfire |
 | `js/world.js` | Road layout: towns, houses, enemy spots, scenery |
-| `js/interior.js` | Abandoned house rooms |
+| `js/rooms.js` | All interiors: town buildings and abandoned buildings |
+| `js/horse.js` | Horse art and riding |
 | `js/sprites.js` | Character/creature pixel art (text grids) |
 | `js/props.js` | Buildings, cacti, furniture art |
 | `js/backgrounds.js` | Sky by time of day, parallax layers |

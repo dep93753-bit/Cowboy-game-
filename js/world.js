@@ -23,16 +23,20 @@ const World = (() => {
   ];
 
   const HOUSES = [
-    { id: 'miller', name: 'Miller Homestead', x: 1880, seed: 11 },
-    { id: 'shack', name: 'Abandoned Shack', x: 3140, seed: 23 },
-    { id: 'waystation', name: 'Old Way Station', x: 4460, seed: 37 },
-    { id: 'farmhouse', name: 'Collapsed Farmhouse', x: 5860, seed: 51 },
+    { id: 'miller', name: 'Miller Homestead', type: 'farmhouse', x: 1880, seed: 11 },
+    { id: 'prospector', name: "Prospector's Shack", type: 'shack', x: 2480, seed: 23 },
+    { id: 'adobe', name: 'Adobe Ruin', type: 'adobe', x: 3140, seed: 31 },
+    { id: 'barn', name: 'Old Barn', type: 'barn', x: 3760, seed: 37 },
+    { id: 'waystation', name: 'Old Way Station', type: 'waystation', x: 4460, seed: 43 },
+    { id: 'chapel', name: 'Abandoned Chapel', type: 'chapel', x: 5180, seed: 47 },
+    { id: 'farmhouse', name: 'Collapsed Farmhouse', type: 'farmhouse', x: 5860, seed: 51 },
+    { id: 'trapper', name: "Trapper's Cabin", type: 'shack', x: 6520, seed: 59 },
   ];
 
   // Enemies that live at a spot and come back each new day if beaten.
   const FIXED_ENEMIES = [
-    { type: 'snake', x: 1560 }, { type: 'outlaw', x: 2620 }, { type: 'snake', x: 3700 },
-    { type: 'coyote', x: 4100 }, { type: 'outlaw', x: 5050 }, { type: 'snake', x: 6300 }, { type: 'outlaw', x: 6900 },
+    { type: 'snake', x: 1560 }, { type: 'outlaw', x: 2760 }, { type: 'snake', x: 3560 },
+    { type: 'coyote', x: 4100 }, { type: 'outlaw', x: 4980 }, { type: 'snake', x: 6260 }, { type: 'outlaw', x: 6900 },
   ];
 
   const NPCS = [
@@ -48,6 +52,10 @@ const World = (() => {
       ["Jack Calloway... used to be a Pinkerton man, you know. Knows every lawman's trick."],
       ["Hungry? Martha at the General Store sells jerky and beans. Gus at the saloon rents rooms."],
     ] },
+    { id: 'doc', kind: 'doc', name: 'Doc Halloway', x: 560, face: 1, lines: [
+      ["Bandages, Sheriff. Keep a few on you. A coyote bite festers fast out there."],
+      ["If your belly's empty you'll start to weaken. Eat before you fight, not after."],
+    ] },
     { id: 'dusty', kind: 'prospector', name: 'Old Dusty', x: 960, face: -1, lines: [
       ['Saw Jack ride out at sunup, headed for Canyon Pass.'],
       ["Folks abandoned them houses along the road after the drought. Might be somethin' left worth takin'."],
@@ -59,7 +67,7 @@ const World = (() => {
   const PROPS = [];
   function scatter() {
     const r = U.rng(2024);
-    const keepClear = x => HOUSES.some(h => Math.abs(h.x + 35 - x) < 70) || Math.abs(x - END) < 120;
+    const keepClear = x => HOUSES.some(h => x > h.x - 30 && x < h.x + (h.w || 80) + 20) || Math.abs(x - END) < 120;
     // town dressing
     PROPS.push({ img: Props.hitchPost(), x: 140, base: 152 });
     PROPS.push({ img: Props.trough(), x: 312, base: 152 });
@@ -96,7 +104,7 @@ const World = (() => {
       b.img = art.img; b.doorWorld = b.x + art.door; b.wins = art.wins;
     });
     HOUSES.forEach(h => {
-      const art = Props.shack(h.seed * 7919);
+      const art = Props.abandoned(h.type, h.seed * 7919);
       h.img = art.img; h.doorWorld = h.x + art.door; h.w = art.w;
     });
     scatter();

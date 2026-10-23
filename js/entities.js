@@ -33,12 +33,12 @@ class Player {
       if (I.down('left')) move -= 1;
       if (I.down('right')) move += 1;
     }
-    const wantBlock = control && !this.dead && I.down('block') && this.onGround;
+    const wantBlock = control && !this.dead && I.down('block') && this.onGround && !this.mounted;
     if (wantBlock && !this.blocking) this.blockAge = 0;
     this.blocking = wantBlock;
     if (this.blocking) this.blockAge += dt;
 
-    if (control && !this.dead && I.pressed('punch') && this.punchT <= 0 && !this.blocking) {
+    if (control && !this.dead && !this.mounted && I.pressed('punch') && this.punchT <= 0 && !this.blocking) {
       this.punchT = 0.34; this.punchHit = false;
       Sound.sfx('punch');
     }
@@ -49,7 +49,7 @@ class Player {
 
     const running = control && I.down('run') && Game.data.energy > 0 && move !== 0;
     this.running = running;
-    let speed = (running ? 94 : 54) * this.speedMul;
+    let speed = this.mounted ? (running ? 180 : 82) * Game.horseSpeed() : (running ? 94 : 54) * this.speedMul;
     if (this.punchT > 0.05 || this.blocking) speed = 0;
     if (move !== 0 && !(this.punchT > 0)) this.face = move;
 
@@ -58,7 +58,7 @@ class Player {
     if (this.onGround) this.vx = U.lerp(this.vx, target, Math.min(1, dt * 14));
     else this.vx = U.lerp(this.vx, target, Math.min(1, dt * 4));
 
-    if (control && !this.dead && I.pressed('jump') && this.onGround && !this.blocking) {
+    if (control && !this.dead && !this.mounted && I.pressed('jump') && this.onGround && !this.blocking) {
       this.vy = -175; this.onGround = false;
       Sound.sfx('jump');
     }
@@ -324,7 +324,7 @@ class NPC {
     if (x < -30 || x > W + 30) return;
     const set = Sprites.people[this.kind];
     const pose = this.walking ? 'walk' + (Math.floor(this.animT) % 4) : 'idle';
-    drawFrame(ctx, set[pose], x, GROUND - 2, this.face, Sprites.ANCHOR_X);
+    drawFrame(ctx, set[pose], x, this.y !== undefined ? this.y : GROUND - 2, this.face, Sprites.ANCHOR_X);
   }
 }
 
