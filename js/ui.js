@@ -10,7 +10,7 @@ const UI = (() => {
     day: $('hud-day'), time: $('hud-time'), money: $('hud-money'),
   };
   const bars = {
-    hp: document.querySelector('.bar.hp'), food: document.querySelector('.bar.food'), rest: document.querySelector('.bar.rest'),
+    hp: document.querySelector('.bar.hp'), food: document.querySelector('.bar.food'), rest: document.querySelector('.bar.rest'), horse: document.querySelector('.bar.horse'),
   };
 
   // ------------------------------------------------------------------ HUD
@@ -24,6 +24,13 @@ const UI = (() => {
   }
   function hud(d) {
     setBar('hp', d.hp); setBar('food', d.hunger); setBar('rest', d.energy);
+    const hasHorse = !!d.horse;
+    if (last.hasHorse !== hasHorse) { bars.horse.classList.toggle('hidden', !hasHorse); last.hasHorse = hasHorse; }
+    if (hasHorse) {
+      setBar('horse', d.horse.hunger);
+      const nm = d.horse.name.toUpperCase().slice(0, 8);
+      if (last.horseName !== nm) { document.getElementById('hud-horse-name').textContent = last.horseName = nm; }
+    }
     const day = 'DAY ' + (Math.floor(d.time / 1440) + 1), time = U.fmtTime(d.time), money = '$' + d.money;
     if (last.day !== day) el.day.textContent = last.day = day;
     if (last.time !== time) el.time.textContent = last.time = time;
@@ -192,10 +199,26 @@ const UI = (() => {
     });
   }
 
+  // A small text box (used to name your horse).
+  function askText(def) {
+    menu({
+      title: def.title, sub: def.sub || '', hint: 'Type a name, then press Enter',
+      build: () => [{ label: 'OK', pick: () => { const v = (input.value || '').trim().slice(0, 14); def.onDone(v || def.value); return 'close'; } }],
+    });
+    const input = document.createElement('input');
+    input.maxLength = 14; input.value = def.value || '';
+    input.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Enter') { const v = (input.value || '').trim().slice(0, 14); closeMenu(); def.onDone(v || def.value); }
+    });
+    el.menuList.prepend(input);
+    setTimeout(() => { input.focus(); input.select(); }, 30);
+  }
+
   function fade(on) { el.fade.classList.toggle('on', on); }
 
   return {
-    hud, showHud, place, prompt, toast, dialogue, dialogueTick, menu, menuTick, closeMenu, title, fade,
+    hud, showHud, place, prompt, toast, dialogue, dialogueTick, menu, menuTick, closeMenu, title, fade, askText,
     get busy() { return !!dlg || !!menuDef; },
     get inMenu() { return !!menuDef; },
   };

@@ -61,6 +61,12 @@ html, body {
 .bar.hp i { background: linear-gradient(var(--hp) 60%, #9a2c24 60%); }
 .bar.food i { background: linear-gradient(var(--food) 60%, #a85f18 60%); }
 .bar.rest i { background: linear-gradient(var(--rest) 60%, #2f5f9c 60%); }
+.bar.horse span { font-size: calc(var(--u) * 3.4); }
+.bar.horse i { background: linear-gradient(#a8743c 60%, #7a5226 60%); }
+#menu-list input {
+  font: inherit; font-size: calc(var(--u) * 6); padding: calc(var(--u) * 3); border: calc(var(--u)) solid var(--ink);
+  background: #fffaf0; color: var(--ink); width: 100%;
+}
 .bar.low span { color: #ff8a7a; animation: blink .8s steps(2) infinite; }
 @keyframes blink { 50% { opacity: .3; } }
 

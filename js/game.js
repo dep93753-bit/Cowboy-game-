@@ -47,7 +47,7 @@ const Game = (() => {
   function save() {
     if (!G.data || G.state === 'title') return;
     const d = G.data;
-    if (G.scene === 'interior') d.x = G.interior.house.doorWorld;
+    if (G.scene === 'interior') d.x = G.interior.doorWorld;
     else d.x = Math.round(G.player.x);
     d.scene = 'world';
     Save.write(G.slot, d);
@@ -60,6 +60,7 @@ const Game = (() => {
     G.player = new Player(G.data.x);
     G.enemies = []; G.pickups = []; G.particles = []; G.floaters = [];
     G.npcs = World.NPCS.map(n => new NPC(n));
+    makeHorse();
     G.scene = 'world'; G.interior = null; G.biome = null;
     G.camX = U.clamp(G.player.x - W / 2, 0, World.END + 120 - W);
     UI.title(false);
@@ -129,9 +130,9 @@ const Game = (() => {
           ['Hollis (Banker)', 'Sheriff! SHERIFF! The bank\'s been robbed!'],
           ['Hollis (Banker)', "It was \"Silver\" Jack Calloway! Grinnin' that silver tooth, he cleaned out the vault and rode west into the badlands!"],
           ['Sheriff', 'Jack Calloway... I put him behind bars once. I\'ll do it again.'],
-          ['Hollis (Banker)', "He's got a horse and a head start. And Pete's stable is empty till the next horse drive."],
+          ['Hollis (Banker)', "He's got a fast horse and a head start. Pete's only got a few nags left at the stable, and they ain't cheap."],
           ['Hollis (Banker)', "Here, take what I had in my pocket for supplies. The whole town is counting on you."],
-          ['Sheriff', 'Then I\'ll walk. Every trail ends somewhere.'],
+          ['Sheriff', 'Then I\'ll buy a horse, or I\'ll walk. Every trail ends somewhere.'],
         ], () => {
           G.data.money += 15;
           Sound.sfx('coin');
@@ -172,7 +173,7 @@ const Game = (() => {
 
   G.enemyDefeated = e => {
     if (e.fixedId !== undefined) G.data.fixedKilled[e.fixedId] = day();
-    if (G.scene === 'interior') G.data.cleared[G.interior.house.id] = true;
+    if (G.scene === 'interior' && G.interior.kind === 'house') G.data.cleared[G.interior.house.id] = true;
     const loot = e.def.loot;
     let ox = 0;
     for (const id in loot) {
@@ -195,10 +196,12 @@ const Game = (() => {
       UI.fade(true);
       setTimeout(() => {
         const d = G.data;
-        if (G.scene === 'interior') leaveHouse(true);
+        if (G.scene === 'interior') leaveInterior(true);
+        dismount(true);
         d.time += 120;
         d.hp = 60; d.energy = Math.max(d.energy, 40); d.hunger = Math.max(d.hunger, 30);
         G.player = new Player(d.respawn.x);
+        if (G.horse) { G.horse.x = d.respawn.x + 30; G.horse.follow = false; }
         G.enemies = []; G.pickups = [];
         G.camX = U.clamp(G.player.x - W / 2, 0, World.END + 120 - W);
         UI.fade(false);
@@ -244,6 +247,11 @@ const Game = (() => {
           else if (it.heal) list.push({ label: `Use ${it.name} x${n}`, right: `+${it.heal} hp`, disabled: G.data.hp >= 100, pick: () => { useBandage(id); return 'stay'; } });
           else list.push({ label: `${it.name} x${n}`, right: it.note ? '' : `sells $${it.sell}`, disabled: true });
         });
+        const h = G.data.horse;
+        if (h && G.data.inv.horsefeed && G.horse && (G.player.mounted || Math.abs(G.horse.x - G.player.x) < 80) && G.scene === 'world') {
+          list.push({ label: `Feed ${h.name} (Horse Feed)`, right: `+40`, disabled: h.hunger >= 100,
+            pick: () => { takeItem('horsefeed'); h.hunger = Math.min(100, h.hunger + 40); Sound.sfx('eat'); return 'stay'; } });
+        }
         list.push({ label: 'Close', pick: () => 'close' });
         return list;
       },
@@ -282,6 +290,7 @@ const Game = (() => {
         { note: 'J: punch  ·  K (hold): block' },
         { note: 'Block right as an enemy strikes for a PERFECT block: it gets dazed.' },
         { note: 'E: talk / enter / search  ·  click or tap buildings too' },
+        { note: 'H: get on / off your horse, or whistle for it' },
         { note: 'C: make camp  ·  I: saddlebag  ·  M: mute  ·  Esc: pause' },
         { label: 'Back', pick: () => 'close' },
       ],
@@ -346,23 +355,65 @@ const Game = (() => {
       ],
     });
   }
-  function sheriffMenu(b) {
+  function stableMenu() {
+    const d = G.data;
     UI.menu({
-      title: "Sheriff's Office",
-      sub: 'Your desk, a cot, and a wanted poster on the wall.',
-      build: () => [
-        { label: 'Sleep on the cot (saves)', right: 'free', pick: () => { sleep("the Sheriff's Office", b.doorWorld); return 'close'; } },
-        { label: 'Read the wanted poster', pick: () => {
-          setTimeout(() => UI.dialogue([
-            [null, 'WANTED: "SILVER" JACK CALLOWAY. Bank robbery. Former Pinkerton detective.'],
-            [null, 'Tall, wiry, black duster, flat black hat. Silver front tooth. Fights dirty.'],
-          ]), 0);
-          return 'close';
-        } },
-        { label: 'Leave', pick: () => 'close' },
-      ],
+      title: "Pete's Stable",
+      sub: () => `Pete: "Few good animals left after the drive. Pick one."  ·  You have $${d.money}`,
+      build: () => {
+        const trade = d.horse ? Math.floor(Horses.TYPES[d.horse.type].price / 2) : 0;
+        const list = [];
+        if (d.horse) list.push({ note: `Trading in ${d.horse.name} takes $${trade} off.` });
+        for (const t in Horses.TYPES) {
+          const T = Horses.TYPES[t], cost = Math.max(0, T.price - trade);
+          const own = d.horse && d.horse.type === t;
+          list.push({ label: `${T.name}: ${T.desc}`, right: own ? 'yours' : `$${cost}`, disabled: own || d.money < cost,
+            pick: () => { setTimeout(() => buyHorse(t, cost), 0); return 'close'; } });
+        }
+        list.push({ label: 'Feed & brush your horse', right: '$2', disabled: !d.horse || d.money < 2 || d.horse.hunger >= 100,
+          pick: () => { d.money -= 2; d.horse.hunger = 100; Sound.sfx('coin'); return 'stay'; } });
+        list.push({ label: `Buy ${ITEMS.horsefeed.name}`, right: `$${ITEMS.horsefeed.price}`, disabled: d.money < ITEMS.horsefeed.price,
+          pick: () => { d.money -= ITEMS.horsefeed.price; addItem('horsefeed'); Sound.sfx('coin'); return 'stay'; } });
+        list.push({ label: 'Leave', pick: () => 'close' });
+        return list;
+      },
     });
   }
+  const HORSE_NAMES = ['Biscuit', 'Dusty', 'Whiskey', 'Clementine', 'Buck', 'Rosie', 'Thunder', 'Pepper', 'Shiloh', 'Duke'];
+  function buyHorse(type, cost) {
+    const d = G.data;
+    const old = d.horse;
+    UI.askText({
+      title: 'Name your horse', sub: `Your new ${Horses.TYPES[type].name}.`, value: U.pick(Math.random, HORSE_NAMES),
+      onDone: name => {
+        d.money -= cost;
+        Sound.sfx('coin');
+        const stable = World.BUILDINGS.find(b => b.id === 'stable');
+        d.horse = { type, name: name || 'Horse', hunger: 100, x: stable.doorWorld + 40, face: 1 };
+        makeHorse();
+        UI.dialogue([
+          ['Pete', old ? `I'll look after ${old.name}. ${d.horse.name}'s waitin' out front, saddled up.` : `${d.horse.name}'s waitin' out front, saddled up. Treat 'em right.`],
+          ['Pete', `Press ${keyName('H', 'HORSE')} to climb on or off. If you leave 'em behind, ${keyName('H', 'HORSE')} whistles 'em over.`],
+          ['Pete', "Keep some horse feed in your bag. A hungry horse slows to a crawl."],
+        ]);
+      },
+    });
+  }
+  function roomAction(act) {
+    const I = G.interior, b = I.building;
+    if (act === 'desk') UI.dialogue([[null, 'Reports, unpaid fines and a half-eaten biscuit. Nothing about where Jack went.']]);
+    else if (act === 'poster') UI.dialogue([
+      [null, 'WANTED: "SILVER" JACK CALLOWAY. Bank robbery. Former Pinkerton detective.'],
+      [null, 'Tall, wiry, black duster, flat black hat. Silver front tooth. Fights dirty. $500 REWARD.'],
+    ]);
+    else if (act === 'cot') sleep("the Sheriff's Office", b.doorWorld);
+    else if (act === 'shop') storeMenu();
+    else if (act === 'bar' || act === 'stairs') saloonMenu(b);
+    else if (act === 'piano') { Sound.sfx('piano'); UI.toast('You plink out a few notes. Miss Lila winces politely.', 2); }
+    else if (act === 'vault') UI.dialogue([[null, 'The vault door hangs wide open. Not a single dollar left inside.'], [null, 'Silver scratches on the floor... Jack dragged the strongbox out the back.']]);
+    else if (act === 'horses') stableMenu();
+  }
+
   function campMenu() {
     const night = hour() >= 18 || hour() < 5;
     UI.menu({
@@ -395,11 +446,13 @@ const Game = (() => {
     const list = [];
     if (G.scene === 'interior') {
       const I = G.interior;
-      list.push({ x: I.door, r: 18, label: 'Leave', act: () => leaveHouse() });
+      list.push({ x: I.door, r: 18, label: 'Leave', act: () => leaveInterior() });
       I.containers.forEach(c => {
         const done = (G.data.looted[I.house.id] || []).includes(c.idx);
-        list.push({ x: c.x + c.w / 2, r: 16, label: done ? `(searched)` : `Search ${c.type}`, done, box: [c.x, Interior.FLOOR + 2 - c.h, c.w, c.h], act: () => !done && startSearch(c) });
+        list.push({ x: c.x + c.w / 2, r: 16, label: done ? `(searched)` : `Search ${c.type}`, done, box: [c.x, Rooms.FLOOR + 2 - c.h, c.w, c.h], act: () => !done && startSearch(c) });
       });
+      I.objects.forEach(o => list.push({ x: o.x, r: o.r, label: o.label, box: [o.x - o.r, 60, o.r * 2, 100], act: () => roomAction(o.act) }));
+      I.people.forEach(n => { if (n.lines) list.push({ x: n.x, r: 16, label: `Talk to ${n.name}`, box: [n.x - 8, n.y - 50, 16, 50], act: () => talk(n) }); });
       return list;
     }
     World.BUILDINGS.forEach(b => list.push({
@@ -410,6 +463,7 @@ const Game = (() => {
       x: h.doorWorld, r: 18, label: `Enter ${h.name}`, box: [h.x, 152 - h.img.height, h.img.width, h.img.height], act: () => enterHouse(h),
     }));
     G.npcs.forEach(n => list.push({ x: n.x, r: 20, label: `Talk to ${n.name}`, box: [n.x - 8, GROUND - 50, 16, 50], act: () => talk(n) }));
+    if (G.horse && !G.player.mounted) list.push({ x: G.horse.x, r: 22, label: `Ride ${G.data.horse.name}`, box: [G.horse.x - 28, GROUND - 46, 56, 46], act: mount });
     if (G.data.campfire !== null) list.push({ x: G.data.campfire, r: 20, label: 'Rest at campfire', box: [G.data.campfire - 10, GROUND - 20, 20, 20], act: campMenu });
     list.push({ x: World.END - 40, r: 40, label: 'Look at the rockslide', act: () => UI.dialogue([
       [null, 'A rockslide has buried Canyon Pass. Jack must have brought it down behind him.'],
@@ -426,44 +480,50 @@ const Game = (() => {
   }
 
   function enterBuilding(b) {
-    Sound.sfx('door');
-    if (b.id === 'store') storeMenu();
-    else if (b.id === 'saloon') saloonMenu(b);
-    else if (b.id === 'sheriff') sheriffMenu(b);
-    else if (b.id === 'bank') UI.dialogue([[null, 'The vault door hangs open. Not a single dollar left inside.'], [null, 'Silver scratches on the floor... Jack dragged the strongbox out the back.']]);
-    else if (b.id === 'stable') UI.dialogue([['Pete (Stablemaster)', "Sorry, Sheriff. Every horse I had went out with the supply drive."], ['Pete (Stablemaster)', "There's a stable in the next town west. Tell 'em Pete sent you."]]);
+    const key = 'town:' + b.id;
+    const room = G.interiorCache[key] || (G.interiorCache[key] = Rooms.buildTown(b));
+    enterInterior(room, b.doorWorld, b.label);
   }
 
   function enterHouse(h) {
+    const room = G.interiorCache[h.id] || (G.interiorCache[h.id] = Rooms.buildAbandoned(h));
+    enterInterior(room, h.doorWorld, h.name, () => {
+      if (G.data.cleared[h.id]) return;
+      const r = U.rng(h.seed * 31 + day());
+      const roll = r();
+      if (roll < 0.3) G.enemies.push(new Enemy('snake', 150 + r() * 120));
+      else if (roll < 0.45) G.enemies.push(new Enemy('outlaw', 200 + r() * 80));
+      else G.data.cleared[h.id] = true;
+    });
+  }
+
+  function enterInterior(room, doorWorld, name, onEnter) {
+    dismount(true);
     Sound.sfx('door');
     UI.fade(true);
     setTimeout(() => {
-      G.interior = G.interiorCache[h.id] || (G.interiorCache[h.id] = Interior.build(h));
+      if (!room.people) room.people = room.npcs.map(n => new NPC(n));
+      room.doorWorld = doorWorld;
+      G.interior = room;
       G.scene = 'interior';
       G.worldEnemies = G.enemies;
       G.enemies = [];
       G.pickups = [];
       G.player.x = 30; G.player.face = 1; G.player.vx = 0;
       G.camX = 0;
-      if (!G.data.cleared[h.id]) {
-        const r = U.rng(h.seed * 31 + day());
-        const roll = r();
-        if (roll < 0.3) G.enemies.push(new Enemy('snake', 150 + r() * 120));
-        else if (roll < 0.45) G.enemies.push(new Enemy('outlaw', 200 + r() * 80));
-        else G.data.cleared[h.id] = true;
-      }
-      UI.place(h.name);
+      if (onEnter) onEnter();
+      UI.place(name);
       UI.fade(false);
     }, 450);
   }
 
-  function leaveHouse(instant) {
-    const h = G.interior.house;
+  function leaveInterior(instant) {
+    const I = G.interior;
     const go = () => {
       G.scene = 'world';
       G.enemies = G.worldEnemies || [];
       G.pickups = [];
-      G.player.x = h.doorWorld; G.player.vx = 0;
+      G.player.x = I.doorWorld; G.player.vx = 0;
       G.interior = null;
       G.camX = U.clamp(G.player.x - W / 2, 0, World.END + 120 - W);
     };
@@ -471,6 +531,67 @@ const Game = (() => {
     Sound.sfx('door');
     UI.fade(true);
     setTimeout(() => { go(); save(); UI.fade(false); }, 450);
+  }
+
+  // ---------------------------------------------------------------- horses
+  function makeHorse() {
+    const h = G.data.horse;
+    G.horse = h ? { type: h.type, x: h.x, face: h.face || 1, vx: 0, animT: 0, follow: false } : null;
+    if (G.player) G.player.mounted = false;
+  }
+  G.horseSpeed = () => {
+    const h = G.data.horse;
+    return Horses.TYPES[h.type].speed * (h.hunger <= 0 ? 0.5 : 1);
+  };
+  function mount() {
+    if (!G.horse || G.scene !== 'world') return;
+    G.player.mounted = true;
+    G.player.x = G.horse.x; G.player.face = G.horse.face;
+    G.horse.follow = false;
+    Sound.sfx('jump');
+    if (!G.data.flags.tutRide) {
+      G.data.flags.tutRide = true;
+      UI.toast(`Riding ${G.data.horse.name}. Hold ${keyName('Shift', 'RUN')} to gallop. No jumping or fighting in the saddle.`, 5);
+    }
+  }
+  function dismount(quiet) {
+    if (!G.player || !G.player.mounted) return;
+    G.player.mounted = false;
+    if (G.horse) { G.horse.x = G.player.x - G.player.face * 6; G.horse.vx = 0; }
+    if (!quiet) Sound.sfx('land');
+  }
+  function horseKey() {
+    if (!G.horse) { UI.toast("You don't have a horse yet. Pete at the stable sells them.", 2.5); return; }
+    if (G.scene !== 'world') return;
+    if (G.player.mounted) { dismount(); return; }
+    const dist = Math.abs(G.horse.x - G.player.x);
+    if (dist < 30) { mount(); return; }
+    Sound.sfx('select');
+    UI.toast(`You whistle for ${G.data.horse.name}.`, 1.5);
+    if (Math.abs(G.horse.x - G.player.x) > 420) G.horse.x = G.player.x + (G.horse.x < G.player.x ? -300 : 300);
+    G.horse.follow = true;
+  }
+  function horseUpdate(dt) {
+    const h = G.horse, d = G.data;
+    if (!h) return;
+    const p = G.player;
+    if (G.scene === 'world') {
+      if (p.mounted) { h.x = p.x; h.face = p.face; h.vx = p.vx; }
+      else if (h.follow) {
+        const tx = p.x - p.face * 34, dx = tx - h.x;
+        if (Math.abs(dx) > 8) { h.vx = Math.sign(dx) * Math.min(160, 40 + Math.abs(dx) * 1.5); h.face = Math.sign(dx); }
+        else { h.vx = 0; h.follow = false; }
+        h.x += h.vx * dt;
+      } else h.vx = 0;
+      h.animT += dt * Math.abs(h.vx) / 11;
+      d.horse.x = Math.round(h.x); d.horse.face = h.face;
+    }
+    const hrs = dt * TIME_SCALE / 60;
+    const rate = p.mounted ? (Math.abs(h.vx) > 100 ? 7 : 4) : 1.5;
+    const was = d.horse.hunger;
+    d.horse.hunger = Math.max(0, d.horse.hunger - rate * hrs);
+    if (was > 20 && d.horse.hunger <= 20) UI.toast(`${d.horse.name} is getting hungry. Feed them horse feed from your bag.`);
+    if (was > 0 && d.horse.hunger <= 0) UI.toast(`${d.horse.name} is starving and can barely trot.`);
   }
 
   function startSearch(c) {
@@ -528,7 +649,9 @@ const Game = (() => {
     if (!p.dead && !G.searching) {
       if (Input.pressed('pause')) { pauseMenu(); return; }
       if (Input.pressed('bag')) { inventoryMenu(); return; }
-      if (Input.pressed('camp')) { makeCamp(); return; }
+      if (Input.pressed('camp')) { if (p.mounted) dismount(true); makeCamp(); return; }
+      if (Input.pressed('horse')) horseKey();
+      if (p.mounted && Input.pressed('punch') && !d.flags.tutNoFight) { d.flags.tutNoFight = true; UI.toast(`Get off your horse (${keyName('H', 'HORSE')}) to fight.`); }
     }
 
     // clock + survival
@@ -539,7 +662,7 @@ const Game = (() => {
     if (day() !== prevDay) UI.toast(`Day ${day()} begins.`);
     const hrs = mins / 60, h = hour();
     const heat = G.scene === 'world' && G.biome && G.biome.heat && h > 9 && h < 18 ? 1.5 : 1;
-    const run = p.running ? 1.4 : 1;
+    const run = p.running && !p.mounted ? 1.4 : 1;
     const wasHungry = d.hunger <= 25, wasTired = d.energy <= 20;
     d.hunger = Math.max(0, d.hunger - HUNGER_PER_HOUR * heat * run * hrs);
     d.energy = Math.max(0, d.energy - ENERGY_PER_HOUR * run * hrs);
@@ -552,6 +675,7 @@ const Game = (() => {
     const searching = G.searching;
     const bounds = G.scene === 'interior' ? [20, W - 14] : [14, World.END - 50];
     p.update(dt, !searching && !p.dead, bounds);
+    horseUpdate(dt);
     if (searching) {
       searching.t += dt;
       if (searching.t >= searching.dur) { G.searching = null; finishSearch(searching.c); }
@@ -577,6 +701,7 @@ const Game = (() => {
     }
     UI.prompt(target ? `<b>${keyName('[E]', '[USE]')}</b> ${target.label}` : null);
     if (target && Input.pressed('use') && !target.done) target.act();
+    if (G.scene === 'interior') for (const n of G.interior.people) n.update(dt, p);
 
     // clicks / taps on things in the world
     const click = Input.takeClick();
@@ -695,6 +820,14 @@ const Game = (() => {
 
     // sky straight onto the screen
     BG.drawSky(ctx, hr, camX);
+    if (G.state !== 'title' && G.scene === 'interior') {
+      // the view out of the doorway and windows: the desert outside, lit for the hour
+      BG.drawLayers(ctx, 'desert', G.interior.doorWorld - 40);
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = U.rgb(BG.light(hr));
+      ctx.fillRect(0, 60, W, H - 60);
+      ctx.globalCompositeOperation = 'source-over';
+    }
 
     // everything else onto `layer`, lit by `light`, then composited
     lctx.clearRect(0, 0, W, H);
@@ -706,19 +839,26 @@ const Game = (() => {
     } else if (G.scene === 'interior') {
       const I = G.interior;
       lctx.drawImage(I.img, 0, 0);
-      const looted = d.looted[I.house.id] || [];
-      for (const c of I.containers) {
-        const img = looted.includes(c.idx) ? c.art.open : c.art.closed;
-        lctx.drawImage(img, c.x, Interior.FLOOR + 2 - img.height);
+      if (I.kind === 'house') {
+        const looted = d.looted[I.house.id] || [];
+        for (const c of I.containers) {
+          const img = looted.includes(c.idx) ? c.art.open : c.art.closed;
+          lctx.drawImage(img, c.x, Rooms.FLOOR + 2 - img.height);
+        }
       }
+      if (I.stalls) I.stalls.forEach((sx, i) => Horses.draw(lctx, { type: ['mule', 'bay', 'stallion'][i], face: -1, vx: 0, animT: 0, saddle: false }, sx, false, Rooms.FLOOR + 1));
+      for (const n of I.people) n.draw(lctx, 0);
+      if (I.fg) lctx.drawImage(I.fg, 0, 0);
     } else {
       drawWorld(lctx, camX, true);
       for (const n of G.npcs) n.draw(lctx, camX);
+      if (G.horse && !G.player.mounted) Horses.draw(lctx, G.horse, G.horse.x - camX, false);
     }
     if (G.state !== 'title') {
       drawPickups(lctx, camX);
       for (const e of G.enemies) e.draw(lctx, camX);
-      G.player.draw(lctx, camX);
+      if (G.player.mounted && G.scene === 'world') Horses.draw(lctx, G.horse, G.player.x - camX, true);
+      else G.player.draw(lctx, camX);
       if (G.scene === 'world') for (const p of World.PROPS) if (p.front && p.x + p.img.width > camX && p.x < camX + W) lctx.drawImage(p.img, Math.round(p.x - camX), p.base - p.img.height);
       for (const q of G.particles) { lctx.fillStyle = q.col; lctx.fillRect(Math.round(q.x - camX), Math.round(q.y), 1, 1); }
     }
@@ -726,7 +866,9 @@ const Game = (() => {
 
     // lighting
     let amb = BG.light(hr);
-    if (G.scene === 'interior' && G.state !== 'title') amb = U.lerpColor(U.shade(amb, 0.62), [110, 84, 66], 0.25);
+    if (G.scene === 'interior' && G.state !== 'title') {
+      amb = G.interior.kind === 'town' ? U.lerpColor(U.shade(amb, 0.8), [150, 122, 96], 0.4) : U.lerpColor(U.shade(amb, 0.62), [110, 84, 66], 0.25);
+    }
     const nightF = BG.night(hr);
     if (amb.some(v => v < 250)) {
       gctx.globalCompositeOperation = 'source-over';
@@ -741,12 +883,13 @@ const Game = (() => {
       if (G.state !== 'title') {
         const flick = 0.9 + 0.1 * Math.sin(G.clock * 17) * Math.sin(G.clock * 7);
         if (G.scene === 'world') {
-          if (nightF > 0) glow(G.player.x - camX, G.player.y - 26, 70, [190, 150, 100], 0.85 * nightF);
+          if (nightF > 0) glow(G.player.x - camX, G.player.y - (G.player.mounted ? 46 : 26), 70, [190, 150, 100], 0.85 * nightF);
           if (d.campfire !== null) glow(d.campfire - camX, GROUND - 8, 95 * flick, [255, 170, 90], 0.95);
           if (nightF > 0.3) for (const b of World.BUILDINGS) for (const w of b.wins) glow(b.x + w.x - camX, 153 - b.img.height + w.y, 22, [230, 170, 90], 0.8 * nightF);
         } else {
           for (const w of G.interior.windows) glow(w.x + w.w / 2, w.y + w.h, 70, U.lerpColor(BG.light(hr), [255, 255, 255], 0.2), 0.6 * (1 - nightF * 0.8));
           glow(G.player.x, G.player.y - 26, 55, [190, 150, 100], 0.5 + 0.4 * nightF);
+          for (const l of G.interior.lights) glow(l.x, l.y, l.r * flick, l.col, 0.85);
         }
       }
       // keep the layer's transparency (so the sky isn't darkened twice)
@@ -764,7 +907,7 @@ const Game = (() => {
       ctx.save();
       ctx.beginPath(); ctx.rect(0, 0, W, H);
       for (const w of G.interior.windows) ctx.rect(w.x + w.w, w.y, -w.w, w.h);
-      ctx.rect(36, Interior.FLOOR - 40, -24, 40);
+      ctx.rect(36, Rooms.FLOOR - 40, -24, 40);
       ctx.fill('evenodd');
       ctx.restore();
     }

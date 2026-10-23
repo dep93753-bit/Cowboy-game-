@@ -169,6 +169,7 @@ const Sound = (() => {
     growl: t => tone(sfxBus, 'sawtooth', 110, t, 0.3, 0.12, 80),
     howl: t => tone(sfxBus, 'sine', 500, t, 1.3, 0.12, 820),
     select: t => tone(sfxBus, 'square', 880, t, 0.04, 0.1),
+    piano: t => [523, 659, 784, 659, 698, 880, 784, 523].forEach((f, i) => tone(sfxBus, 'triangle', f, t + i * 0.14, 0.3, 0.2)),
     eat: t => { noise(sfxBus, t, 0.06, 0.2, 2000); noise(sfxBus, t + 0.12, 0.06, 0.2, 2000); },
     fire: t => noise(sfxBus, t, 0.4, 0.1, 300, 2000),
     die: t => { tone(sfxBus, 'square', 440, t, 0.2, 0.25); tone(sfxBus, 'square', 330, t + 0.2, 0.2, 0.25); tone(sfxBus, 'square', 220, t + 0.4, 0.5, 0.25); },

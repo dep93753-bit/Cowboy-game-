@@ -19,6 +19,7 @@
       <div class="bar hp"><span>HP</span><div><i></i></div></div>
       <div class="bar food"><span>FOOD</span><div><i></i></div></div>
       <div class="bar rest"><span>REST</span><div><i></i></div></div>
+      <div class="bar horse hidden"><span id="hud-horse-name">HORSE</span><div><i></i></div></div>
     </div>
     <div class="clock">
       <div id="hud-day">DAY 1</div>
@@ -52,7 +53,7 @@
       <h1>DUST <span>&amp;</span> BADGE</h1>
       <p class="tag">A frontier lawman's pursuit</p>
       <div id="slots"></div>
-      <p class="help">Keyboard: A/D move &middot; Shift run &middot; W jump &middot; J punch &middot; K block &middot; E use &middot; C camp &middot; I bag &middot; Esc pause</p>
+      <p class="help">Keyboard: A/D move &middot; Shift run &middot; W jump &middot; J punch &middot; K block &middot; E use &middot; H horse &middot; C camp &middot; I bag &middot; Esc pause</p>
     </div>
   </div>
 
@@ -67,6 +68,7 @@
     <div class="pad top">
       <button data-k="bag" class="small">BAG</button>
       <button data-k="camp" class="small">CAMP</button>
+      <button data-k="horse" class="small">HORSE</button>
       <button data-k="pause" class="small">II</button>
     </div>
     <div class="pad right">
@@ -84,13 +86,14 @@
 <script src="js/font.js"></script>
 <script src="js/sprites.js"></script>
 <script src="js/props.js"></script>
+<script src="js/horse.js"></script>
 <script src="js/backgrounds.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/input.js"></script>
 <script src="js/items.js"></script>
 <script src="js/world.js"></script>
 <script src="js/entities.js"></script>
-<script src="js/interior.js"></script>
+<script src="js/rooms.js"></script>
 <script src="js/save.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/game.js"></script>
