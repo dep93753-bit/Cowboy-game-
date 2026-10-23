@@ -238,7 +238,121 @@ const BG = (() => {
     return p.done();
   }
 
+  // Canyon: a sheer wall of layered red rock rising nearly to the top of the
+  // screen, with ledges, grooves, alcoves and dark "desert varnish" streaks.
+  // The jagged top edge uses waves that repeat every 640px so the layer tiles.
+  function canyonWall(seed, pal, topMin, topMax, base, opts = {}) {
+    const r = U.rng(seed);
+    const p = U.pix(640, SKY_H, true);
+    const waves = [[2, r() * 6], [3, r() * 6], [5, r() * 6], [9, r() * 6], [16, r() * 6]];
+    const topAt = x => {
+      let v = 0;
+      waves.forEach(([k, ph], i) => { v += Math.sin(x / 640 * Math.PI * 2 * k + ph) / (i + 1.4); });
+      return Math.round(topMin + (topMax - topMin) * (0.5 + v * 0.42));
+    };
+    const streaks = new Set();
+    for (let i = 0; i < 14; i++) { const sx = Math.floor(r() * 640); streaks.add(sx); streaks.add(sx + 1); }
+    const alcoves = [];
+    for (let i = 0; i < (opts.alcoves || 0); i++) alcoves.push([r() * 640, topMax + 10 + r() * (base - topMax - 30), 6 + r() * 10, 3 + r() * 4]);
+    for (let x = 0; x < 640; x++) {
+      const top = topAt(x), slope = topAt(x + 2) - topAt(x - 2);
+      const grooveT = 0.5 + 0.5 * Math.sin(x * 0.19 + Math.sin(x * 0.05) * 4);
+      // broad light and shadow across the wall, so it reads as buttresses and bays
+      const lightT = Math.sin(x / 640 * Math.PI * 2 * 7 + seed) * 0.5 + Math.sin(x / 640 * Math.PI * 2 * 3) * 0.5;
+      for (let y = top; y < base; y++) {
+        const d = y - top;
+        const band = Math.floor((y + Math.sin(x / 41) * 2) / (opts.band || 6));
+        let c = pal.bands[((band % pal.bands.length) + pal.bands.length) % pal.bands.length];
+        if (d < 2) c = pal.cap;
+        if (grooveT > 0.97) c = U.shade(c, 0.82);                // the odd vertical crack
+        c = U.shade(c, 1 + lightT * 0.12);
+        if ((y % (opts.ledge || 19)) === 0) c = U.shade(c, 1.18);  // ledge lip
+        else if ((y % (opts.ledge || 19)) === 1) c = U.shade(c, 0.7);
+        if (streaks.has(x) && d < 30 + (x % 24)) c = U.shade(c, 0.8);
+        if (slope > 3 && d < 6) c = U.shade(c, 0.85);
+        if (r() < 0.05) c = U.shade(c, r() < 0.5 ? 0.9 : 1.08);
+        p.put(x, y, c);
+      }
+    }
+    for (const [ax, ay, aw, ah] of alcoves) for (let y = 0; y < ah; y++) for (let x = 0; x < aw; x++) {
+      if (((x - aw / 2) / (aw / 2)) ** 2 + ((y - ah) / ah) ** 2 > 1) continue;
+      p.put(ax + x, ay + y, y === 0 ? U.shade(pal.bands[0], 0.5) : U.shade(pal.bands[0], 0.38));
+    }
+    return p.done();
+  }
+  // Fallen rock piled at the foot of the wall.
+  function talus(seed, col) {
+    const r = U.rng(seed);
+    const p = U.pix(640, SKY_H, true);
+    for (let x = 0; x < 640; x++) {
+      const h = 8 + Math.round(5 * Math.sin(x / 640 * Math.PI * 6) + 3 * Math.sin(x / 640 * Math.PI * 22));
+      for (let y = 133 - h; y < SKY_H; y++) {
+        let c = col;
+        if (r() < 0.25) c = U.shade(col, r() < 0.5 ? 0.82 : 1.12);
+        if (y === 133 - h) c = U.shade(col, 1.15);
+        p.put(x, y, c);
+      }
+    }
+    for (let i = 0; i < 40; i++) {
+      const bx = r() * 640, bw = 4 + r() * 8, bh = 3 + r() * 5, by = 132 - bh - r() * 6;
+      for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+        if (((x - bw / 2) / (bw / 2)) ** 2 + ((y - bh) / bh) ** 2 > 1) continue;
+        p.put(bx + x, by + y, y < 2 ? U.shade(col, 1.2) : x > bw * 0.6 ? U.shade(col, 0.75) : col);
+      }
+    }
+    return p.done();
+  }
+  // Dark crags overhanging the top of the screen: the narrow strip of sky.
+  function rim(seed, col) {
+    const r = U.rng(seed);
+    const p = U.pix(640, 40, true);
+    const waves = [[3, r() * 6], [7, r() * 6], [13, r() * 6]];
+    for (let x = 0; x < 640; x++) {
+      let v = 0;
+      waves.forEach(([k, ph], i) => { v += Math.sin(x / 640 * Math.PI * 2 * k + ph) / (i + 1); });
+      const depth = Math.max(0, Math.round(8 + v * 9));
+      for (let y = 0; y < depth; y++) p.put(x, y, y === depth - 1 ? U.shade(col, 1.25) : (x * 7 + y * 3) % 11 === 0 ? U.shade(col, 0.85) : col);
+    }
+    return p.done();
+  }
+  // Dry riverbed: pale sand, cracked mud flats and river pebbles.
+  function riverbed(seed) {
+    const r = U.rng(seed);
+    const top = 132, gh = H - top;
+    const sand = [[214, 170, 122], [206, 160, 114], [198, 150, 106], [188, 140, 98]];
+    const p = U.pix(320, gh, true);
+    for (let y = 0; y < gh; y++) for (let x = 0; x < 320; x++) {
+      let c = sand[Math.min(3, Math.floor((y / gh) * 4))];
+      const n = r();
+      if (n < 0.06) c = U.shade(c, 0.9); else if (n < 0.09) c = U.shade(c, 1.07);
+      p.put(x, y, c);
+    }
+    for (let x = 0; x < 320; x++) p.put(x, 0, U.shade(sand[0], 1.08));
+    // cracked mud patches
+    for (let i = 0; i < 5; i++) {
+      const cx = r() * 320, cy = 14 + r() * (gh - 20), rw = 18 + r() * 26, rh = 4 + r() * 4;
+      for (let y = -rh; y <= rh; y++) for (let x = -rw; x <= rw; x++) {
+        if ((x / rw) ** 2 + (y / rh) ** 2 > 1) continue;
+        const crack = (Math.floor((x + 400) / 7) + Math.floor((y + 40) / 4)) % 3 === 0 && ((x + 400) % 7 === 0 || (y + 40) % 4 === 0);
+        p.put(cx + x, cy + y, crack ? [140, 100, 70] : [176, 128, 90]);
+      }
+    }
+    // river pebbles
+    for (let i = 0; i < 90; i++) {
+      const x = r() * 320, y = 3 + r() * (gh - 4), c = U.pick(r, [[150, 140, 132], [176, 120, 90], [120, 110, 104], [200, 186, 170]]);
+      p.put(x, y, c); p.put(x + 1, y, U.shade(c, 0.8));
+    }
+    return p.done();
+  }
+
   const BIOMES = {
+    canyon: {
+      far: () => canyonWall(21, { cap: [156, 100, 102], bands: [[150, 90, 94], [144, 86, 90], [158, 98, 100], [148, 90, 94]] }, 10, 30, 126, { band: 10, ledge: 31 }),
+      mid: () => canyonWall(23, { cap: [130, 60, 42], bands: [[196, 86, 54], [190, 82, 52], [204, 96, 60], [186, 80, 52], [214, 120, 80], [182, 76, 50]] }, 14, 64, 130, { band: 9, ledge: 29, alcoves: 7 }),
+      hills: () => talus(25, [180, 110, 76]),
+      ground: () => riverbed(27),
+      rim: () => rim(29, [92, 40, 34]),
+    },
     desert: {
       // distant plateaus, hazy with distance
       far: () => formations(3, [[20, 110, 84, 'mesa'], [170, 70, 92, 'mesa'], [262, 18, 80, 'butte'], [330, 140, 88, 'mesa'], [520, 90, 82, 'mesa']],
@@ -254,7 +368,7 @@ const BG = (() => {
   function layers(id) {
     if (!cache[id]) {
       const b = BIOMES[id];
-      cache[id] = { far: U.chunky(b.far()), mid: U.chunky(b.mid()), hills: U.chunky(b.hills()), ground: U.chunky(b.ground()) };
+      cache[id] = { far: U.chunky(b.far()), mid: U.chunky(b.mid()), hills: U.chunky(b.hills()), ground: U.chunky(b.ground()), rim: b.rim ? U.chunky(b.rim()) : null };
     }
     return cache[id];
   }
@@ -269,6 +383,7 @@ const BG = (() => {
     const L = layers(id);
     tile(ctx, L.far, camX * 0.1, 0);
     tile(ctx, L.mid, camX * 0.22, 0);
+    if (L.rim) tile(ctx, L.rim, camX * 0.6, 0);
     tile(ctx, L.hills, camX * 0.45, 0);
     tile(ctx, L.ground, camX, 132);
   }

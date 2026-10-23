@@ -52,8 +52,17 @@ Built in small, playable stages. Each stage is pushed to the repo when it's done
 - One pixel size for everything (2x2 screen pixels per art pixel): props,
   animals, horses, sky, mesas, interiors, effects
 
-## Stage 3 — The Canyon & Town 2
-- Canyon biome art and music, new enemies (scorpions, buzzards, mountain lions)
+## Stage 3 — The Canyon & Silverbend (see VISION.md, "Area 2")
+- 3.1 (done): the road stays blocked by the rockslide; a trail beside it leads
+  into Canyon Pass, its own side-scrolling map (press USE at the trail; your
+  horse comes along). Deep red canyon walls, dry riverbed, hoodoos and
+  boulders, rockfalls, more frequent and tougher enemies, canyon music
+  ("Lasso Lady"), "Prairie - coming soon" sign at the far end. Saves remember
+  which map you're on.
+- 3.2: scorpions, mountain lions, canyon outlaws
+- 3.3: canyon loot spots: cliff dwelling, miner's cabin, wagon camp, mine shed
+- 3.4: Silverbend, the silver-mining town, with interiors and townsfolk
+- 3.5: the walk-in mine, and the "close call" cutscene with Jack
 
 ## Stage 4 — Town life
 - Side jobs for money, saloon brawls for prize money

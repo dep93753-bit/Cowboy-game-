@@ -11,6 +11,7 @@ Converted to mono 80 kbps MP3 and loudness-levelled.
 |---|---|---|---|
 | `title.mp3` | Electronic Outlaw | Zane Little Music | https://opengameart.org/content/electronic-outlaw |
 | `town.mp3` | Head in the Sand (seamless loop) | congusbongus | https://opengameart.org/content/head-in-the-sand-seamless-loop |
+| `canyon.mp3` | Lasso Lady (seamless loop) | congusbongus | https://opengameart.org/content/lasso-lady-seamless-loop |
 | `desert.mp3` | Australis Frontier (loop) | celestialghost8 | https://opengameart.org/content/australis-frontier |
 | `saloon.mp3` | [Chiptune] Medieval: The Old Tower Inn (loop) | RandomMind | https://opengameart.org/content/chiptune-medieval-the-old-tower-inn |
 | `fight.mp3` | 8-Bit RPG Battle/Encounter Theme | wolfgang | https://opengameart.org/content/8-bit-rpg-battleencounter-theme |
