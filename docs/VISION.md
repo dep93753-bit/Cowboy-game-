@@ -108,6 +108,31 @@ Hollis (banker, bowler), Eustace (bank teller), Martha (store, dress), Gus
 Doc Halloway (top hat, glasses), Deputy Ned, Pete (stablehand), Old Dusty
 (bearded prospector), Walt, Tommy (kid).
 
+## Area 2: the Canyon & Silverbend (agreed Oct 2026)
+- **Entry:** the rockslide at the end of the badlands is gone; the road simply
+  continues into the canyon.
+- **Look:** a **deep red canyon**: tall red-orange cliff walls close on both
+  sides, a narrow strip of sky, a dry riverbed for a road.
+- **Harder than the desert:** **more enemies** (they appear more often and hit
+  a bit harder) and **rockfalls** (rocks drop from the cliffs now and then;
+  dodge or take damage). Hunger drains at the desert rate.
+- **New enemies:** **scorpions** (small, fast, hard to block, low health),
+  **mountain lions** (pounce from rocks, strong and quick, day and night),
+  **canyon outlaws** (tougher local bandits; Jack still works alone).
+- **New abandoned places to loot:** cliff dwelling, old miner's cabin, broken
+  wagon camp, collapsed mine shed (each with its own interior and containers).
+- **Town 2: Silverbend**, a **silver-mining town** built against the cliffs:
+  mine entrance, assay office, general store, saloon, stable, doctor; rougher
+  townsfolk. All the usual town services (food, sleep/save, horses, healing).
+- **The mine:** a dark walk-in tunnel lit by lanterns, with loot crates and a
+  scorpion or two.
+- **Story beat, "close call":** arriving in Silverbend, the sheriff spots Jack
+  riding off; a short cutscene, then the chase continues west.
+- **End of the road for now:** past Silverbend the canyon opens up with a
+  "Prairie - coming soon" style sign and an invisible wall until the prairie
+  is built.
+- **Art:** same chunky 2x2 pixel grid and storefront style as Redemption Gulch.
+
 ## Saving
 - **3 save slots** (local to the device/browser).
 
