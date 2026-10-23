@@ -126,65 +126,92 @@ const BG = (() => {
 
   // --------------------------------------------------------------- layers
   // Each biome has tileable 640px-wide layers drawn with parallax.
-  function farMesas(seed, col) {
+  // Mesas, buttes and spires: a sheer cliff with rock layers sitting on a
+  // rubble slope (talus), the classic Monument Valley shape.
+  // f = [x, width, top, kind] where kind is 'mesa' | 'butte' | 'spire'
+  function formations(seed, list, pal, opts = {}) {
     const r = U.rng(seed);
     const p = U.pix(640, SKY_H, true);
-    const hs = new Array(640).fill(100);
-    let x = 0;
-    while (x < 640) {
-      const w = 25 + Math.floor(r() * 50), hh = 98 - Math.floor(r() * (r() < 0.6 ? 32 : 10));
-      for (let i = 0; i < w; i++) {
-        const e = Math.min(i, w - i);
-        const xx = (x + i) % 640;
-        hs[xx] = Math.min(hs[xx], hh + Math.max(0, 4 - e) * 3);
-      }
-      x += w + Math.floor(r() * 18) - 4;
-    }
-    for (let x = 0; x < 640; x++) {
-      for (let y = hs[x]; y < SKY_H; y++) {
-        let c = col;
-        if ((y - hs[x]) % 7 === 3) c = U.shade(col, 0.9);
-        if (x % 9 === 0 && y - hs[x] > 3) c = U.shade(col, 0.93);
-        if (y === hs[x]) c = U.shade(col, 1.25);
-        p.put(x, y, c);
-      }
-    }
-    return p.done();
-  }
-
-  function buttes(seed, bands) {
-    const r = U.rng(seed);
-    const p = U.pix(640, SKY_H, true);
-    const list = [[40, 50, 72], [210, 34, 86], [330, 60, 64], [500, 40, 78]];
-    for (const [bx, bw, top] of list) {
-      const x0 = bx + Math.floor(r() * 20), x1 = x0 + bw;
-      for (let y = top; y < SKY_H; y++) {
-        const t = y - top;
-        const l = x0 - Math.floor(t * 0.35) - (t > 4 ? 2 : 0), rr = x1 + Math.floor(t * 0.25);
+    const base = opts.base || 126;
+    for (const [fx, fw, top, kind] of list) {
+      const cliffH = (base - top) * (kind === 'spire' ? 0.82 : kind === 'butte' ? 0.7 : 0.62);
+      const cliffBot = Math.round(top + cliffH);
+      const talusW = (base - cliffBot) * (kind === 'spire' ? 0.6 : 1.25);
+      // jagged cliff edges per row (stays near-vertical)
+      let jl = 0, jr = 0;
+      for (let y = top; y < base; y++) {
+        jl = U.clamp(jl + (r() < 0.3 ? (r() < 0.5 ? -1 : 1) : 0), -1, 1);
+        jr = U.clamp(jr + (r() < 0.3 ? (r() < 0.5 ? -1 : 1) : 0), -1, 1);
+        let l, rr;
+        if (y < cliffBot) { l = fx + jl; rr = fx + fw + jr; }
+        else {
+          const t = (y - cliffBot) / (base - cliffBot);
+          const spread = talusW * Math.pow(t, 0.8);
+          l = Math.round(fx - spread + jl); rr = Math.round(fx + fw + spread + jr);
+        }
         for (let x = l; x < rr; x++) {
-          let c = bands[Math.floor(t / 4) % 3];
-          if (x < l + (rr - l) * 0.35) c = U.shade(c, 0.72);
-          else if (x > rr - 4) c = U.shade(c, 1.18);
-          if (r() < 0.05) c = U.shade(c, 0.86);
+          let c;
+          if (y < cliffBot) {
+            // caprock + strata bands on the cliff face
+            const d = y - top;
+            if (d < 3) c = pal.cap;
+            else c = pal.bands[Math.floor((d - 3) / (opts.band || 5)) % pal.bands.length];
+            const rel = (x - l) / Math.max(1, rr - l);
+            if (rel < 0.28) c = U.shade(c, 0.7);                   // shadow side
+            else if (rel > 0.9) c = U.shade(c, 1.12);              // sunlit edge
+            if (x !== l && (x * 13 + fx) % 11 === 0 && d > 4) c = U.shade(c, 0.8); // vertical grooves
+          } else {
+            const rel = (x - l) / Math.max(1, rr - l);
+            c = pal.talus;
+            if (rel < 0.3) c = U.shade(c, 0.8);
+            if (r() < 0.12) c = U.shade(c, r() < 0.5 ? 0.86 : 1.1);
+            if (y === cliffBot) c = U.shade(pal.talus, 0.7);       // shadow under the cliff
+          }
           p.put(x, y, c);
         }
+        // overhanging caprock lip
+        if (y === top || y === top + 1) { p.put(l - 1, y, U.shade(pal.cap, 0.8)); p.put(rr, y, pal.cap); }
       }
-      for (let x = x0; x < x1; x++) { p.put(x, top, U.shade(bands[0], 1.25)); p.put(x, top + 1, U.shade(bands[0], 1.15)); }
-      for (let i = 0; i < bw / 6; i++) {
-        const cx = x0 + Math.floor(r() * bw), ln = 6 + Math.floor(r() * 12);
-        for (let y = top + 2; y < top + ln; y++) { p.put(cx, y, U.shade(bands[2], 0.8)); if (y < top + ln - 3) p.put(cx + 1, y, U.shade(bands[2], 0.92)); }
+      // fallen boulders on the slope
+      for (let i = 0; i < fw / 8; i++) {
+        const bx = fx - talusW * 0.6 + r() * (fw + talusW * 1.2), by = cliffBot + 3 + r() * (base - cliffBot - 4);
+        p.put(bx, by, U.shade(pal.talus, 0.65)); p.put(bx + 1, by, U.shade(pal.talus, 1.15));
       }
     }
     return p.done();
   }
 
-  function hills(seed, col, bush) {
+  // Badlands: rounded, eroded clay hills striped in cream, grey, red and purple,
+  // cut by rain gullies.
+  function badlands(seed) {
     const r = U.rng(seed);
     const p = U.pix(640, SKY_H, true);
+    const stripes = [[196, 120, 84], [214, 168, 128], [168, 98, 82], [150, 112, 120], [222, 196, 150], [180, 104, 74]];
+    const humps = [];
+    for (let x = 0; x < 640; x += 30 + r() * 50) humps.push([x, 12 + r() * 14, 22 + r() * 30]);
+    const height = x => {
+      let h = 0;
+      for (const [hx, hh, hw] of humps) {
+        for (const off of [-640, 0, 640]) {
+          const d = (x - hx - off) / hw;
+          if (Math.abs(d) < 1) h = Math.max(h, hh * Math.cos(d * Math.PI / 2) ** 0.7);
+        }
+      }
+      return h;
+    };
     for (let x = 0; x < 640; x++) {
-      const h = 120 + Math.round(4 * Math.sin((x / 640) * Math.PI * 2 * 6) + 3 * Math.sin((x / 640) * Math.PI * 2 * 15 + 1));
-      for (let y = h; y < SKY_H; y++) p.put(x, y, y === h ? U.shade(col, 1.18) : (x + y) % 5 ? col : U.shade(col, 0.9));
-      if (r() < 0.08) { p.put(x - 1, h - 1, bush); p.put(x, h - 1, bush); p.put(x + 1, h - 1, bush); p.put(x, h - 2, U.shade(bush, 1.2)); }
+      const h = height(x);
+      const top = Math.round(133 - h - 4);
+      const slope = height(x + 1) - height(x - 1);
+      for (let y = top; y < SKY_H; y++) {
+        const layer = Math.floor((133 - y + Math.sin(x / 23) * 1.5) / 3);
+        let c = stripes[((layer % stripes.length) + stripes.length) % stripes.length];
+        if (slope > 0.35) c = U.shade(c, 1.1); else if (slope < -0.35) c = U.shade(c, 0.78);
+        if ((x * 7) % 13 === 0 && y > top + 2) c = U.shade(c, 0.82);        // gullies
+        if (y === top) c = U.shade(c, 1.15);
+        p.put(x, y, c);
+      }
+      if (r() < 0.035) { const bc = [104, 112, 60]; p.put(x, top - 1, bc); p.put(x + 1, top - 1, bc); p.put(x, top - 2, U.shade(bc, 1.25)); }
     }
     return p.done();
   }
@@ -211,9 +238,13 @@ const BG = (() => {
 
   const BIOMES = {
     desert: {
-      far: () => farMesas(3, [108, 58, 96]),
-      mid: () => buttes(1, [[170, 72, 52], [186, 86, 58], [156, 64, 50]]),
-      hills: () => hills(7, [176, 98, 62], [96, 104, 52]),
+      // distant plateaus, hazy with distance
+      far: () => formations(3, [[20, 110, 84, 'mesa'], [170, 70, 92, 'mesa'], [262, 18, 80, 'butte'], [330, 140, 88, 'mesa'], [520, 90, 82, 'mesa']],
+        { cap: [150, 104, 128], bands: [[132, 92, 122], [124, 86, 116], [138, 98, 126]], talus: [140, 100, 120] }, { base: 120, band: 6 }),
+      // big red mesas, buttes and spires
+      mid: () => formations(1, [[30, 96, 56, 'mesa'], [176, 34, 46, 'butte'], [232, 8, 64, 'spire'], [248, 6, 74, 'spire'], [330, 120, 64, 'mesa'], [520, 30, 50, 'butte'], [574, 7, 70, 'spire']],
+        { cap: [120, 66, 50], bands: [[186, 84, 56], [168, 72, 50], [200, 100, 66], [176, 80, 54], [222, 150, 104]], talus: [196, 118, 78] }, { base: 128, band: 5 }),
+      hills: () => badlands(7),
       ground: () => ground(11, [[222, 166, 104], [214, 156, 98], [206, 148, 92], [196, 138, 86]], [184, 124, 78]),
     },
   };
