@@ -465,6 +465,38 @@ const Sprites = (() => {
   for (const kind in MODELS) people[kind] = buildModel(MODELS[kind]);
   people.kid = buildKid();
 
+  // ---- front-facing upper bodies for people standing behind counters.
+  // Only the left half is drawn; it is mirrored to make the face symmetric.
+  const mirror = half => half.map(r => { r = r.padEnd(12, '.'); return r + r.split('').reverse().join(''); });
+  const FRONT = {
+    bartender: [
+      '', '', '', '',
+      '.........SSS', '........SSSS', '.......SSSSS', '......NSSSSS', '......NSNNSS', '.....tNeESSS',
+      '.....tSSSSSs', '......SSSSss', '......SNNNNN', '.....NNSSSSS', '.......SSSSS', '........sSSS', '.........tss',
+      '.........WDD', '......wWWWWD', '....wWWWWWWW', '...wWWWXXXXX', '...wWWXXXXXX', '...wWWXXXXXX',
+      '...SsWXXXXXX', '...SsxXXXXXX', '...SsxXXXXXX', '....sxXXXXXX', '.....xXXXXXX', '.....xXXXXXX', '.....xXXXXXX',
+    ],
+    shopkeep: [
+      '', '', '', '',
+      '..........NN', '........NNNN', '.......NNNNN', '......NNNNNN', '......NNSSSS', '......NSSSSS',
+      '......NSNNSS', '......NSeESS', '......NSSSSs', '......NSSSSS', '.......SSSRR', '........SSSS', '.........tss',
+      '.........WSS', '......VWWWWW', '....UVVVVVVV', '...UUVVVVVVV', '...UVVXXXXXX', '....VVXXXXXX',
+      '....VVXXXXXX', '....vVXXXXXX', '....SSXXXXXX', '....SsXXXXXX', '.....vLLLLLL', '.....vXXXXXX', '.....vXXXXXX',
+    ],
+    teller: [
+      '', '', '',
+      '.........AAA', '........AHHH', '........AHHH', '........bbbb', '......hHHHHH', '.......NSSSS', '......NNSSSS',
+      '......NSNNSS', '.....tSeESSS', '.....tSSSSSs', '......SSNNNN', '......SSSSSS', '.......SSSSS', '.........tss',
+      '.........WDD', '......wWWWWD', '....wWWVVWWW', '...wWWVVVWWW', '...wWVVVVWWW', '...wWVVVVWWW',
+      '...SsVVVVWWW', '...SsVVVVWWW', '...ssVVVVWWW', '....LLLLLLLL', '....PPPPPPPP', '....pPPPPPPP', '....pPPPPPPP',
+    ],
+  };
+  for (const kind in FRONT) {
+    const rows = mirror(FRONT[kind]);
+    people[kind].front = { img: build(rows, MODELS[kind].pal), flash: silhouette(rows, [255, 255, 255]) };
+  }
+
+
   // Riding pose: seated on a saddle, near leg hanging down the horse's side.
   const LEGS_RIDE = [
     '........ppPPPPPPPq',

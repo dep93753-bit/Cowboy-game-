@@ -673,7 +673,7 @@ const Game = (() => {
 
     // player
     const searching = G.searching;
-    const bounds = G.scene === 'interior' ? [20, W - 14] : [14, World.END - 50];
+    const bounds = G.scene === 'interior' ? [20, G.interior.w - 14] : [14, World.END - 50];
     p.update(dt, !searching && !p.dead, bounds);
     horseUpdate(dt);
     if (searching) {
@@ -745,7 +745,7 @@ const Game = (() => {
     if (G.scene === 'world') {
       const target = U.clamp(p.x - W / 2 + p.face * 30, 0, World.END + 120 - W);
       G.camX = U.lerp(G.camX, target, Math.min(1, dt * 4));
-    } else G.camX = 0;
+    } else G.camX = U.clamp(U.lerp(G.camX, p.x - W / 2, Math.min(1, dt * 5)), 0, Math.max(0, G.interior.w - W));
 
     // music
     const danger = G.enemies.some(e => e.alive && e.state !== 'idle' && Math.abs(e.x - p.x) < 170);
@@ -838,17 +838,17 @@ const Game = (() => {
       drawWorld(lctx, camX, false);
     } else if (G.scene === 'interior') {
       const I = G.interior;
-      lctx.drawImage(I.img, 0, 0);
+      lctx.drawImage(I.img, -Math.round(camX), 0);
       if (I.kind === 'house') {
         const looted = d.looted[I.house.id] || [];
         for (const c of I.containers) {
           const img = looted.includes(c.idx) ? c.art.open : c.art.closed;
-          lctx.drawImage(img, c.x, Rooms.FLOOR + 2 - img.height);
+          lctx.drawImage(img, Math.round(c.x - camX), Rooms.FLOOR + 2 - img.height);
         }
       }
-      if (I.stalls) I.stalls.forEach((sx, i) => Horses.draw(lctx, { type: ['mule', 'bay', 'stallion'][i], face: -1, vx: 0, animT: 0, saddle: false }, sx, false, Rooms.FLOOR + 1));
-      for (const n of I.people) n.draw(lctx, 0);
-      if (I.fg) lctx.drawImage(I.fg, 0, 0);
+      if (I.stalls) I.stalls.forEach((sx, i) => Horses.draw(lctx, { type: ['mule', 'bay', 'stallion'][i], face: -1, vx: 0, animT: 0, saddle: false }, sx - camX, false, Rooms.FLOOR + 1));
+      for (const n of I.people) n.draw(lctx, camX);
+      if (I.fg) lctx.drawImage(I.fg, -Math.round(camX), 0);
     } else {
       drawWorld(lctx, camX, true);
       for (const n of G.npcs) n.draw(lctx, camX);
@@ -887,9 +887,9 @@ const Game = (() => {
           if (d.campfire !== null) glow(d.campfire - camX, GROUND - 8, 95 * flick, [255, 170, 90], 0.95);
           if (nightF > 0.3) for (const b of World.BUILDINGS) for (const w of b.wins) glow(b.x + w.x - camX, 153 - b.img.height + w.y, 22, [230, 170, 90], 0.8 * nightF);
         } else {
-          for (const w of G.interior.windows) glow(w.x + w.w / 2, w.y + w.h, 70, U.lerpColor(BG.light(hr), [255, 255, 255], 0.2), 0.6 * (1 - nightF * 0.8));
-          glow(G.player.x, G.player.y - 26, 55, [190, 150, 100], 0.5 + 0.4 * nightF);
-          for (const l of G.interior.lights) glow(l.x, l.y, l.r * flick, l.col, 0.85);
+          for (const w of G.interior.windows) glow(w.x + w.w / 2 - camX, w.y + w.h, 70, U.lerpColor(BG.light(hr), [255, 255, 255], 0.2), 0.6 * (1 - nightF * 0.8));
+          glow(G.player.x - camX, G.player.y - 26, 55, [190, 150, 100], 0.5 + 0.4 * nightF);
+          for (const l of G.interior.lights) glow(l.x - camX, l.y, l.r * flick, l.col, 0.85);
         }
       }
       // keep the layer's transparency (so the sky isn't darkened twice)
@@ -906,8 +906,9 @@ const Game = (() => {
       ctx.fillStyle = '#000';
       ctx.save();
       ctx.beginPath(); ctx.rect(0, 0, W, H);
-      for (const w of G.interior.windows) ctx.rect(w.x + w.w, w.y, -w.w, w.h);
-      ctx.rect(36, Rooms.FLOOR - 40, -24, 40);
+      for (const w of G.interior.windows) ctx.rect(Math.round(w.x - camX) + w.w, w.y, -w.w, w.h);
+      const dr = G.interior.doorRect;
+      ctx.rect(Math.round(dr.x - camX) + dr.w, dr.y, -dr.w, dr.h);
       ctx.fill('evenodd');
       ctx.restore();
     }

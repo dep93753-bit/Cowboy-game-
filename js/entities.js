@@ -324,6 +324,12 @@ class NPC {
     if (x < -30 || x > W + 30) return;
     const set = Sprites.people[this.kind];
     const pose = this.walking ? 'walk' + (Math.floor(this.animT) % 4) : 'idle';
+    if (this.front && set.front) {
+      // behind a counter, facing the player: only the upper body shows
+      const img = set.front.img;
+      ctx.drawImage(img, Math.round(x - img.width / 2), Math.round(this.y - 22 - img.height + 1));
+      return;
+    }
     drawFrame(ctx, set[pose], x, this.y !== undefined ? this.y : GROUND - 2, this.face, Sprites.ANCHOR_X);
   }
 }
