@@ -299,7 +299,7 @@ class Enemy {
 class NPC {
   constructor(def) {
     Object.assign(this, def);
-    this.home = def.x; this.face = def.face || 1; this.animT = 0; this.walking = false;
+    this.def = def; this.home = def.x; this.face = def.face || 1; this.animT = 0; this.walking = false;
   }
   update(dt, player) {
     const near = Math.abs(player.x - this.x) < 40;
@@ -308,9 +308,15 @@ class NPC {
       const step = Math.sign(tx - this.x) * 18 * dt;
       this.walking = Math.abs(tx - this.x) > 2;
       if (this.walking) { this.x += step; this.face = Math.sign(step) || this.face; this.animT += dt * 3; }
+    } else if (!this.wander && Math.abs(this.home - this.x) > 1) {
+      // walk back to their usual spot (e.g. Hollis after the intro)
+      const dir = Math.sign(this.home - this.x);
+      this.x += dir * Math.min(30 * dt, Math.abs(this.home - this.x));
+      this.walking = true; this.face = dir; this.animT += dt * 3;
     } else {
       this.walking = false;
       if (near) this.face = Math.sign(player.x - this.x) || this.face;
+      else if (this.def && this.def.face) this.face = this.def.face;
     }
   }
   draw(ctx, camX) {

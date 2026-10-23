@@ -136,18 +136,13 @@ const Game = (() => {
           G.data.money += 15;
           Sound.sfx('coin');
           G.data.flags.intro = true;
-          c.step = 3;
+          // hand control back right away; Hollis strolls back to the bank on his own
+          G.cutscene = null;
+          G.state = 'play';
           UI.toast(`Got $15. Head WEST (right). ${keyName('A/D move, Shift run, W jump', 'Use the arrows to walk')}`, 5);
           save();
         });
       }
-    } else if (c.step === 3) {
-      // Hollis walks back to the bank, play resumes
-      h.walking = true; h.face = 1; h.animT += dt * 3;
-      h.x += 30 * dt;
-      if (h.x >= h.home) { h.x = h.home; h.walking = false; h.face = -1; }
-      G.state = 'play';
-      if (!h.walking) G.cutscene = null;
     }
   }
 
@@ -831,7 +826,7 @@ const Game = (() => {
   function enableTouch() {
     if (document.body.classList.contains('touch')) return;
     document.body.classList.add('touch');
-    if (G.state !== 'title') document.getElementById('touch').classList.remove('hidden');
+    if (G.state === 'play' || G.state === 'cutscene') document.getElementById('touch').classList.remove('hidden');
     resize();
   }
 
