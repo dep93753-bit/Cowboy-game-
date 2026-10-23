@@ -30,7 +30,7 @@ Plain HTML, CSS and JavaScript. No build step, no libraries.
 Tip: block right as an enemy strikes for a **PERFECT** block, which leaves it dazed.
 
 ## Music & sound
-Real recorded music (OpenGameArt.org) and sound effects (Kenney.nl), all CC0.
+Chiptune music (OpenGameArt.org) and 8-bit sound effects (Juhani Junkala), all CC0.
 See [`assets/CREDITS.md`](assets/CREDITS.md). Sound effects need the game to be
 served over the web (GitHub Pages or any local server); when opened straight
 from a file, the game falls back to its built-in synthesised effects.

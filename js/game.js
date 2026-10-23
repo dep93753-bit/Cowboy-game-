@@ -190,7 +190,6 @@ const Game = (() => {
     const p = G.player;
     if (p.dead) return;
     p.dead = true; p.lying = true;
-    Sound.sfx('die');
     Sound.play('death');
     UI.prompt(null);
     setTimeout(() => {

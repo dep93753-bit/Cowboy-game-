@@ -1,28 +1,26 @@
 # Audio credits
 
-Every sound and music file in this folder is released under **CC0 (public
-domain)**, so no attribution is legally required. They're listed here anyway
-to thank the authors.
+All music and sound effects are free to use in this game. Everything from
+OpenGameArt is **CC0 (public domain)**, so no attribution is legally required;
+the authors are listed anyway to thank them.
 
-## Music (`assets/music/`), from OpenGameArt.org
-Converted to mono 64 kbps MP3 and loudness-levelled for the game.
+## Music (`assets/music/`), chiptune from OpenGameArt.org
+Converted to mono 80 kbps MP3 and loudness-levelled.
 
 | File | Track | Author | Source |
 |---|---|---|---|
-| `title.mp3` | Spaghetti Western | Spring Spring | https://opengameart.org/content/spaghetti-western |
-| `town.mp3` | Lasso Lady (seamless loop) | congusbongus | https://opengameart.org/content/lasso-lady-seamless-loop |
-| `saloon.mp3` | Drunken Saloon | iamoneabe | https://opengameart.org/content/drunken-saloon |
-| `desert.mp3` | Un Désert | Komiku (Loyalty Freak Music) | https://opengameart.org/content/un-d%C3%A9sert |
-| `night.mp3` | Caravan (Desert theme) | yd | https://opengameart.org/content/desert-theme |
-| `fight.mp3` | The Cowboy's Theme | Umplix | https://opengameart.org/content/wild-west-music |
-| `house.mp3` | Desert Theme | Umplix | https://opengameart.org/content/wild-west-music |
-| `death.mp3` | The Failure of a Cowboy | Umplix | https://opengameart.org/content/wild-west-music |
+| `title.mp3` | Electronic Outlaw | Zane Little Music | https://opengameart.org/content/electronic-outlaw |
+| `town.mp3` | Head in the Sand (seamless loop) | congusbongus | https://opengameart.org/content/head-in-the-sand-seamless-loop |
+| `desert.mp3` | Australis Frontier (loop) | celestialghost8 | https://opengameart.org/content/australis-frontier |
+| `saloon.mp3` | [Chiptune] Medieval: The Old Tower Inn (loop) | RandomMind | https://opengameart.org/content/chiptune-medieval-the-old-tower-inn |
+| `fight.mp3` | 8-Bit RPG Battle/Encounter Theme | wolfgang | https://opengameart.org/content/8-bit-rpg-battleencounter-theme |
+| `house.mp3` | Haunting Chiptune Loop (Void Estate) | Zane Little Music | https://opengameart.org/content/haunting-chiptune-loop-void-estate |
+| `night.mp3` | Slow Melancholic Theme C64 Style (CC0 option) | Skrjablin | https://opengameart.org/content/slow-melancholic-theme-c64-style |
+| `death.mp3` | 8-bit Game Over Sound Effect | lesiakower (Pixabay, Pixabay Content License) | https://pixabay.com/sound-effects/ |
 
-## Sound effects (`assets/sfx/`), from Kenney (www.kenney.nl)
-Converted to MP3. Packs: Impact Sounds, RPG Audio, Interface Sounds.
-- https://kenney.nl/assets/impact-sounds
-- https://kenney.nl/assets/rpg-audio
-- https://kenney.nl/assets/interface-sounds
+## Sound effects (`assets/sfx/`)
+From **The Essential Retro Video Game Sound Effects Collection [512 sounds]** by
+Juhani Junkala (CC0): https://opengameart.org/content/512-sound-effects-8-bit-style
 
-Animal sounds (rattlesnake, coyote growl/howl), the campfire, eating and the
-piano are still synthesised in `js/audio.js`.
+Animal sounds (rattlesnake, coyote growl/howl), the campfire and the piano are
+still synthesised in `js/audio.js`.
