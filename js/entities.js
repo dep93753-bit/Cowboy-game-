@@ -14,6 +14,20 @@ function drawFrame(ctx, frame, x, y, face, anchor, flash) {
   }
 }
 
+// Walk to a random spot near home, stop, wait a few seconds, repeat.
+// Returns true while actually moving (so the walk animation only plays then).
+function wanderStep(o, dt, range, speed) {
+  if (o.pause > 0) { o.pause -= dt; return false; }
+  if (o.tx === undefined) o.tx = o.home + (Math.random() * 2 - 1) * range;
+  const dx = o.tx - o.x;
+  if (Math.abs(dx) < 1) { o.x = o.tx; o.tx = undefined; o.pause = 1.5 + Math.random() * 4; return false; }
+  const dir = Math.sign(dx);
+  o.x += dir * Math.min(speed * dt, Math.abs(dx));
+  o.face = dir;
+  o.animT += dt * speed / 7;   // one walk frame per ~7px travelled
+  return true;
+}
+
 class Player {
   constructor(x) {
     this.x = x; this.y = GROUND; this.vx = 0; this.vy = 0;
@@ -186,6 +200,7 @@ class Enemy {
     const d = this.def;
     this.t -= dt;
     this.flashT -= dt;
+    this.moving = false;
     const dx = player.x - this.x, dist = Math.abs(dx);
     const fire = Game.campfireNear(this.x, 70) && Game.isNight();
 
@@ -198,14 +213,7 @@ class Enemy {
         this.deadT -= dt;
         return;
       case 'idle': {
-        this.animT += dt * 0.5;
-        if (this.type !== 'snake') {
-          // amble around home
-          const tx = this.home + Math.sin(Game.clock * 0.4 + this.home) * 30;
-          this.face = Math.sign(tx - this.x) || this.face;
-          this.x += Math.sign(tx - this.x) * d.speed * 0.3 * dt;
-          this.animT += dt * 2;
-        }
+        if (this.type !== 'snake') this.moving = wanderStep(this, dt, 30, d.speed * 0.35);
         if (dist < d.aggro && !player.dead && !Game.data.sleeping) {
           this.state = 'chase';
           if (!this.alerted) {
@@ -217,10 +225,11 @@ class Enemy {
         break;
       }
       case 'chase': {
-        this.face = Math.sign(dx) || this.face;
+        if (Math.abs(dx) > 2) this.face = Math.sign(dx);
         if (fire && this.type === 'coyote') {
           // coyotes are scared of the campfire
           this.x -= Math.sign(Game.campfireX() - this.x || 1) * d.speed * dt;
+          this.moving = true;
           this.face = -Math.sign(Game.campfireX() - this.x || 1);
           this.animT += dt * 6;
           break;
@@ -228,7 +237,8 @@ class Enemy {
         if (dist > d.aggro * 1.8 || player.dead) { this.state = 'idle'; break; }
         if (dist > d.range) {
           this.x += this.face * d.speed * dt;
-          this.animT += dt * (this.type === 'coyote' ? 9 : 5);
+          this.animT += dt * d.speed / 7;
+          this.moving = true;
         } else {
           this.state = 'windup'; this.t = d.windup;
           if (this.type === 'snake') Sound.sfx('rattle');
@@ -272,11 +282,11 @@ class Enemy {
     } else if (this.type === 'coyote') {
       const s = Sprites.creatures.coyote;
       frame = this.state === 'attack' ? s.bite
-        : this.state === 'chase' || this.state === 'idle' ? (Math.floor(this.animT) % 2 ? s.run0 : s.run1) : s.stand;
+        : this.moving ? (Math.floor(this.animT / 2) % 2 ? s.run0 : s.run1) : s.stand;
     } else {
       const s = Sprites.people.outlaw;
       const pose = this.state === 'attack' ? 'punch' : this.state === 'windup' ? 'block'
-        : this.state === 'chase' || this.state === 'idle' ? 'walk' + (Math.floor(this.animT) % 4) : 'idle';
+        : this.moving ? 'walk' + (Math.floor(this.animT) % 4) : 'idle';
       frame = s[pose];
     }
     if (this.state === 'dead') {
@@ -304,15 +314,12 @@ class NPC {
   update(dt, player) {
     const near = Math.abs(player.x - this.x) < 40;
     if (this.wander && !near) {
-      const tx = this.home + Math.sin(Game.clock * 0.15 + this.home) * this.wander;
-      const step = Math.sign(tx - this.x) * 18 * dt;
-      this.walking = Math.abs(tx - this.x) > 2;
-      if (this.walking) { this.x += step; this.face = Math.sign(step) || this.face; this.animT += dt * 3; }
+      this.walking = wanderStep(this, dt, this.wander, 18);
     } else if (!this.wander && Math.abs(this.home - this.x) > 1) {
       // walk back to their usual spot (e.g. Hollis after the intro)
       const dir = Math.sign(this.home - this.x);
       this.x += dir * Math.min(30 * dt, Math.abs(this.home - this.x));
-      this.walking = true; this.face = dir; this.animT += dt * 3;
+      this.walking = true; this.face = dir; this.animT += dt * 30 / 7;
     } else {
       this.walking = false;
       if (near) this.face = Math.sign(player.x - this.x) || this.face;

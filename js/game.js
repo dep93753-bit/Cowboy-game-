@@ -819,10 +819,12 @@ const Game = (() => {
     const camX = G.camX;
 
     // sky straight onto the screen
-    BG.drawSky(ctx, hr, camX);
-    if (G.state !== 'title' && G.scene === 'interior') {
-      // the view out of the doorway and windows: the desert outside, lit for the hour
-      BG.drawLayers(ctx, 'desert', G.interior.doorWorld - 40);
+    const inside = G.state !== 'title' && G.scene === 'interior';
+    BG.drawSky(ctx, hr, inside ? G.interior.doorWorld : camX);
+    if (inside) {
+      // the view out of the doorway and windows: the desert outside, lit for
+      // the hour, moving with the room so it looks like it's really out there
+      BG.drawLayers(ctx, 'desert', G.interior.doorWorld - 40 + camX);
       ctx.globalCompositeOperation = 'multiply';
       ctx.fillStyle = U.rgb(BG.light(hr));
       ctx.fillRect(0, 60, W, H - 60);
