@@ -126,7 +126,7 @@ const Town = (() => {
   function drawBubbles(ctx, camX) {
     for (const b of G_bubbles()) {
       const text = b.text, tw = Font.width(text);
-      const x = Math.round(b.who.x - camX - tw / 2), y = Math.round((b.who.y !== undefined ? b.who.y : GROUND) - 66);
+      const x = Math.round(b.who.x - camX - tw / 2), y = Math.round((b.who.y !== undefined ? b.who.y : GROUND) - 78);
       ctx.fillStyle = 'rgba(244,236,214,.95)'; ctx.fillRect(x - 3, y - 3, tw + 6, 11);
       ctx.fillStyle = '#2b1a12'; ctx.fillRect(x - 3, y + 8, tw + 6, 1); ctx.fillRect(x - 4, y - 2, 1, 9); ctx.fillRect(x + tw + 3, y - 2, 1, 9); ctx.fillRect(x - 3, y - 4, tw + 6, 1);
       ctx.fillStyle = 'rgba(244,236,214,.95)'; ctx.fillRect(Math.round(b.who.x - camX) - 1, y + 8, 3, 2);

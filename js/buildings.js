@@ -473,7 +473,7 @@ const Buildings = (() => {
     brokenBoards(p, r, x0, eave + 4, W, 60, 5);
     openDoorway(p, x0 + 12, yb - DOOR_H, 26, DOOR_H, [80, 58, 40]);
     boarded(p, x0 + W - 32, yb - 50, 22, 26);
-    const chim = chimney(p, x0 + W - 20, eave - 22, 14, [130, 110, 100]);
+    chimney(p, x0 + W - 22, eave - 12, 8, [130, 110, 100]);
     return { img: finish(p), door: x0 + 25, w: W + 20, smoke: [] };
   };
   ABANDONED.farmhouse = seed => {
@@ -537,11 +537,11 @@ const Buildings = (() => {
     clapboard(p, r, x0, eave, W, 66, wall, 1);
     gableRoof(p, r, x0 + W / 2, eave - 26, W / 2 + 5, eave + 2, [84, 74, 72]);
     const sx = x0 + W / 2 - 9;
-    clapboard(p, r, sx, eave - 60, 18, 34, wall, 1);
-    for (let y = eave - 54; y < eave - 40; y++) for (let x = sx + 4; x < sx + 14; x++) p.put(x, y, [30, 26, 28]);
-    gableRoof(p, r, sx + 9, eave - 76, 11, eave - 60, [84, 74, 72]);
-    for (let y = eave - 88; y < eave - 76; y++) p.put(sx + 9 + (y > eave - 82 ? 0 : 1), y, [110, 90, 66]);
-    for (let x = sx + 5; x < sx + 13; x++) p.put(x, eave - 84 + (x > sx + 9 ? 1 : 0), [110, 90, 66]);   // crooked cross
+    clapboard(p, r, sx, eave - 40, 18, 16, wall, 1);
+    for (let y = eave - 37; y < eave - 29; y++) for (let x = sx + 4; x < sx + 14; x++) p.put(x, y, [30, 26, 28]);
+    gableRoof(p, r, sx + 9, eave - 50, 11, eave - 40, [84, 74, 72]);
+    for (let y = eave - 58; y < eave - 50; y++) p.put(sx + 9 + (y > eave - 54 ? 0 : 1), y, [110, 90, 66]);
+    for (let x = sx + 5; x < sx + 13; x++) p.put(x, eave - 56 + (x > sx + 9 ? 1 : 0), [110, 90, 66]);   // crooked cross
     windowAt(p, x0 + 8, yb - 50, 14, 28, { header: 'arch', frame: wall, glass: [96, 70, 130], broken: true });
     boarded(p, x0 + W - 22, yb - 50, 14, 28);
     brokenBoards(p, r, x0, eave + 4, W, 30, 3);

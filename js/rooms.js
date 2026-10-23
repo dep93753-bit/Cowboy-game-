@@ -796,7 +796,7 @@ const Rooms = (() => {
       fg.fillStyle = '#3a3a40'; fg.fillRect(200, FLOOR - 24, 10, 3); fg.fillStyle = '#c8a050'; fg.fillRect(204, FLOOR - 27, 2, 3);
       place(fg, FUR.lamp(), 150, FLOOR - 21);
       lights.push({ x: 153, y: FLOOR - 28, r: 60, col: [255, 210, 140] });
-      npc('teller', 'Mr. Pike (Postmaster)', 185, { y: GROUND - 10, front: true });
+      npc('postmaster', 'Mr. Pike (Postmaster)', 185, { y: GROUND - 10, front: true });
       objects.push({ x: 185, r: 50, label: 'Talk to Mr. Pike', act: 'post' });
     } else if (b.id === 'blacksmith') {
       // the forge: brick hearth with a fire, bellows, anvil, tools

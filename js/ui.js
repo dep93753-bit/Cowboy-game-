@@ -215,10 +215,93 @@ const UI = (() => {
     setTimeout(() => { input.focus(); input.select(); }, 30);
   }
 
+  // ------------------------------------------------- character customiser
+  // def: { look, onDone(look) } - look is { g, skin, hair, hat, face }
+  let cust = null;
+  function customize(def) {
+    const look = Object.assign({}, Chars.DEFAULT_LOOK, def.look || {});
+    const original = Object.assign({}, look);
+    const opts = [
+      { label: 'Body', key: 'g', list: ['m', 'f'], names: ['Man', 'Woman'] },
+      { label: 'Skin', key: 'skin', list: Chars.SKINS.map((_, i) => i), names: Chars.SKINS.map(s => s.name) },
+      { label: 'Hair', key: 'hair', list: Chars.HAIRS.map((_, i) => i), names: Chars.HAIRS.map(s => s.name) },
+      { label: 'Hat', key: 'hat', list: Chars.HATS.map((_, i) => i), names: Chars.HATS.map(s => s.name) },
+      { label: 'Face', key: 'face', list: [0, 1, 2], names: Chars.FACES, show: () => look.g === 'm' },
+    ];
+    cust = { look, opts, sel: 0, onDone: def.onDone, onCancel: def.onCancel, original, t: 0 };
+    $('custom').classList.remove('hidden');
+    $('custom-hint').textContent = document.body.classList.contains('touch') ? 'Tap the arrows, then RIDE OUT' : 'W/S choose  ·  A/D change  ·  E start';
+    renderCustom();
+  }
+  function customRows() { return cust.opts.filter(o => !o.show || o.show()); }
+  function step(o, dir) {
+    const i = o.list.indexOf(cust.look[o.key]);
+    cust.look[o.key] = o.list[(i + dir + o.list.length) % o.list.length];
+    Sound.sfx('select');
+    renderCustom();
+  }
+  function finishCustom() {
+    const { look, onDone } = cust;
+    cust = null;
+    $('custom').classList.add('hidden');
+    Sound.sfx('select');
+    onDone(look);
+  }
+  function renderCustom() {
+    const rows = $('custom-rows');
+    rows.innerHTML = '';
+    const list = customRows();
+    cust.sel = U.clamp(cust.sel, 0, list.length);
+    list.forEach((o, i) => {
+      const r = document.createElement('div');
+      r.className = 'crow' + (i === cust.sel ? ' sel' : '');
+      const v = o.names[o.list.indexOf(cust.look[o.key])];
+      r.innerHTML = `<span class="lbl">${o.label}</span><button>&#9664;</button><span class="val">${v}</span><button>&#9654;</button>`;
+      const [l, rr] = r.querySelectorAll('button');
+      l.addEventListener('click', e => { e.stopPropagation(); cust.sel = i; step(o, -1); });
+      rr.addEventListener('click', e => { e.stopPropagation(); cust.sel = i; step(o, 1); });
+      rows.appendChild(r);
+    });
+    const go = document.createElement('button');
+    go.className = 'custom-go' + (cust.sel === list.length ? ' sel' : '');
+    go.textContent = 'RIDE OUT';
+    go.addEventListener('click', e => { e.stopPropagation(); finishCustom(); });
+    rows.appendChild(go);
+  }
+  function customizeTick(dt) {
+    if (!cust) return false;
+    cust.t += dt;
+    const list = customRows(), n = list.length + 1;
+    if (Input.pressed('up')) { cust.sel = (cust.sel - 1 + n) % n; Sound.sfx('select'); renderCustom(); }
+    if (Input.pressed('down')) { cust.sel = (cust.sel + 1) % n; Sound.sfx('select'); renderCustom(); }
+    if (cust && cust.sel < list.length) {
+      if (Input.pressed('left')) step(list[cust.sel], -1);
+      if (Input.pressed('right')) step(list[cust.sel], 1);
+    }
+    if (cust && Input.pressed('confirm')) { if (cust.sel === list.length) finishCustom(); else { cust.sel = list.length; renderCustom(); } }
+    if (cust && Input.pressed('back')) {
+      // Esc: back out (to the title for a new game, keeping the old look otherwise)
+      const { onCancel, onDone } = cust;
+      const old = cust.original;
+      cust = null; $('custom').classList.add('hidden');
+      if (onCancel) onCancel(); else onDone(old);
+    }
+    if (!cust) return true;
+    // preview: the sheriff idles, with a little walk now and then
+    const c = $('custom-art').getContext('2d');
+    c.imageSmoothingEnabled = false;
+    c.clearRect(0, 0, 88, 80);
+    const set = Chars.build(Chars.sheriffLook(cust.look));
+    const t = cust.t % 6;
+    const f = t > 4 ? Chars.frame(set, 'walk', t * 10) : t > 3.4 ? set.block : Chars.frame(set, 'idle', t * 6);
+    c.drawImage(f.img, 44 - Chars.ANCHOR, 4);
+    return true;
+  }
+
   function fade(on) { el.fade.classList.toggle('on', on); }
 
   return {
-    hud, showHud, place, prompt, toast, dialogue, dialogueTick, menu, menuTick, closeMenu, title, fade, askText,
+    hud, showHud, place, prompt, toast, dialogue, dialogueTick, menu, menuTick, closeMenu, title, fade, askText, customize, customizeTick,
     get busy() { return !!dlg || !!menuDef; },
     get inMenu() { return !!menuDef; },
   };

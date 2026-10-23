@@ -34,7 +34,7 @@ const Game = (() => {
   G.shake = m => { G.shakeT = 0.2; G.shakeMag = m; };
   G.damage = n => {
     G.data.hp = Math.max(0, G.data.hp - n);
-    G.floater(G.player.x, G.player.y - 56, '-' + n, '#ff6a5a');
+    G.floater(G.player.x, G.player.y - 68, '-' + n, '#ff6a5a');
   };
   function addItem(id, n = 1) { G.data.inv[id] = (G.data.inv[id] || 0) + n; }
   function takeItem(id, n = 1) {
@@ -53,9 +53,8 @@ const Game = (() => {
     Save.write(G.slot, d);
   }
 
-  function startGame(slot, data) {
+  function startGame(slot, data, isNew = !data) {
     G.slot = slot;
-    const isNew = !data;
     G.data = data || Save.fresh();
     G.player = new Player(G.data.x);
     G.enemies = []; G.pickups = []; G.particles = []; G.floaters = [];
@@ -94,7 +93,12 @@ const Game = (() => {
       const where = data ? (World.biomeAt(data.x).name + ' · ' + U.fmtTime(data.time)) : '';
       return {
         n, data, where,
-        play: () => startGame(n, data),
+        play: () => {
+          if (data) return startGame(n, data);
+          // a new game starts by picking how the sheriff looks
+          UI.title(false);
+          UI.customize({ onDone: look => { const d = Save.fresh(); d.look = look; startGame(n, d, true); }, onCancel: showTitle });
+        },
         remove: () => {
           UI.menu({
             title: `Delete slot ${n}?`, sub: 'This cannot be undone.',
@@ -280,6 +284,7 @@ const Game = (() => {
         { label: 'Saddlebag', pick: () => { setTimeout(inventoryMenu, 0); return 'close'; } },
         { label: 'Sound', right: Sound.muted ? 'OFF' : 'ON', pick: () => { Sound.toggleMute(); return 'stay'; } },
         { label: 'Controls', pick: () => { setTimeout(controlsMenu, 0); return 'close'; } },
+        { label: 'Change your look', pick: () => { setTimeout(() => UI.customize({ look: G.data.look, onDone: look => { G.data.look = look; save(); } }), 0); return 'close'; } },
         { label: 'Save & quit to title', pick: () => { setTimeout(toTitle, 0); return 'close'; } },
       ],
     });
@@ -486,7 +491,7 @@ const Game = (() => {
         list.push({ x: c.x + c.w / 2, r: 16, label: done ? `(searched)` : `Search ${c.type}`, done, box: [c.x, Rooms.FLOOR + 2 - c.h, c.w, c.h], act: () => !done && startSearch(c) });
       });
       I.objects.forEach(o => list.push({ x: o.x, r: o.r, label: o.label, box: [o.x - o.r, 60, o.r * 2, 100], act: () => roomAction(o.act) }));
-      I.people.forEach(n => { if (n.lines) list.push({ x: n.x, r: 16, label: `Talk to ${n.name}`, box: [n.x - 8, n.y - 50, 16, 50], act: () => talk(n) }); });
+      I.people.forEach(n => { if (n.lines) list.push({ x: n.x, r: 16, label: `Talk to ${n.name}`, box: [n.x - 10, n.y - 62, 20, 62], act: () => talk(n) }); });
       return list;
     }
     World.BUILDINGS.forEach(b => list.push({
@@ -496,8 +501,8 @@ const Game = (() => {
     World.HOUSES.forEach(h => list.push({
       x: h.doorWorld, r: 18, label: `Enter ${h.name}`, box: [h.x, 152 - h.img.height, h.img.width, h.img.height], act: () => enterHouse(h),
     }));
-    G.npcs.forEach(n => n.present !== false && list.push({ x: n.x, r: 20, label: `Talk to ${n.name}`, box: [n.x - 8, GROUND - 50, 16, 50], act: () => talk(n) }));
-    if (G.horse && !G.player.mounted) list.push({ x: G.horse.x, r: 22, label: `Ride ${G.data.horse.name}`, box: [G.horse.x - 28, GROUND - 46, 56, 46], act: mount });
+    G.npcs.forEach(n => n.present !== false && list.push({ x: n.x, r: 20, label: `Talk to ${n.name}`, box: [n.x - 10, GROUND - 62, 20, 62], act: () => talk(n) }));
+    if (G.horse && !G.player.mounted) list.push({ x: G.horse.x, r: 22, label: `Ride ${G.data.horse.name}`, box: [G.horse.x - 38, GROUND - 62, 76, 62], act: mount });
     if (G.data.campfire !== null) list.push({ x: G.data.campfire, r: 20, label: 'Rest at campfire', box: [G.data.campfire - 10, GROUND - 20, 20, 20], act: campMenu });
     list.push({ x: World.END - 40, r: 40, label: 'Look at the rockslide', act: () => UI.dialogue([
       [null, 'A rockslide has buried Canyon Pass. Jack must have brought it down behind him.'],
@@ -910,7 +915,7 @@ const Game = (() => {
     if (G.state !== 'title') {
       drawPickups(lctx, camX);
       for (const e of G.enemies) e.draw(lctx, camX);
-      if (G.player.mounted && G.scene === 'world') Horses.draw(lctx, G.horse, G.player.x - camX, true);
+      if (G.player.mounted && G.scene === 'world') Horses.draw(lctx, G.horse, G.player.x - camX, { img: G.player.set.ride.img, hip: G.player.set.rideHip });
       else G.player.draw(lctx, camX);
       if (G.scene === 'world') for (const p of World.PROPS) if (p.front && p.x + p.img.width > camX && p.x < camX + W) lctx.drawImage(p.img, Math.round(p.x - camX), p.base - p.img.height);
       for (const q of G.particles) { lctx.fillStyle = q.col; lctx.fillRect(Math.round(q.x - camX), Math.round(q.y), 1, 1); }
@@ -982,7 +987,7 @@ const Game = (() => {
         Font.draw(ctx, f.text, x, y, f.col);
       }
       if (G.searching) {
-        const p = G.player, x = Math.round(p.x - camX - 12), y = Math.round(p.y - 60);
+        const p = G.player, x = Math.round(p.x - camX - 12), y = Math.round(p.y - 74);
         ctx.fillStyle = '#1a100c'; ctx.fillRect(x - 1, y - 1, 26, 5);
         ctx.fillStyle = '#f2c94c'; ctx.fillRect(x, y, Math.round(24 * G.searching.t / G.searching.dur), 3);
       }
@@ -997,8 +1002,11 @@ const Game = (() => {
     G.clock += dt;
 
     if (G.state === 'title') {
+      UI.customizeTick(dt);
       G.titleCam += dt * 14;
       G.camX = 1300 + (G.titleCam % 4000);
+    } else if (G.data && UI.customizeTick(dt)) {
+      UI.prompt(null);
     } else if (G.data) {
       const talking = UI.dialogueTick(dt);
       const menu = !talking && UI.menuTick();

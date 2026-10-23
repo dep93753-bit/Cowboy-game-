@@ -3,10 +3,13 @@
 const Horses = (() => {
   // The horse is built from simple shapes (rump, barrel, chest, neck, head)
   // and shaded per column so it reads as round.
-  const CW = 62, H = 47;   // canvas size
-  const ANCHOR = 30;       // body centre column
-  const SEAT = 14;         // saddle row
-  const GROUNDY = H - 2;   // hoof line inside the canvas
+  // Shapes are laid out on a 62x47 grid and drawn S times larger, so horses
+  // stand right next to the 60px-tall people.
+  const S = 1.35;
+  const CW = Math.ceil(62 * S), H = Math.ceil(47 * S);   // canvas size
+  const ANCHOR = Math.round(30 * S);   // body centre column
+  const SEAT = Math.round(14 * S);     // saddle row
+  const GROUNDY = 45;                  // hoof line on the shape grid
 
   function capsule(px, py, ax, ay, bx, by, ra, rb) {
     const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy;
@@ -40,7 +43,9 @@ const Horses = (() => {
   function frame(type, phase, amp, saddle) {
     const t = TYPES[type];
     const pal = Object.assign({}, TACK, t.pal);
-    const p = U.pix(CW, H);
+    const p0 = U.pix(CW, H);
+    // put() takes shape-grid coordinates and fills the scaled block
+    const p = { put(x, y, c) { const x0 = Math.floor(x * S), y0 = Math.floor(y * S), x1 = Math.floor((x + 1) * S), y1 = Math.floor((y + 1) * S); for (let yy = y0; yy < y1; yy++) for (let xx = x0; xx < x1; xx++) p0.put(xx, yy, c); } };
     const far = U.shade(pal.B, 0.7);
     const hoof = [52, 46, 48];
     function leg(hx, hy, ph, isFar, i) {
@@ -69,17 +74,18 @@ const Horses = (() => {
       const x = 5 - Math.sin(k / 18 * 2.2) * 3 + Math.sin(phase + k * 0.3) * amp * 2, y = 18 + k;
       for (let j = 0; j < (k < 4 ? 4 : 3); j++) p.put(x + j, y, k % 3 === 0 ? U.shade(pal.M, 1.3) : pal.M);
     }
-    // body with column shading
+    // body with column shading, sampled at full resolution
+    const inB = (x, y) => inBody((x + 0.5) / S, (y + 0.5) / S);
     for (let x = 0; x < CW; x++) {
       let top = -1, bot = -1;
-      for (let y = 0; y < H; y++) if (inBody(x, y)) { if (top < 0) top = y; bot = y; }
+      for (let y = 0; y < H; y++) if (inB(x, y)) { if (top < 0) top = y; bot = y; }
       if (top < 0) continue;
       for (let y = top; y <= bot; y++) {
-        if (!inBody(x, y)) continue;
+        if (!inB(x, y)) continue;
         let c = pal.B;
-        if (y - top < 2) c = U.shade(pal.B, 1.18);
-        else if (bot - y < 3) c = pal.b;
-        p.put(x, y, c);
+        if (y - top < 3) c = U.shade(pal.B, 1.18);
+        else if (bot - y < 4) c = pal.b;
+        p0.put(x, y, c);
       }
     }
     // mane along the neck
@@ -104,8 +110,8 @@ const Horses = (() => {
     }
     // near legs in front
     LEGS.forEach(([hx, hy, off, isFar], i) => { if (!isFar) leg(hx, hy, phase + off, false, i); });
-    Props.outline(p, [30, 20, 16]);
-    return p.done();
+    Props.outline(p0, [30, 20, 16]);
+    return p0.done();
   }
 
   const cache = {};
@@ -135,11 +141,11 @@ const Horses = (() => {
     let img = f.stand, bob = 0;
     if (speed > 95) { img = f.gallop[Math.floor(h.animT * 1.4) % 8]; bob = Math.floor(h.animT * 1.4) % 4 < 2 ? 0 : -1; }
     else if (speed > 4) img = f.walk[Math.floor(h.animT) % 8];
-    const top = base - GROUNDY + bob;
+    const top = base - Math.round((GROUNDY + 1) * S) + 1 + bob;
     drawImg(ctx, img, x, top, h.face, ANCHOR);
     if (rider) {
-      const r = Sprites.rider.img;
-      drawImg(ctx, r, x - 3 * h.face, top + SEAT - (Sprites.RIDER_HIP + 1), h.face, Sprites.ANCHOR_X);
+      // rider: { img, hip } from Chars (hip = saddle row inside the image)
+      drawImg(ctx, rider.img, x - 2 * h.face, top + SEAT - rider.hip + 2, h.face, Chars.ANCHOR);
     }
   }
 
