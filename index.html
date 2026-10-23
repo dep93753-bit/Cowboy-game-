@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1020">
+<title>Dust &amp; Badge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="stage">
+  <canvas id="screen" width="320" height="180"></canvas>
+
+  <div id="hud" class="hidden">
+    <div class="bars">
+      <div class="bar hp"><span>HP</span><div><i></i></div></div>
+      <div class="bar food"><span>FOOD</span><div><i></i></div></div>
+      <div class="bar rest"><span>REST</span><div><i></i></div></div>
+    </div>
+    <div class="clock">
+      <div id="hud-day">DAY 1</div>
+      <div id="hud-time">8:00 AM</div>
+      <div id="hud-money">$0</div>
+    </div>
+    <div id="hud-place"></div>
+  </div>
+
+  <div id="prompt" class="hidden"></div>
+  <div id="toast" class="hidden"></div>
+
+  <div id="dialogue" class="hidden">
+    <div id="dlg-name"></div>
+    <div id="dlg-text"></div>
+    <div id="dlg-next">&#9660;</div>
+  </div>
+
+  <div id="menu" class="hidden">
+    <div class="menu-box">
+      <div id="menu-title"></div>
+      <div id="menu-sub"></div>
+      <div id="menu-list"></div>
+      <div id="menu-hint"></div>
+    </div>
+  </div>
+
+  <div id="title" class="hidden">
+    <canvas id="title-art" width="320" height="180"></canvas>
+    <div class="title-inner">
+      <h1>DUST <span>&amp;</span> BADGE</h1>
+      <p class="tag">A frontier lawman's pursuit</p>
+      <div id="slots"></div>
+      <p class="help">Keyboard: A/D move &middot; Shift run &middot; W jump &middot; J punch &middot; K block &middot; E use &middot; C camp &middot; I bag &middot; Esc pause</p>
+    </div>
+  </div>
+
+  <div id="fade"></div>
+
+  <div id="touch" class="hidden">
+    <div class="pad left">
+      <button data-k="left" aria-label="Left">&#9664;</button>
+      <button data-k="right" aria-label="Right">&#9654;</button>
+      <button data-k="run" class="small" aria-label="Run">RUN</button>
+    </div>
+    <div class="pad top">
+      <button data-k="bag" class="small">BAG</button>
+      <button data-k="camp" class="small">CAMP</button>
+      <button data-k="pause" class="small">II</button>
+    </div>
+    <div class="pad right">
+      <button data-k="use" class="small">USE</button>
+      <button data-k="block">BLK</button>
+      <button data-k="punch">PUNCH</button>
+      <button data-k="jump">JUMP</button>
+    </div>
+  </div>
+
+  <div id="rotate" class="hidden">Turn your phone sideways to play</div>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/font.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/props.js"></script>
+<script src="js/backgrounds.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/items.js"></script>
+<script src="js/world.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/interior.js"></script>
+<script src="js/save.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
