@@ -52,41 +52,43 @@ const BG = (() => {
       const t = i / 9;
       bands.push(t < 0.5 ? U.lerpColor(top, mid, t * 2) : U.lerpColor(mid, bot, (t - 0.5) * 2));
     }
-    const p = U.pix(W, SKY_H);
-    for (let y = 0; y < SKY_H; y++) {
-      const f = (y / (SKY_H - 6)) * (bands.length - 1);
+    // drawn at half size and doubled, so the dither uses the chunky 2x2 pixels
+    const hw = W / 2, hh = Math.ceil(SKY_H / 2);
+    const p = U.pix(hw, hh);
+    for (let y = 0; y < hh; y++) {
+      const f = (y / (hh - 3)) * (bands.length - 1);
       const i = Math.min(bands.length - 1, Math.floor(f)), fr = f - i;
-      for (let x = 0; x < W; x++) {
+      for (let x = 0; x < hw; x++) {
         const c = fr * 16 <= U.BAYER[y % 4][x % 4] || i + 1 >= bands.length ? bands[i] : bands[i + 1];
         p.put(x, y, c);
       }
     }
-    skyCanvas = p.done();
+    skyCanvas = U.dbl(p.done());
     return skyCanvas;
   }
 
   const stars = (() => {
     const r = U.rng(42), s = [];
-    for (let i = 0; i < 70; i++) s.push([Math.floor(r() * W), Math.floor(r() * 90), r() < 0.25]);
+    for (let i = 0; i < 70; i++) s.push([U.snap(r() * W), U.snap(r() * 90), r() < 0.25]);
     return s;
   })();
 
   const sunImg = (() => {
-    const p = U.pix(48, 48);
-    for (let y = 0; y < 48; y++) for (let x = 0; x < 48; x++) {
-      const d = Math.hypot(x - 24, y - 24);
-      if (d < 11) p.put(x, y, d < 9 ? [255, 240, 186] : [255, 218, 146]);
+    const p = U.pix(24, 24);
+    for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) {
+      const d = Math.hypot(x - 11.5, y - 11.5) * 2;
+      if (d < 11) p.put(x, y, d < 8 ? [255, 240, 186] : [255, 218, 146]);
       else if (d < 20 && U.BAYER[y % 4][x % 4] < (20 - d) * 1.6) p.put(x, y, [255, 214, 150]);
     }
-    return p.done();
+    return U.dbl(p.done());
   })();
   const moonImg = (() => {
-    const p = U.pix(16, 16);
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-      const d = Math.hypot(x - 8, y - 8);
-      if (d < 6.5) p.put(x, y, Math.hypot(x - 10, y - 6) < 2 || Math.hypot(x - 6, y - 10) < 1.5 ? [196, 196, 186] : [236, 234, 220]);
+    const p = U.pix(8, 8);
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+      const d = Math.hypot(x - 3.5, y - 3.5);
+      if (d < 3.6) p.put(x, y, Math.hypot(x - 4.5, y - 2.5) < 1 || Math.hypot(x - 2.5, y - 4.5) < 0.8 ? [196, 196, 186] : [236, 234, 220]);
     }
-    return p.done();
+    return U.dbl(p.done());
   })();
 
   const CLOUDS = [[30, 40, 70], [150, 28, 90], [250, 58, 55], [90, 66, 40], [400, 46, 80], [520, 34, 60]];
@@ -97,29 +99,29 @@ const BG = (() => {
     if (n > 0) {
       for (const [x, y, big] of stars) {
         ctx.fillStyle = U.rgb(big ? [230, 214, 240] : [160, 140, 190], n * (0.6 + 0.4 * Math.sin(hour * 40 + x)));
-        ctx.fillRect(x, y, 1, 1);
+        ctx.fillRect(x, y, 2, 2);
       }
     }
     // sun: rises 6:00 on the left (east), sets 19:00 on the right (west)
     if (hour > 5.5 && hour < 19.6) {
       const t = (hour - 5.5) / 14.1;
-      ctx.drawImage(sunImg, Math.round(U.lerp(10, 286, t) - 24), Math.round(124 - Math.sin(t * Math.PI) * 100 - 24));
+      ctx.drawImage(sunImg, U.snap(U.lerp(10, 286, t) - 24), U.snap(124 - Math.sin(t * Math.PI) * 100 - 24));
     }
     const mh = hour >= 19 ? hour - 19 : hour + 5;
     if (mh < 11) {
       const t = mh / 11;
-      ctx.drawImage(moonImg, Math.round(U.lerp(20, 290, t) - 8), Math.round(118 - Math.sin(t * Math.PI) * 92 - 8));
+      ctx.drawImage(moonImg, U.snap(U.lerp(20, 290, t) - 8), U.snap(118 - Math.sin(t * Math.PI) * 92 - 8));
     }
     // streaky clouds, tinted from the sky colours
     const [, mid, bot] = skyColors(hour);
     const cc = U.lerpColor(mid, bot, 0.5), ch = U.lerpColor(bot, [255, 255, 255], 0.25), cs = U.shade(mid, 0.85);
     for (const [cx, cy, len] of CLOUDS) {
-      const x0 = ((Math.round(cx - camX * 0.04 + hour * 6) % 640) + 640) % 640 - 160;
+      const x0 = U.snap(((Math.round(cx - camX * 0.04 + hour * 6) % 640) + 640) % 640 - 160);
       for (let k = 0; k < 3; k++) {
-        const l = len - k * 14, x = x0 + k * 5, y = cy + k * 2;
-        ctx.fillStyle = U.rgb(cc); ctx.fillRect(x, y, l, 1);
-        ctx.fillStyle = U.rgb(ch); ctx.fillRect(x, y - 1, Math.round(l * 0.7), 1);
-        ctx.fillStyle = U.rgb(cs); ctx.fillRect(x + 4, y + 1, Math.round(l * 0.5), 1);
+        const l = U.snap(len - k * 14), x = x0 + k * 6, y = cy + k * 4;
+        ctx.fillStyle = U.rgb(cc); ctx.fillRect(x, y, l, 2);
+        ctx.fillStyle = U.rgb(ch); ctx.fillRect(x, y - 2, U.snap(l * 0.7), 2);
+        ctx.fillStyle = U.rgb(cs); ctx.fillRect(x + 4, y + 2, U.snap(l * 0.5), 2);
       }
     }
   }
@@ -252,14 +254,14 @@ const BG = (() => {
   function layers(id) {
     if (!cache[id]) {
       const b = BIOMES[id];
-      cache[id] = { far: b.far(), mid: b.mid(), hills: b.hills(), ground: b.ground() };
+      cache[id] = { far: U.chunky(b.far()), mid: U.chunky(b.mid()), hills: U.chunky(b.hills()), ground: U.chunky(b.ground()) };
     }
     return cache[id];
   }
 
   function tile(ctx, img, offset, y) {
     const w = img.width;
-    let x = -(((Math.round(offset) % w) + w) % w);
+    let x = -(((U.snap(offset) % w) + w) % w);
     for (; x < W; x += w) ctx.drawImage(img, x, y);
   }
 

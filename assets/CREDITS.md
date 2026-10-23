@@ -1,4 +1,4 @@
-# Audio credits
+# Credits
 
 All music and sound effects are free to use in this game. Everything from
 OpenGameArt is **CC0 (public domain)**, so no attribution is legally required;
@@ -24,3 +24,10 @@ Juhani Junkala (CC0): https://opengameart.org/content/512-sound-effects-8-bit-st
 
 Animal sounds (rattlesnake, coyote growl/howl), the campfire and the piano are
 still synthesised in `js/audio.js`.
+
+## Characters
+People are built from the **Character Animation Asset Pack** by
+[Mucho Pixels](https://www.muchopixels.com) (credit optional, appreciated).
+`tools/pack_chars.py` turns the pack's frames into `js/charframes.js`, and
+`js/chars.js` repaints them with the game's own hats, vests, badges, boots,
+skirts, beards and colours.

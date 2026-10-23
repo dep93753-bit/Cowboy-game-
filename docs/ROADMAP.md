@@ -41,6 +41,17 @@ Built in small, playable stages. Each stage is pushed to the repo when it's done
   dog, chickens, horses at hitching posts, chimney smoke, the blacksmith's
   hammer, lamp posts, a water tower, windmill, well, wagon, corral
 
+## Stage 2.6 — New look (done)
+- Characters from the Mucho Pixels character pack, about 60px tall, repainted
+  with western outfits (stetsons, bowlers, top hats, bonnets, vests, badges,
+  boots, skirts, aprons, beards, outlaw bandanas)
+- Make-your-sheriff screen on a new game (body, skin, hair, hat, facial hair),
+  also in the pause menu
+- Every building redrawn as a chunky storefront: bold outlines, false fronts,
+  big signs, striped awnings, balconies; taller doors for the bigger people
+- One pixel size for everything (2x2 screen pixels per art pixel): props,
+  animals, horses, sky, mesas, interiors, effects
+
 ## Stage 3 — The Canyon & Town 2
 - Canyon biome art and music, new enemies (scorpions, buzzards, mountain lions)
 

@@ -3,7 +3,8 @@
 // Draw a sprite frame anchored at its feet. Sprites face right; flip for left.
 function drawFrame(ctx, frame, x, y, face, anchor, flash) {
   const img = flash ? frame.flash : frame.img;
-  const dx = Math.round(x), dy = Math.round(y - img.height + 1);
+  // positions snap to the 2px pixel grid so every sprite shares one pixel size
+  const dx = U.snap(x), dy = U.snap(y) - img.height + 2;
   if (face >= 0) ctx.drawImage(img, dx - anchor, dy);
   else {
     ctx.save();
@@ -108,16 +109,16 @@ class Player {
       const glove = GLOVES[Game.data.gloves || 0];
       if (this.blockAge < 0.3) {
         Sound.sfx('perfect');
-        Game.floater(this.x, this.y - 54, 'PERFECT!', '#f2c94c');
+        Game.floater(this.x, this.y - 68, 'PERFECT!', '#f2c94c');
         if (attacker) attacker.stun(1.3);
-        Game.spark(this.x + this.face * 10, this.y - 30, '#fff3b0');
+        Game.spark(this.x + this.face * 10, this.y - 38, '#fff3b0');
         return 0;
       }
       Sound.sfx('block');
       const chip = Math.round(dmg * 0.2 * (1 - glove.guard));
       if (attacker) attacker.stun(0.55);
       this.vx = -this.face * 40;
-      Game.spark(this.x + this.face * 10, this.y - 30, '#ffffff');
+      Game.spark(this.x + this.face * 10, this.y - 38, '#ffffff');
       if (chip > 0) Game.damage(chip);
       return chip;
     }
@@ -130,39 +131,38 @@ class Player {
     return dmg;
   }
 
+  // The sheriff's frames, built from the look chosen in the customiser.
+  get set() { return Chars.build(Chars.sheriffLook(Game.data.look)); }
+
   pose() {
     if (this.punchT > 0.06) return 'punch';
     if (this.blocking) return 'block';
-    if (!this.onGround) return 'jump';
-    if (Math.abs(this.vx) > 5) return 'walk' + (Math.floor(this.animT) % 4);
+    if (!this.onGround) return this.vy < 0 ? 'jump' : 'fall';
+    if (this.invuln > 0.6) return 'hurt';
+    if (Math.abs(this.vx) > 5) return this.running ? 'run' : 'walk';
     return 'idle';
   }
 
+  frame() {
+    const pose = this.pose();
+    if (this.lying) { this.deadT = (this.deadT || 0) + 1 / 60; return Chars.frame(this.set, 'dead', this.deadT * 9); }
+    const t = pose === 'punch' ? (0.34 - this.punchT) / 0.34 * 6 : pose === 'idle' ? Game.clock * 6 : this.animT * 2;
+    return Chars.frame(this.set, pose, t);
+  }
+
   draw(ctx, camX) {
-    const set = Sprites.people.lawman;
-    if (this.lying) {
-      const img = set.idle.img;
-      ctx.save();
-      ctx.translate(Math.round(this.x - camX), GROUND + 1);
-      ctx.rotate(-Math.PI / 2);
-      ctx.drawImage(img, 0, -Math.round(img.height / 2));
-      ctx.restore();
-      return;
-    }
-    if (this.invuln > 0 && Math.floor(this.invuln * 16) % 2 === 0) return;
-    let bob = 0;
-    if (this.pose() === 'idle') bob = Math.floor(Game.clock * 1.5) % 2;
-    drawFrame(ctx, set[this.pose()], this.x - camX, this.y + bob, this.face, Sprites.ANCHOR_X, this.flashT > 0);
+    if (!this.lying && this.invuln > 0 && Math.floor(this.invuln * 16) % 2 === 0) return;
+    drawFrame(ctx, this.frame(), this.x - camX, this.y, this.face, Chars.ANCHOR, this.flashT > 0);
   }
 }
 
 // ------------------------------------------------------------------ enemies
 const ENEMY_TYPES = {
-  snake: { name: 'Rattlesnake', hp: 22, speed: 16, aggro: 80, range: 19, windup: 0.7, recover: 0.8, dmg: 12, half: 8, anchor: 9,
+  snake: { name: 'Rattlesnake', hp: 22, speed: 16, aggro: 80, range: 26, windup: 0.7, recover: 0.8, dmg: 12, half: 14, anchor: 18,
     loot: { snakemeat: 0.6, rattle: 0.35 } },
-  coyote: { name: 'Coyote', hp: 28, speed: 74, aggro: 160, range: 20, windup: 0.5, recover: 0.7, dmg: 10, half: 11, anchor: 13,
+  coyote: { name: 'Coyote', hp: 28, speed: 74, aggro: 160, range: 28, windup: 0.5, recover: 0.7, dmg: 10, half: 20, anchor: 26,
     loot: { pelt: 0.7 } },
-  outlaw: { name: 'Outlaw', hp: 48, speed: 46, aggro: 130, range: 22, windup: 0.6, recover: 0.75, dmg: 15, half: 6, anchor: Sprites.ANCHOR_X,
+  outlaw: { name: 'Outlaw', hp: 48, speed: 46, aggro: 130, range: 22, windup: 0.6, recover: 0.75, dmg: 15, half: 6, anchor: Chars.ANCHOR,
     loot: { money: 1, jerky: 0.3, bandage: 0.2 } },
 };
 
@@ -175,6 +175,7 @@ class Enemy {
     this.flashT = 0; this.deadT = 0;
     this.home = x; this.fixedId = opts.fixedId;
     this.alerted = false;
+    if (type === 'outlaw') this.look = ['outlaw', 'outlaw2', 'outlaw3'][Math.floor(Math.abs(x) / 7) % 3];
   }
 
   get alive() { return this.state !== 'dead'; }
@@ -201,7 +202,7 @@ class Enemy {
     this.state = 'hurt'; this.t = 0.3;
   }
 
-  height() { return this.type === 'outlaw' ? 48 : this.type === 'coyote' ? 14 : 10; }
+  height() { return this.type === 'outlaw' ? 60 : this.type === 'coyote' ? 24 : 16; }
 
   update(dt, player) {
     const d = this.def;
@@ -258,7 +259,7 @@ class Enemy {
         if (this.t <= 0) {
           this.state = 'attack'; this.t = 0.18;
           // lunge
-          this.x += this.face * (this.type === 'coyote' ? 8 : this.type === 'snake' ? 6 : 4);
+          this.x += this.face * (this.type === 'coyote' ? 10 : this.type === 'snake' ? 8 : 4);
           if (dist < d.range + 8 && player.y > GROUND - 22) player.hurt(d.dmg, this.x, this);
         }
         break;
@@ -291,10 +292,10 @@ class Enemy {
       frame = this.state === 'attack' ? s.bite
         : this.moving ? (Math.floor(this.animT / 2) % 2 ? s.run0 : s.run1) : s.stand;
     } else {
-      const s = Sprites.people.outlaw;
-      const pose = this.state === 'attack' ? 'punch' : this.state === 'windup' ? 'block'
-        : this.moving ? 'walk' + (Math.floor(this.animT) % 4) : 'idle';
-      frame = s[pose];
+      const s = Chars.person(this.look || 'outlaw');
+      const st = this.state === 'attack' ? 'punch' : this.state === 'windup' ? 'windup' : this.state === 'hurt' || this.state === 'stun' ? 'hurt'
+        : this.moving ? (this.state === 'chase' ? 'run' : 'walk') : 'idle';
+      frame = Chars.frame(s, st, st === 'punch' ? 2 : st === 'idle' ? Game.clock * 6 : this.animT * 2);
     }
     if (this.state === 'dead') {
       ctx.globalAlpha = Math.max(0, this.deadT);
@@ -336,22 +337,31 @@ class NPC {
   draw(ctx, camX) {
     const x = this.x - camX;
     if (x < -30 || x > W + 30) return;
-    const set = Sprites.people[this.kind];
-    const pose = this.walking ? 'walk' + (Math.floor(this.animT) % 4) : 'idle';
-    if (this.front && set.front) {
-      // behind a counter, facing the player: only the upper body shows
-      const img = set.front.img;
-      ctx.drawImage(img, Math.round(x - img.width / 2), Math.round(this.y - 22 - img.height + 1));
+    const set = Chars.person(this.kind);
+    const y = this.y !== undefined ? this.y : GROUND - 2;
+    if (this.front) {
+      // behind a counter, facing the player: the counter hides the legs
+      ctx.save();
+      ctx.beginPath(); ctx.rect(x - 60, 0, 120, Math.round(y - 22));
+      ctx.clip();
+      drawFrame(ctx, Chars.frame(set, 'idle', Game.clock * 6), x, y - 8, this.face, Chars.ANCHOR);
+      ctx.restore();
       return;
     }
-    drawFrame(ctx, set[pose], x, this.y !== undefined ? this.y : GROUND - 2, this.face, Sprites.ANCHOR_X);
+    const f = this.walking ? Chars.frame(set, 'walk', this.animT * 2) : Chars.frame(set, 'idle', Game.clock * 6 + this.x);
+    drawFrame(ctx, f, x, y, this.face, Chars.ANCHOR);
   }
 }
 
 // ---------------------------------------------------------------- campfire
-function drawCampfire(ctx, x, t) {
-  x = Math.round(x);
-  const y = GROUND;
+// Drawn fine into a small canvas, then turned into chunky pixels like everything else.
+const fireCanvas = U.canvas(40, 30), fireCtx = fireCanvas.getContext('2d');
+function drawCampfire(ctx, wx, t) {
+  fireCtx.clearRect(0, 0, 40, 30);
+  drawFire(fireCtx, 20, 28, t);
+  ctx.drawImage(U.chunky(fireCanvas), U.snap(wx) - 20, GROUND - 28);
+}
+function drawFire(ctx, x, y, t) {
   ctx.fillStyle = '#5a3a22'; ctx.fillRect(x - 8, y - 3, 16, 3);
   ctx.fillStyle = '#7a5232'; ctx.fillRect(x - 6, y - 5, 12, 2);
   ctx.fillStyle = '#6b6b70';

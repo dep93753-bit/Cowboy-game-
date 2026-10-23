@@ -54,12 +54,12 @@ const Town = (() => {
         const s = Sprites.creatures.dog;
         frame = this.state === 'run' ? (Math.floor(this.animT / 2) % 2 ? s.run0 : s.run1)
           : this.state === 'sit' ? s.sit : this.state === 'wag' ? (Math.floor(this.animT * 3) % 2 ? s.wag : s.stand) : s.stand;
-        drawFrame(ctx, frame, x, GROUND - 1, this.face, 10);
+        drawFrame(ctx, frame, x, GROUND, this.face, 20);
       } else {
         const s = this.brown ? Sprites.creatures.chickenBrown : Sprites.creatures.chicken;
         frame = this.state === 'peck' ? (Math.floor(this.animT * 2) % 2 ? s.peck : s.stand)
           : this.vx ? (Math.floor(this.animT) % 2 ? s.walk : s.stand) : s.stand;
-        drawFrame(ctx, frame, x, GROUND - 3, this.face, 5);
+        drawFrame(ctx, frame, x, GROUND, this.face, 10);
       }
     }
   }
@@ -73,21 +73,21 @@ const Town = (() => {
     smokeT = 0.18;
     for (const b of World.BUILDINGS) {
       if (b.x + b.img.width < camX - 40 || b.x > camX + W + 40) continue;
-      for (const s of b.smoke) smoke.push({ x: b.x + s.x + (Math.random() - 0.5) * 2, y: 153 - b.img.height + s.y, life: 3.2, vx: 4 + Math.random() * 4, size: 2 });
+      for (const s of b.smoke) smoke.push({ x: b.x + s.x + (Math.random() - 0.5) * 2, y: 154 - b.img.height + s.y, life: 3.2, vx: 4 + Math.random() * 4, size: 2.5 });
     }
   }
   function drawSmoke(ctx, camX) {
     for (const q of smoke) {
       const a = Math.max(0, q.life / 3.2) * 0.55;
       ctx.fillStyle = `rgba(200,196,190,${a.toFixed(2)})`;
-      const s = Math.round(q.size);
-      ctx.fillRect(Math.round(q.x - camX), Math.round(q.y), s, s);
+      const s = Math.max(2, U.snap(q.size));
+      ctx.fillRect(U.snap(q.x - camX), U.snap(q.y), s, s);
     }
   }
 
   // --------------------------------------------------------- windmill
   const millFrames = [];
-  for (let i = 0; i < 6; i++) millFrames.push(Buildings.windmill(i / 6 * (Math.PI / 6)));
+  for (let i = 0; i < 6; i++) millFrames.push(U.chunky(Buildings.windmill(i / 6 * (Math.PI / 6))));
 
   // ---------------------------------------------------- townsfolk + misc
   const inHours = (h, [a, b]) => (a <= b ? h >= a && h < b : h >= a || h < b);
@@ -126,7 +126,7 @@ const Town = (() => {
   function drawBubbles(ctx, camX) {
     for (const b of G_bubbles()) {
       const text = b.text, tw = Font.width(text);
-      const x = Math.round(b.who.x - camX - tw / 2), y = Math.round((b.who.y !== undefined ? b.who.y : GROUND) - 66);
+      const x = Math.round(b.who.x - camX - tw / 2), y = Math.round((b.who.y !== undefined ? b.who.y : GROUND) - 78);
       ctx.fillStyle = 'rgba(244,236,214,.95)'; ctx.fillRect(x - 3, y - 3, tw + 6, 11);
       ctx.fillStyle = '#2b1a12'; ctx.fillRect(x - 3, y + 8, tw + 6, 1); ctx.fillRect(x - 4, y - 2, 1, 9); ctx.fillRect(x + tw + 3, y - 2, 1, 9); ctx.fillRect(x - 3, y - 4, tw + 6, 1);
       ctx.fillStyle = 'rgba(244,236,214,.95)'; ctx.fillRect(Math.round(b.who.x - camX) - 1, y + 8, 3, 2);

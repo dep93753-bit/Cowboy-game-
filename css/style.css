@@ -166,6 +166,33 @@ html, body {
 .slot button:hover, .slot button.sel { background: var(--ink); }
 #title .help { position: absolute; bottom: calc(var(--u) * 4); font-size: calc(var(--u) * 3.6); color: var(--paper); text-shadow: 0 calc(var(--u)) 0 #000; text-align: center; padding: 0 calc(var(--u) * 6); line-height: 1.6; }
 
+/* ---------- character customiser ---------- */
+#custom { position: absolute; inset: 0; z-index: 4; background: rgba(10, 6, 12, .45); display: flex; align-items: center; justify-content: center; }
+.custom-box {
+  width: 78%; background: var(--paper); color: var(--ink);
+  border: calc(var(--u) * 1.5) solid var(--ink);
+  box-shadow: inset 0 0 0 calc(var(--u)) var(--paper-dark), 0 calc(var(--u) * 3) 0 rgba(0,0,0,.5);
+  padding: calc(var(--u) * 5) calc(var(--u) * 6);
+}
+.custom-title { font-size: calc(var(--u) * 7); color: var(--rust); margin-bottom: calc(var(--u) * 3); }
+.custom-body { display: flex; gap: calc(var(--u) * 5); align-items: center; }
+#custom-art {
+  width: calc(var(--u) * 66); height: calc(var(--u) * 60); image-rendering: pixelated; flex: none;
+  background: linear-gradient(#e9c58e, #d9a86a 78%, #b98650 78%); border: calc(var(--u)) solid var(--ink);
+}
+#custom-rows { flex: 1; display: grid; gap: calc(var(--u) * 1.5); }
+.crow { display: flex; align-items: center; gap: calc(var(--u) * 2); font-size: calc(var(--u) * 4.5); padding: calc(var(--u)) calc(var(--u) * 2); border: calc(var(--u)) solid transparent; }
+.crow.sel { border-color: var(--ink); }
+.crow .lbl { width: calc(var(--u) * 24); color: #7a5a3a; }
+.crow .val { flex: 1; text-align: center; }
+.crow button, .custom-go {
+  font: inherit; font-size: calc(var(--u) * 4.5); cursor: pointer; background: var(--rust); color: var(--paper);
+  border: calc(var(--u)) solid var(--ink); padding: calc(var(--u) * 1.5) calc(var(--u) * 3);
+}
+.custom-go { margin-top: calc(var(--u) * 2); padding: calc(var(--u) * 2.5); }
+.custom-go.sel, .crow button:hover, .custom-go:hover { background: var(--ink); }
+.custom-hint { margin-top: calc(var(--u) * 3); font-size: calc(var(--u) * 3.8); color: #8a6a4a; }
+
 /* ---------- fade ---------- */
 #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .6s; }
 #fade.on { opacity: 1; }
