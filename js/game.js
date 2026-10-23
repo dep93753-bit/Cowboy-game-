@@ -499,7 +499,7 @@ const Game = (() => {
       box: [b.x, 153 - b.img.height, b.img.width, b.img.height], act: () => enterBuilding(b),
     }));
     World.HOUSES.forEach(h => list.push({
-      x: h.doorWorld, r: 18, label: `Enter ${h.name}`, box: [h.x, 152 - h.img.height, h.img.width, h.img.height], act: () => enterHouse(h),
+      x: h.doorWorld, r: 18, label: `Enter ${h.name}`, box: [h.x, 154 - h.img.height, h.img.width, h.img.height], act: () => enterHouse(h),
     }));
     G.npcs.forEach(n => n.present !== false && list.push({ x: n.x, r: 20, label: `Talk to ${n.name}`, box: [n.x - 10, GROUND - 62, 20, 62], act: () => talk(n) }));
     if (G.horse && !G.player.mounted) list.push({ x: G.horse.x, r: 22, label: `Ride ${G.data.horse.name}`, box: [G.horse.x - 38, GROUND - 62, 76, 62], act: mount });
@@ -831,39 +831,49 @@ const Game = (() => {
     }
     for (const b of World.BUILDINGS) {
       if (!vis(b.x, b.img.width)) continue;
-      const bx = Math.round(b.x - camX), by = 153 - b.img.height;
+      const bx = Math.round(b.x - camX), by = 154 - b.img.height;
       c.drawImage(b.img, bx, by);
       if (lit) {
         // lamplight in the windows after dark
         c.fillStyle = '#f2b45a';
         for (const w of b.wins) c.fillRect(bx + w.r[0], by + w.r[1], w.r[2], w.r[3]);
         c.fillStyle = '#ffd98a';
-        for (const w of b.wins) c.fillRect(bx + w.r[0] + 1, by + w.r[1] + 1, Math.max(1, w.r[2] - 6), Math.max(1, w.r[3] - 8));
+        for (const w of b.wins) c.fillRect(bx + w.r[0] + 4, by + w.r[1] + 4, Math.max(2, w.r[2] - 10), Math.max(2, w.r[3] - 10));
       }
     }
-    for (const h of World.HOUSES) if (vis(h.x, h.img.width)) c.drawImage(h.img, Math.round(h.x - camX), 152 - h.img.height);
+    for (const h of World.HOUSES) if (vis(h.x, h.img.width)) c.drawImage(h.img, Math.round(h.x - camX), 154 - h.img.height);
     for (const p of World.PROPS) if (!p.front && !p.back && vis(p.x, p.img.width)) c.drawImage(p.img, Math.round(p.x - camX), p.base - p.img.height);
     Town.drawSmoke(c, camX);
     for (const hh of World.HITCHED) if (vis(hh.x - 32, 64)) Horses.draw(c, { type: hh.type, face: hh.face, vx: 0, animT: 0 }, hh.x - camX, false, GROUND - 4);
     if (!withPlayer) return;
     if (G.data.campfire !== null && vis(G.data.campfire - 12, 24)) drawCampfire(c, G.data.campfire - camX, G.clock);
     for (const t of G.tumbleweeds) {
-      c.save(); c.translate(Math.round(t.x - camX), Math.round(t.y)); c.rotate(t.rot); c.drawImage(tumbleImg, -7, -7); c.restore();
+      const f = tumbleFrames[((Math.floor(t.rot / (Math.PI / 4)) % 8) + 8) % 8];
+      c.drawImage(f, U.snap(t.x - camX) - 8, U.snap(t.y) - 8);
     }
   }
-  const tumbleImg = Props.tumbleweed();
+  // the tumbleweed is pre-rotated into 8 chunky frames (rotating at draw time would break the pixel grid)
+  const tumbleFrames = (() => {
+    const src = Props.tumbleweed(), out = [];
+    for (let i = 0; i < 8; i++) {
+      const c = U.canvas(16, 16), x = c.getContext('2d');
+      x.translate(8, 8); x.rotate(i * Math.PI / 4); x.drawImage(src, -7, -7);
+      out.push(U.chunky(c));
+    }
+    return out;
+  })();
 
   function drawPickups(c, camX) {
     for (const k of G.pickups) {
-      const x = Math.round(k.x - camX), y = GROUND - 4 - Math.round(Math.abs(Math.sin(k.t * 4)) * 2);
+      const x = U.snap(k.x - camX), y = GROUND - 4 - U.snap(Math.abs(Math.sin(k.t * 4)) * 4);
       if (k.id === 'money') {
-        c.fillStyle = '#8a6a1a'; c.fillRect(x - 3, y - 3, 6, 6);
-        c.fillStyle = '#f2c94c'; c.fillRect(x - 2, y - 3, 4, 6); c.fillRect(x - 3, y - 2, 6, 4);
-        c.fillStyle = '#fff3b0'; c.fillRect(x - 1, y - 2, 1, 2);
+        c.fillStyle = '#3a2416'; c.fillRect(x - 4, y - 6, 8, 8);
+        c.fillStyle = '#f2c94c'; c.fillRect(x - 2, y - 6, 4, 8); c.fillRect(x - 4, y - 4, 8, 4);
+        c.fillStyle = '#fff3b0'; c.fillRect(x - 2, y - 4, 2, 2);
       } else {
-        c.fillStyle = '#3a2416'; c.fillRect(x - 4, y - 5, 8, 7);
-        c.fillStyle = '#a77b4a'; c.fillRect(x - 3, y - 4, 6, 5);
-        c.fillStyle = '#d8b080'; c.fillRect(x - 1, y - 6, 2, 2);
+        c.fillStyle = '#3a2416'; c.fillRect(x - 6, y - 8, 12, 10);
+        c.fillStyle = '#a77b4a'; c.fillRect(x - 4, y - 6, 8, 6);
+        c.fillStyle = '#d8b080'; c.fillRect(x - 2, y - 10, 4, 2);
       }
     }
   }
@@ -871,7 +881,7 @@ const Game = (() => {
   function render() {
     const d = G.data;
     const hr = d ? hour() : 18.6;
-    const camX = G.camX;
+    const camX = U.snap(G.camX);
 
     // sky straight onto the screen
     const inside = G.state !== 'title' && G.scene === 'interior';
@@ -900,7 +910,7 @@ const Game = (() => {
         const looted = d.looted[I.house.id] || [];
         for (const c of I.containers) {
           const img = looted.includes(c.idx) ? c.art.open : c.art.closed;
-          lctx.drawImage(img, Math.round(c.x - camX), Rooms.FLOOR + 2 - img.height);
+          lctx.drawImage(img, U.snap(c.x - camX), Rooms.FLOOR + 2 - img.height);
         }
       }
       if (I.stalls) I.stalls.forEach((sx, i) => Horses.draw(lctx, { type: ['mule', 'bay', 'stallion'][i], face: -1, vx: 0, animT: 0, saddle: false }, sx - camX, false, Rooms.FLOOR + 1));
@@ -918,7 +928,7 @@ const Game = (() => {
       if (G.player.mounted && G.scene === 'world') Horses.draw(lctx, G.horse, G.player.x - camX, { img: G.player.set.ride.img, hip: G.player.set.rideHip });
       else G.player.draw(lctx, camX);
       if (G.scene === 'world') for (const p of World.PROPS) if (p.front && p.x + p.img.width > camX && p.x < camX + W) lctx.drawImage(p.img, Math.round(p.x - camX), p.base - p.img.height);
-      for (const q of G.particles) { lctx.fillStyle = q.col; lctx.fillRect(Math.round(q.x - camX), Math.round(q.y), 1, 1); }
+      for (const q of G.particles) { lctx.fillStyle = q.col; lctx.fillRect(U.snap(q.x - camX), U.snap(q.y), 2, 2); }
     }
     lctx.restore();
 
@@ -945,7 +955,7 @@ const Game = (() => {
           if (d.campfire !== null) glow(d.campfire - camX, GROUND - 8, 95 * flick, [255, 170, 90], 0.95);
           for (const b of World.BUILDINGS) {
             if (b.x + b.img.width < camX - 60 || b.x > camX + W + 60) continue;
-            const by = 153 - b.img.height;
+            const by = 154 - b.img.height;
             if (nightF > 0.3) for (const w of b.wins) glow(b.x + w.r[0] + w.r[2] / 2 - camX, by + w.r[1] + w.r[3] / 2, 26, [230, 170, 90], 0.75 * nightF);
             for (const l of b.lamps) glow(b.x + l.x - camX, by + l.y, l.forge ? 60 : 34, l.forge ? [255, 130, 50] : [255, 200, 110], l.forge ? 0.9 : 0.9 * nightF);
           }

@@ -74,6 +74,56 @@ const U = {
     };
   },
 
+  // Turn fine 1px art into the game's chunky 2x2 pixels at the same size:
+  // each 2x2 block becomes its most common colour (ties go to the darker one,
+  // which keeps outlines bold). Blocks line up with the bottom-left corner so
+  // things standing on the ground stay put. Accepts a canvas or an object of
+  // canvases (e.g. { closed, open }), and passes anything else through.
+  chunky(c) {
+    if (!c) return c;
+    if (!(c instanceof HTMLCanvasElement)) {
+      if (typeof c === 'object' && !Array.isArray(c)) { const o = {}; for (const k in c) o[k] = U.chunky(c[k]); return o; }
+      if (Array.isArray(c)) return c.map(U.chunky);
+      return c;
+    }
+    const w = c.width, h = c.height, oy = h % 2;
+    const src = c.getContext('2d').getImageData(0, 0, w, h).data;
+    const out = U.canvas(w + (w % 2), h + oy), octx = out.getContext('2d');
+    const img = octx.createImageData(out.width, out.height), d = img.data;
+    const cols = [];
+    for (let by = -oy; by < h; by += 2) for (let bx = 0; bx < w; bx += 2) {
+      cols.length = 0;
+      for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
+        const x = bx + i, y = by + j;
+        if (x >= w || y < 0 || y >= h) continue;
+        const k = (y * w + x) * 4;
+        if (src[k + 3] > 60) cols.push(k);
+      }
+      if (!cols.length) continue;
+      let best = cols[0], bestN = 0;
+      for (const k of cols) {
+        let n = 0;
+        for (const q of cols) if (src[q] === src[k] && src[q + 1] === src[k + 1] && src[q + 2] === src[k + 2]) n++;
+        const lum = src[k] + src[k + 1] + src[k + 2], bl = src[best] + src[best + 1] + src[best + 2];
+        if (n > bestN || (n === bestN && lum < bl)) { best = k; bestN = n; }
+      }
+      for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
+        const o = ((by + oy + j) * out.width + bx + i) * 4;
+        d[o] = src[best]; d[o + 1] = src[best + 1]; d[o + 2] = src[best + 2]; d[o + 3] = 255;
+      }
+    }
+    octx.putImageData(img, 0, 0);
+    return out;
+  },
+  // Double a canvas with nearest-neighbour scaling (half-size art -> screen).
+  dbl(c) {
+    const o = U.canvas(c.width * 2, c.height * 2), x = o.getContext('2d');
+    x.imageSmoothingEnabled = false; x.drawImage(c, 0, 0, o.width, o.height);
+    return o;
+  },
+  // Round a screen position to the 2px pixel grid.
+  snap: v => Math.round(v / 2) * 2,
+
   // 4x4 ordered dither matrix used for gradients.
   BAYER: [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]],
 

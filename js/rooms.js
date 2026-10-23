@@ -1,13 +1,13 @@
 // Interiors: town buildings you walk into, and abandoned buildings to loot.
-// Rooms come in different widths and scroll. Furniture is built to scale
-// against the 48px-tall sheriff (1px is about 1.5 inches): doors 56px,
-// tables 20px, chairs 26px, wardrobes 52px.
+// Rooms come in different widths and scroll. Furniture was laid out against
+// the old 48px sheriff (tables 20px, chairs 26px, wardrobes 52px); doorways
+// are 70px for the 60px people. Finished rooms are turned into chunky pixels.
 // `img` is the back wall, floor and furniture; `fg` is drawn in front of people
 // standing behind counters; `lights` glow after dark.
 const Rooms = (() => {
   const FLOOR = 150;
   const OUT = [34, 22, 16];
-  const DOOR_H = 56;
+  const DOOR_H = 70;   // fits the 60px people
 
   const WOOD_L = [176, 128, 80], WOOD = [134, 90, 54], WOOD_D = [98, 62, 38], IRON = [72, 72, 78], BRASS = [206, 166, 74];
   const sh = U.shade;
@@ -178,7 +178,7 @@ const Rooms = (() => {
   // searchable kinds: closed/open pairs
   const SEARCH = {};
   for (const k of ['dresser', 'wardrobe', 'bookshelf', 'cupboard', 'desk', 'stove', 'barrel', 'crate', 'trunk', 'pot', 'sacks', 'hay', 'offering', 'washstand']) {
-    SEARCH[k] = { closed: FUR[k](false), open: FUR[k](true) };
+    SEARCH[k] = { closed: U.chunky(FUR[k](false)), open: U.chunky(FUR[k](true)) };
   }
 
   FUR.clock = () => mk(12, 54, p => { const d = at(p);
@@ -650,7 +650,8 @@ const Rooms = (() => {
       ctx.fillStyle = '#785a3a'; ctx.fillRect(Math.round(bx), FLOOR + 10 + Math.floor(r() * 12), 12 + Math.floor(r() * 10), 2);
     }
 
-    return { kind: 'house', house, w: RW, img, fg: null, containers, windows, door: 24, doorRect: door, objects: [], npcs: [], lights: [], name: house.name };
+    // the finished room is turned into the game's chunky 2x2 pixels
+    return { kind: 'house', house, w: RW, img: U.chunky(img), fg: null, containers, windows, door: 24, doorRect: door, objects: [], npcs: [], lights: [], name: house.name };
   }
 
   // ------------------------------------------------------- town interiors
@@ -819,7 +820,7 @@ const Rooms = (() => {
       for (const sx of [112, 212, 312]) windows.push({ x: sx, y: 64, w: 2, h: 2, glow: true });
       objects.push({ x: 376, r: 26, label: 'Pray at the altar', act: 'pray' });
     }
-    return { kind: 'town', building: b, w: RW, img, fg: fgc, containers: [], windows, doorRect: door, objects, npcs, lights, door: 24, name: b.label,
+    return { kind: 'town', building: b, w: RW, img: U.chunky(img), fg: U.chunky(fgc), containers: [], windows, doorRect: door, objects, npcs, lights, door: 24, name: b.label,
       stalls: b.id === 'stable' ? [190, 260, 330] : null };
   }
 

@@ -94,7 +94,8 @@ const World = (() => {
   function scatter() {
     const r = U.rng(2024);
     const keepClear = x => HOUSES.some(h => x > h.x - 30 && x < h.x + (h.w || 80) + 20) || Math.abs(x - END) < 120;
-    const add = (img, x, base, o = {}) => PROPS.push(Object.assign({ img, x, base }, o));
+    // every prop is turned into the chunky 2x2 pixel grid and placed on it
+    const add = (img, x, base, o = {}) => PROPS.push(Object.assign({ img: U.chunky(img), x: U.snap(x), base: U.snap(base) }, o));
     // behind the buildings
     add(Buildings.waterTower(), 1430, 150, { back: true });
     add(Buildings.windmill(0), 1590, 150, { back: true, windmill: true });
@@ -111,11 +112,11 @@ const World = (() => {
     add(Buildings.well(), 1360, 154);
     add(Buildings.corral(), 1400, 152, { back: true });
     add(Props.saguaro(77, 30), 1650, 152); add(Props.barrelCactus(), 10, 154);
-    add(Props.signpost('REDEMPTION GULCH'), 1630, 153);
-    add(Props.signpost('CANYON PASS 6 MI >'), 1740, 153);
-    add(Props.signpost('MILLER PLACE >'), 1830, 153);
-    add(Props.signpost('< REDEMPTION GULCH'), 3600, 153);
-    add(Props.signpost('CANYON PASS 2 MI >'), 5400, 153);
+    add(Props.signpost('REDEMPTION|GULCH'), 1630, 153);
+    add(Props.signpost('CANYON PASS|6 MI >'), 1740, 153);
+    add(Props.signpost('MILLER|PLACE >'), 1830, 153);
+    add(Props.signpost('< REDEMPTION|GULCH'), 3600, 153);
+    add(Props.signpost('CANYON PASS|2 MI >'), 5400, 153);
     for (let x = TOWN_END + 60; x < END + 300; x += 30 + r() * 70) {
       if (keepClear(x)) continue;
       const n = r();
@@ -145,7 +146,7 @@ const World = (() => {
       h.img = art.img; h.doorWorld = h.x + art.door; h.w = art.w;
     });
     scatter();
-    this.rockslide = Props.rockslide();
+    this.rockslide = U.chunky(Props.rockslide());
   }
 
   return { END, TOWN_END, BIOMES, BUILDINGS, HOUSES, NPCS, PROPS, FIXED_ENEMIES, HITCHED, CRITTERS, biomeAt, init };

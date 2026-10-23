@@ -3,7 +3,8 @@
 // Draw a sprite frame anchored at its feet. Sprites face right; flip for left.
 function drawFrame(ctx, frame, x, y, face, anchor, flash) {
   const img = flash ? frame.flash : frame.img;
-  const dx = Math.round(x), dy = Math.round(y - img.height + 1);
+  // positions snap to the 2px pixel grid so every sprite shares one pixel size
+  const dx = U.snap(x), dy = U.snap(y) - img.height + 2;
   if (face >= 0) ctx.drawImage(img, dx - anchor, dy);
   else {
     ctx.save();
@@ -157,9 +158,9 @@ class Player {
 
 // ------------------------------------------------------------------ enemies
 const ENEMY_TYPES = {
-  snake: { name: 'Rattlesnake', hp: 22, speed: 16, aggro: 80, range: 19, windup: 0.7, recover: 0.8, dmg: 12, half: 8, anchor: 9,
+  snake: { name: 'Rattlesnake', hp: 22, speed: 16, aggro: 80, range: 26, windup: 0.7, recover: 0.8, dmg: 12, half: 14, anchor: 18,
     loot: { snakemeat: 0.6, rattle: 0.35 } },
-  coyote: { name: 'Coyote', hp: 28, speed: 74, aggro: 160, range: 20, windup: 0.5, recover: 0.7, dmg: 10, half: 11, anchor: 13,
+  coyote: { name: 'Coyote', hp: 28, speed: 74, aggro: 160, range: 28, windup: 0.5, recover: 0.7, dmg: 10, half: 20, anchor: 26,
     loot: { pelt: 0.7 } },
   outlaw: { name: 'Outlaw', hp: 48, speed: 46, aggro: 130, range: 22, windup: 0.6, recover: 0.75, dmg: 15, half: 6, anchor: Chars.ANCHOR,
     loot: { money: 1, jerky: 0.3, bandage: 0.2 } },
@@ -201,7 +202,7 @@ class Enemy {
     this.state = 'hurt'; this.t = 0.3;
   }
 
-  height() { return this.type === 'outlaw' ? 60 : this.type === 'coyote' ? 14 : 10; }
+  height() { return this.type === 'outlaw' ? 60 : this.type === 'coyote' ? 24 : 16; }
 
   update(dt, player) {
     const d = this.def;
@@ -258,7 +259,7 @@ class Enemy {
         if (this.t <= 0) {
           this.state = 'attack'; this.t = 0.18;
           // lunge
-          this.x += this.face * (this.type === 'coyote' ? 8 : this.type === 'snake' ? 6 : 4);
+          this.x += this.face * (this.type === 'coyote' ? 10 : this.type === 'snake' ? 8 : 4);
           if (dist < d.range + 8 && player.y > GROUND - 22) player.hurt(d.dmg, this.x, this);
         }
         break;
@@ -343,7 +344,7 @@ class NPC {
       ctx.save();
       ctx.beginPath(); ctx.rect(x - 60, 0, 120, Math.round(y - 22));
       ctx.clip();
-      drawFrame(ctx, Chars.frame(set, 'idle', Game.clock * 6), x, y + 6, this.face, Chars.ANCHOR);
+      drawFrame(ctx, Chars.frame(set, 'idle', Game.clock * 6), x, y - 8, this.face, Chars.ANCHOR);
       ctx.restore();
       return;
     }
@@ -353,9 +354,14 @@ class NPC {
 }
 
 // ---------------------------------------------------------------- campfire
-function drawCampfire(ctx, x, t) {
-  x = Math.round(x);
-  const y = GROUND;
+// Drawn fine into a small canvas, then turned into chunky pixels like everything else.
+const fireCanvas = U.canvas(40, 30), fireCtx = fireCanvas.getContext('2d');
+function drawCampfire(ctx, wx, t) {
+  fireCtx.clearRect(0, 0, 40, 30);
+  drawFire(fireCtx, 20, 28, t);
+  ctx.drawImage(U.chunky(fireCanvas), U.snap(wx) - 20, GROUND - 28);
+}
+function drawFire(ctx, x, y, t) {
   ctx.fillStyle = '#5a3a22'; ctx.fillRect(x - 8, y - 3, 16, 3);
   ctx.fillStyle = '#7a5232'; ctx.fillRect(x - 6, y - 5, 12, 2);
   ctx.fillStyle = '#6b6b70';

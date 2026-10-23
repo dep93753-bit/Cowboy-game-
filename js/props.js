@@ -448,14 +448,19 @@ const Props = (() => {
     outline(p, [50, 32, 22]);
     return p.done();
   }
+  // Road sign drawn on the chunky 2x grid; '|' splits it into two lines.
   function signpost(text) {
-    const tw = Font.width(text) + 8;
-    const p = U.pix(tw + 4, 30);
-    for (let y = 8; y < 30; y++) { p.put(tw / 2 + 1, y, [110, 76, 48]); p.put(tw / 2 + 2, y, [84, 56, 34]); }
-    for (let y = 2; y < 11; y++) for (let x = 2; x < tw + 2; x++) p.put(x, y, y === 2 ? [196, 150, 100] : y === 10 ? [110, 76, 48] : [164, 120, 78]);
+    const lines = text.split('|');
+    const tw = Math.max(...lines.map(l => Font.width(l))) + 6, th = lines.length * 6 + 4;
+    const p = U.pix(tw + 2, th + 12);
+    for (let y = th; y < th + 12; y++) { p.put(tw / 2, y, [110, 76, 48]); p.put(tw / 2 + 1, y, [84, 56, 34]); }
+    for (let y = 1; y < th + 1; y++) for (let x = 1; x < tw + 1; x++) p.put(x, y, y === 1 ? [196, 150, 100] : y === th ? [110, 76, 48] : [164, 120, 78]);
     outline(p);
-    const c = p.done();
-    Font.draw(c.getContext('2d'), text, 6, 4, '#3a2416');
+    const art = p.done();
+    lines.forEach((l, k) => Font.draw(art.getContext('2d'), l, 1 + Math.floor((tw - Font.width(l)) / 2), 3 + k * 6, '#3a2416'));
+    const c = U.canvas(art.width * 2, art.height * 2), ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(art, 0, 0, c.width, c.height);
     return c;
   }
   function tumbleweed() {
