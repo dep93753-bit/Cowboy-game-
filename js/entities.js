@@ -86,7 +86,14 @@ class Player {
     this.x = U.clamp(this.x, bounds[0], bounds[1]);
 
     if (Math.abs(this.vx) > 5 && this.onGround) {
+      const step = Math.floor(this.animT / 2);
       this.animT += dt * Math.abs(this.vx) / 20;
+      // a footstep each time a foot lands, on whatever floor we're on
+      if (!this.mounted && Math.floor(this.animT / 2) !== step) {
+        const I = Game.scene === 'interior' ? Game.interior : null;
+        const dirt = !I || (I.house && (I.house.type === 'adobe' || I.house.type === 'barn')) || (I.building && I.building.id === 'stable');
+        Sound.sfx(dirt ? 'stepSand' : 'stepWood');
+      }
       if (running && Math.random() < dt * 10) Game.dust(this.x - this.face * 6, GROUND, 1);
     } else this.animT = 0;
     if (this.invuln > 0) this.invuln -= dt;

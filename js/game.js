@@ -191,6 +191,7 @@ const Game = (() => {
     if (p.dead) return;
     p.dead = true; p.lying = true;
     Sound.sfx('die');
+    Sound.play('death');
     UI.prompt(null);
     setTimeout(() => {
       UI.fade(true);
@@ -528,7 +529,7 @@ const Game = (() => {
       G.camX = U.clamp(G.player.x - W / 2, 0, World.END + 120 - W);
     };
     if (instant) { go(); return; }
-    Sound.sfx('door');
+    Sound.sfx('doorClose');
     UI.fade(true);
     setTimeout(() => { go(); save(); UI.fade(false); }, 450);
   }
@@ -583,7 +584,9 @@ const Game = (() => {
         else { h.vx = 0; h.follow = false; }
         h.x += h.vx * dt;
       } else h.vx = 0;
+      const before = Math.floor(h.animT / 2);
       h.animT += dt * Math.abs(h.vx) / 11;
+      if (Math.floor(h.animT / 2) !== before && Math.abs(h.vx) > 4) Sound.sfx('hoof');
       d.horse.x = Math.round(h.x); d.horse.face = h.face;
     }
     const hrs = dt * TIME_SCALE / 60;
@@ -596,7 +599,7 @@ const Game = (() => {
 
   function startSearch(c) {
     G.searching = { c, t: 0, dur: 0.8 };
-    Sound.sfx('search');
+    Sound.sfx(c.type === 'trunk' || c.type === 'offering' ? 'latch' : 'search');
   }
   function finishSearch(c) {
     const h = G.interior.house;
@@ -749,9 +752,16 @@ const Game = (() => {
 
     // music
     const danger = G.enemies.some(e => e.alive && e.state !== 'idle' && Math.abs(e.x - p.x) < 170);
-    let song = danger ? 'fight' : G.scene === 'world' && G.biome && G.biome.town ? 'town' : G.isNight() ? 'night' : 'desert';
+    const I = G.scene === 'interior' ? G.interior : null;
+    let song;
+    if (p.dead) song = 'death';
+    else if (danger) song = 'fight';
+    else if (I && I.kind === 'town' && I.building.id === 'saloon') song = 'saloon';
+    else if (I && I.kind === 'house') song = 'house';
+    else if (I || (G.biome && G.biome.town)) song = 'town';
+    else song = G.isNight() ? 'night' : 'desert';
     Sound.play(song);
-    Sound.musicVolume(G.scene === 'interior' && !danger ? 0.45 : 1);
+    Sound.musicVolume(I && I.kind === 'town' && song === 'town' ? 0.45 : 1);
 
     // occasional coyote howl at night
     if (G.isNight() && G.scene === 'world' && Math.random() < dt * 0.02) Sound.sfx('howl');
