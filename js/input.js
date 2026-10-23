@@ -29,6 +29,8 @@ const Input = (() => {
     actionsFor(e.code).forEach(a => pressedNow.add(a));
   });
   window.addEventListener('keyup', e => held.delete(e.code));
+  // browsers only allow sound after the first click/tap anywhere on the page
+  window.addEventListener('pointerdown', () => Sound.resume(), { capture: true });
   window.addEventListener('blur', () => { held.clear(); touchHeld.clear(); });
 
   function bindTouch(root) {

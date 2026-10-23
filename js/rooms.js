@@ -757,14 +757,14 @@ const Rooms = (() => {
       ] });
       objects.push({ x: 378, r: 34, label: 'Look into the vault', act: 'vault' });
     } else if (b.id === 'stable') {
-      place(ctx, FUR.saddleRack(), 48); place(ctx, FUR.saddleRack(), 70);
-      place(ctx, FUR.hay(false), 100); place(ctx, FUR.hay(false), 106, FLOOR - 15);
-      ctx.drawImage(FUR.tools(), 60, 70); ctx.drawImage(FUR.lantern(), 140, 60);
-      place(ctx, FUR.bucket(), 140); place(ctx, FUR.anvil(), 520);
-      lights.push({ x: 144, y: 66, r: 90, col: [255, 200, 120] });
+      place(ctx, FUR.saddleRack(), 44); place(ctx, FUR.saddleRack(), 64);
+      place(ctx, FUR.hay(false), 86); place(ctx, FUR.hay(false), 90, FLOOR - 15);
+      ctx.drawImage(FUR.tools(), 60, 70); ctx.drawImage(FUR.lantern(), 120, 60);
+      place(ctx, FUR.bucket(), 118); place(ctx, FUR.anvil(), 520);
+      lights.push({ x: 124, y: 66, r: 90, col: [255, 200, 120] });
       for (const sx of [190, 260, 330, 400, 470]) fg.drawImage(FUR.stall(64), sx - 32, FLOOR - 28);
-      npc('stablehand', 'Pete', 160, { face: 1 });
-      objects.push({ x: 160, r: 26, label: 'Talk to Pete about horses', act: 'horses' });
+      npc('stablehand', 'Pete', 136, { face: 1 });
+      objects.push({ x: 136, r: 22, label: 'Talk to Pete about horses', act: 'horses' });
     }
     return { kind: 'town', building: b, w: RW, img, fg: fgc, containers: [], windows, doorRect: door, objects, npcs, lights, door: 24, name: b.label,
       stalls: b.id === 'stable' ? [190, 260, 330] : null };

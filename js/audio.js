@@ -43,6 +43,57 @@ const Sound = (() => {
     },
   };
 
+  // Real recordings (all CC0, see assets/CREDITS.md). The synth songs and
+  // synth effects below are only used if a file can't be loaded.
+  const MUSIC_FILES = { title: 'title', town: 'town', saloon: 'saloon', desert: 'desert', night: 'night', fight: 'fight', house: 'house', death: 'death' };
+  const SFX_FILES = {
+    punch: { f: ['cloth1', 'cloth2', 'cloth3'], v: 0.5 },
+    hit: { f: ['impactPunch_heavy_000', 'impactPunch_heavy_001', 'impactPunch_heavy_002', 'impactPunch_heavy_003'], v: 0.9 },
+    hurt: { f: ['impactPunch_medium_000', 'impactPunch_medium_001', 'impactPunch_medium_002'], v: 0.9 },
+    block: { f: ['impactGeneric_light_000', 'impactGeneric_light_001', 'impactGeneric_light_002'], v: 0.9 },
+    perfect: { f: ['impactBell_heavy_000'], v: 0.35 },
+    ko: { f: ['impactPunch_heavy_003', 'dropLeather'], v: 0.9, all: true },
+    jump: { f: ['cloth4'], v: 0.5 },
+    land: { f: ['footstep_carpet_000'], v: 0.6 },
+    stepSand: { f: ['footstep_grass_000', 'footstep_grass_001', 'footstep_grass_002', 'footstep_grass_003'], v: 0.25 },
+    stepWood: { f: ['footstep_wood_000', 'footstep_wood_001', 'footstep_wood_002', 'footstep_wood_003'], v: 0.3 },
+    hoof: { f: ['footstep_concrete_000', 'footstep_concrete_001', 'footstep_concrete_002'], v: 0.3, rate: 1.25 },
+    pickup: { f: ['handleSmallLeather', 'handleSmallLeather2'], v: 0.7 },
+    coin: { f: ['handleCoins', 'handleCoins2'], v: 0.7 },
+    door: { f: ['doorOpen_1', 'doorOpen_2'], v: 0.6 },
+    doorClose: { f: ['doorClose_1', 'doorClose_2'], v: 0.6 },
+    search: { f: ['creak1', 'creak2', 'creak3', 'bookFlip1'], v: 0.6 },
+    latch: { f: ['metalLatch'], v: 0.6 },
+    select: { f: ['select_002'], v: 0.4 },
+  };
+  const buffers = {};
+  const canFetch = /^https?:/.test(location.protocol);
+  function loadSamples() {
+    if (!canFetch) return;
+    const names = new Set();
+    for (const k in SFX_FILES) SFX_FILES[k].f.forEach(n => names.add(n));
+    names.forEach(n => {
+      fetch(`assets/sfx/${n}.mp3`).then(r => (r.ok ? r.arrayBuffer() : Promise.reject())).then(b => ac.decodeAudioData(b))
+        .then(buf => { buffers[n] = buf; }).catch(() => {});
+    });
+  }
+  function playSample(name) {
+    const def = SFX_FILES[name];
+    if (!def) return false;
+    const list = def.f.filter(n => buffers[n]);
+    if (!list.length) return false;
+    const pick = def.all ? list : [list[Math.floor(Math.random() * list.length)]];
+    for (const n of pick) {
+      const src = ac.createBufferSource(), g = ac.createGain();
+      src.buffer = buffers[n];
+      src.playbackRate.value = (def.rate || 1) * (0.93 + Math.random() * 0.14);
+      g.gain.value = def.v;
+      src.connect(g); g.connect(sfxBus);
+      src.start();
+    }
+    return true;
+  }
+
   function freq(name) {
     const m = /^([A-G])([#b]?)(\d)$/.exec(name);
     if (!m) return 0;
@@ -76,6 +127,8 @@ const Sound = (() => {
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     setInterval(schedule, 50);
+    loadSamples();
+    if (pendingSong) { const n = pendingSong; songName = null; play(n); }
   }
 
   function resume() { init(); if (ac && ac.state === 'suspended') ac.resume(); }
@@ -103,11 +156,55 @@ const Sound = (() => {
   }
 
   // ------------------------------------------------------------- music
-  let song = null, songName = null, songGain = null, step = 0, nextTime = 0, parts = null, wantVol = 1;
+  let song = null, songName = null, songGain = null, step = 0, nextTime = 0, parts = null, wantVol = 1, pendingSong = null;
+  const tracks = {};       // name -> { el, gain }
+  let track = null;        // currently playing recorded track
+  const FILE_VOL = 0.55;
+  function fadeTrack(t, to, sec, then) {
+    if (t.gain) { t.gain.gain.setTargetAtTime(to, ac.currentTime, sec / 3); if (then) setTimeout(then, sec * 1000); return; }
+    // file:// pages can't route audio elements through Web Audio, so fade the element itself
+    const from = t.el.volume, t0 = performance.now();
+    clearInterval(t.timer);
+    t.timer = setInterval(() => {
+      const k = Math.min(1, (performance.now() - t0) / (sec * 1000));
+      t.el.volume = U.clamp(from + (to - from) * k, 0, 1);
+      if (k >= 1) { clearInterval(t.timer); if (then) then(); }
+    }, 40);
+  }
+  function playFile(name) {
+    let t = tracks[name];
+    if (!t) {
+      const el = new Audio(`assets/music/${MUSIC_FILES[name]}.mp3`);
+      el.loop = name !== 'death';
+      el.preload = 'auto';
+      t = tracks[name] = { el, gain: null, failed: false };
+      if (canFetch) {
+        try { const src = ac.createMediaElementSource(el); t.gain = ac.createGain(); t.gain.gain.value = 0; src.connect(t.gain); t.gain.connect(master); } catch (e) { t.gain = null; }
+      }
+      if (!t.gain) el.volume = 0;
+      el.addEventListener('error', () => { t.failed = true; if (songName === name) { track = null; startSynth(name); } });
+    }
+    if (t.failed) return false;
+    track = t;
+    t.el.currentTime = name === 'death' ? 0 : t.el.currentTime;
+    const p = t.el.play();
+    if (p && p.catch) p.catch(() => {});
+    fadeTrack(t, FILE_VOL * wantVol, 1.2);
+    return true;
+  }
+  function stopTrack(t) {
+    fadeTrack(t, 0, 1.2, () => { if (track !== t) t.el.pause(); });
+  }
   function play(name) {
     if (name === songName) return;
     songName = name;
-    if (!ac) return;
+    if (!ac) { pendingSong = name; return; }
+    if (track) { stopTrack(track); track = null; }
+    if (songGain) { const old = songGain; old.gain.setTargetAtTime(0, ac.currentTime, 0.4); setTimeout(() => old.disconnect(), 2500); songGain = null; song = null; }
+    if (MUSIC_FILES[name] && playFile(name)) return;
+    startSynth(name);
+  }
+  function startSynth(name) {
     if (songGain) {
       const old = songGain;
       old.gain.setTargetAtTime(0, ac.currentTime, 0.4);
@@ -124,8 +221,10 @@ const Sound = (() => {
   }
   // Duck music indoors / in menus.
   function musicVolume(v) {
+    if (v === wantVol) return;
     wantVol = v;
     if (ac && songGain && song) songGain.gain.setTargetAtTime(song.vol * v, ac.currentTime, 0.3);
+    if (ac && track) fadeTrack(track, FILE_VOL * v, 0.6);
   }
 
   function schedule() {
@@ -176,16 +275,28 @@ const Sound = (() => {
     ko: t => { tone(sfxBus, 'square', 220, t, 0.1, 0.25, 110); noise(sfxBus, t + 0.05, 0.2, 0.25, 200, 1500); },
   };
   function sfx(name) {
-    if (!ac || muted || !SFX[name]) return;
-    SFX[name](ac.currentTime + 0.005);
+    if (!ac || muted) return;
+    if (playSample(name)) return;
+    if (SFX[name]) SFX[name](ac.currentTime + 0.005);
   }
 
   function toggleMute() {
     muted = !muted;
     try { localStorage.setItem('db.muted', muted ? '1' : '0'); } catch (e) { /* ignore */ }
     if (master) master.gain.value = muted ? 0 : 0.5;
+    for (const k in tracks) if (!tracks[k].gain) tracks[k].el.muted = muted;
     return muted;
   }
 
-  return { resume, play, sfx, musicVolume, toggleMute, get muted() { return muted; } };
+  // What's playing right now (handy for debugging from the browser console).
+  function status() {
+    return {
+      song: songName,
+      file: track ? { src: track.el.src.split('/').pop(), playing: !track.el.paused, time: Math.round(track.el.currentTime) } : null,
+      synth: !!songGain,
+      samplesLoaded: Object.keys(buffers).length,
+    };
+  }
+
+  return { resume, play, sfx, musicVolume, toggleMute, status, get muted() { return muted; } };
 })();
