@@ -66,6 +66,7 @@ const Sound = (() => {
     search: { f: ['sounds_interaction18', 'sounds_interaction19', 'sounds_interaction22'], v: 0.5 },
     latch: { f: ['sounds_interaction9'], v: 0.6 },
     select: { f: ['menu_move1'], v: 0.4 },
+    clang: { f: ['sounds_impact1', 'sounds_impact6'], v: 0.35, rate: 1.6 },
   };
   const buffers = {};
   const canFetch = /^https?:/.test(location.protocol);
@@ -269,6 +270,8 @@ const Sound = (() => {
     growl: t => tone(sfxBus, 'sawtooth', 110, t, 0.3, 0.12, 80),
     howl: t => tone(sfxBus, 'sine', 500, t, 1.3, 0.12, 820),
     select: t => tone(sfxBus, 'square', 880, t, 0.04, 0.1),
+    bark: t => { tone(sfxBus, 'square', 420, t, 0.08, 0.12, 260); tone(sfxBus, 'square', 400, t + 0.14, 0.08, 0.1, 240); },
+    cluck: t => { tone(sfxBus, 'square', 700, t, 0.04, 0.06, 900); tone(sfxBus, 'square', 650, t + 0.07, 0.05, 0.06, 500); },
     piano: t => [523, 659, 784, 659, 698, 880, 784, 523].forEach((f, i) => tone(sfxBus, 'triangle', f, t + i * 0.14, 0.3, 0.2)),
     eat: t => { noise(sfxBus, t, 0.06, 0.2, 2000); noise(sfxBus, t + 0.12, 0.06, 0.2, 2000); },
     fire: t => noise(sfxBus, t, 0.4, 0.1, 300, 2000),

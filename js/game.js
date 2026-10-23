@@ -60,6 +60,9 @@ const Game = (() => {
     G.player = new Player(G.data.x);
     G.enemies = []; G.pickups = []; G.particles = []; G.floaters = [];
     G.npcs = World.NPCS.map(n => new NPC(n));
+    G.critters = World.CRITTERS.map(c => new Town.Critter(c));
+    G.bubbles = [];
+    Town.bind(G);
     makeHorse();
     G.scene = 'world'; G.interior = null; G.biome = null;
     G.camX = U.clamp(G.player.x - W / 2, 0, World.END + 120 - W);
@@ -307,11 +310,6 @@ const Game = (() => {
           label: `Buy ${ITEMS[id].name}`, right: `$${ITEMS[id].price}`, disabled: G.data.money < ITEMS[id].price,
           pick: () => { G.data.money -= ITEMS[id].price; addItem(id); Sound.sfx('coin'); return 'stay'; },
         }));
-        const g = GLOVES[1];
-        if ((G.data.gloves || 0) < 1) {
-          list.push({ label: `Buy ${g.name} (+punch, +block)`, right: `$${g.price}`, disabled: G.data.money < g.price,
-            pick: () => { G.data.money -= g.price; G.data.gloves = 1; Sound.sfx('coin'); UI.toast('You pull on the Leather Gloves. Punches hit harder.'); return 'stay'; } });
-        }
         list.push({ label: 'Sell items...', pick: () => { setTimeout(sellMenu, 0); return 'close'; } });
         list.push({ label: 'Leave', pick: () => 'close' });
         return list;
@@ -412,6 +410,42 @@ const Game = (() => {
     else if (act === 'piano') { Sound.sfx('piano'); UI.toast('You plink out a few notes. Miss Lila winces politely.', 2); }
     else if (act === 'vault') UI.dialogue([[null, 'The vault door hangs wide open. Not a single dollar left inside.'], [null, 'Silver scratches on the floor... Jack dragged the strongbox out the back.']]);
     else if (act === 'horses') stableMenu();
+    else if (act === 'doctor') doctorMenu();
+    else if (act === 'smith') smithMenu();
+    else if (act === 'post') UI.dialogue([
+      ['Mr. Pike (Postmaster)', 'Telegram came in for you this mornin\', Sheriff. From the marshal over in Canyon Town.'],
+      ['Mr. Pike (Postmaster)', '"RIDER IN BLACK DUSTER SEEN HEADING FOR CANYON PASS STOP SILVER TOOTH STOP SEND HELP STOP"'],
+    ]);
+    else if (act === 'pray') {
+      if (G.data.flags.prayedDay === day()) UI.toast('You\'ve already prayed today. The pews are quiet.');
+      else { G.data.flags.prayedDay = day(); G.data.energy = Math.min(100, G.data.energy + 25); Sound.sfx('perfect'); UI.toast('You kneel a while. You feel rested. (+25 rest)'); }
+    }
+  }
+
+  function doctorMenu() {
+    const d = G.data;
+    UI.menu({
+      title: "Doc Halloway's", sub: () => `"Let's have a look at you, Sheriff."  ·  You have $${d.money}`,
+      build: () => [
+        { label: 'Patch me up (full health)', right: '$5', disabled: d.money < 5 || d.hp >= 100, pick: () => { d.money -= 5; d.hp = 100; Sound.sfx('perfect'); return 'stay'; } },
+        { label: `Buy ${ITEMS.bandage.name}`, right: `$${ITEMS.bandage.price}`, disabled: d.money < ITEMS.bandage.price, pick: () => { d.money -= ITEMS.bandage.price; addItem('bandage'); Sound.sfx('coin'); return 'stay'; } },
+        { label: 'Leave', pick: () => 'close' },
+      ],
+    });
+  }
+  function smithMenu() {
+    const d = G.data;
+    UI.menu({
+      title: "Hank's Forge", sub: () => `Hank wipes soot off his hands. "What'll it be?"  ·  You have $${d.money}`,
+      build: () => {
+        const g = GLOVES[1], list = [];
+        if ((d.gloves || 0) < 1) list.push({ label: `${g.name} (+punch, +block)`, right: `$${g.price}`, disabled: d.money < g.price,
+          pick: () => { d.money -= g.price; d.gloves = 1; Sound.sfx('coin'); UI.toast('You pull on the Leather Gloves. Punches hit harder.'); return 'stay'; } });
+        else list.push({ note: 'You\'re already wearing the best gloves Hank makes.' });
+        list.push({ label: 'Leave', pick: () => 'close' });
+        return list;
+      },
+    });
   }
 
   function campMenu() {
@@ -462,7 +496,7 @@ const Game = (() => {
     World.HOUSES.forEach(h => list.push({
       x: h.doorWorld, r: 18, label: `Enter ${h.name}`, box: [h.x, 152 - h.img.height, h.img.width, h.img.height], act: () => enterHouse(h),
     }));
-    G.npcs.forEach(n => list.push({ x: n.x, r: 20, label: `Talk to ${n.name}`, box: [n.x - 8, GROUND - 50, 16, 50], act: () => talk(n) }));
+    G.npcs.forEach(n => n.present !== false && list.push({ x: n.x, r: 20, label: `Talk to ${n.name}`, box: [n.x - 8, GROUND - 50, 16, 50], act: () => talk(n) }));
     if (G.horse && !G.player.mounted) list.push({ x: G.horse.x, r: 22, label: `Ride ${G.data.horse.name}`, box: [G.horse.x - 28, GROUND - 46, 56, 46], act: mount });
     if (G.data.campfire !== null) list.push({ x: G.data.campfire, r: 20, label: 'Rest at campfire', box: [G.data.campfire - 10, GROUND - 20, 20, 20], act: campMenu });
     list.push({ x: World.END - 40, r: 40, label: 'Look at the rockslide', act: () => UI.dialogue([
@@ -720,7 +754,7 @@ const Game = (() => {
     for (const e of G.enemies) e.update(dt, p);
     G.enemies = G.enemies.filter(e => (e.alive || e.deadT > 0) && (e.fixedId !== undefined || Math.abs(e.x - p.x) < 480));
     spawning(dt);
-    if (G.scene === 'world') for (const n of G.npcs) n.update(dt, p);
+    if (G.scene === 'world') { for (const n of G.npcs) if (n.present !== false) n.update(dt, p); Town.update(dt, G, hour()); }
 
     // pickups
     for (const k of G.pickups) {
@@ -785,6 +819,11 @@ const Game = (() => {
     // rockslide closing the road
     if (vis(World.END - 110, 140)) c.drawImage(World.rockslide, Math.round(World.END - 110 - camX), 164 - World.rockslide.height);
     const lit = G.data && BG.night(hour()) > 0.3;
+    for (const p of World.PROPS) {
+      if (!p.back || !vis(p.x, p.img.width)) continue;
+      const img = p.windmill ? Town.millFrames[Math.floor(Math.max(0, G.clock) * 6) % Town.millFrames.length] : p.img;
+      c.drawImage(img, Math.round(p.x - camX), p.base - img.height);
+    }
     for (const b of World.BUILDINGS) {
       if (!vis(b.x, b.img.width)) continue;
       const bx = Math.round(b.x - camX), by = 153 - b.img.height;
@@ -798,7 +837,9 @@ const Game = (() => {
       }
     }
     for (const h of World.HOUSES) if (vis(h.x, h.img.width)) c.drawImage(h.img, Math.round(h.x - camX), 152 - h.img.height);
-    for (const p of World.PROPS) if (!p.front && vis(p.x, p.img.width)) c.drawImage(p.img, Math.round(p.x - camX), p.base - p.img.height);
+    for (const p of World.PROPS) if (!p.front && !p.back && vis(p.x, p.img.width)) c.drawImage(p.img, Math.round(p.x - camX), p.base - p.img.height);
+    Town.drawSmoke(c, camX);
+    for (const hh of World.HITCHED) if (vis(hh.x - 32, 64)) Horses.draw(c, { type: hh.type, face: hh.face, vx: 0, animT: 0 }, hh.x - camX, false, GROUND - 4);
     if (!withPlayer) return;
     if (G.data.campfire !== null && vis(G.data.campfire - 12, 24)) drawCampfire(c, G.data.campfire - camX, G.clock);
     for (const t of G.tumbleweeds) {
@@ -862,7 +903,8 @@ const Game = (() => {
       if (I.fg) lctx.drawImage(I.fg, -Math.round(camX), 0);
     } else {
       drawWorld(lctx, camX, true);
-      for (const n of G.npcs) n.draw(lctx, camX);
+      for (const n of G.npcs) if (n.present !== false) n.draw(lctx, camX);
+      for (const cr of G.critters) cr.draw(lctx, camX);
       if (G.horse && !G.player.mounted) Horses.draw(lctx, G.horse, G.horse.x - camX, false);
     }
     if (G.state !== 'title') {
@@ -896,7 +938,13 @@ const Game = (() => {
         if (G.scene === 'world') {
           if (nightF > 0) glow(G.player.x - camX, G.player.y - (G.player.mounted ? 46 : 26), 70, [190, 150, 100], 0.85 * nightF);
           if (d.campfire !== null) glow(d.campfire - camX, GROUND - 8, 95 * flick, [255, 170, 90], 0.95);
-          if (nightF > 0.3) for (const b of World.BUILDINGS) for (const w of b.wins) glow(b.x + w.x - camX, 153 - b.img.height + w.y, 22, [230, 170, 90], 0.8 * nightF);
+          for (const b of World.BUILDINGS) {
+            if (b.x + b.img.width < camX - 60 || b.x > camX + W + 60) continue;
+            const by = 153 - b.img.height;
+            if (nightF > 0.3) for (const w of b.wins) glow(b.x + w.r[0] + w.r[2] / 2 - camX, by + w.r[1] + w.r[3] / 2, 26, [230, 170, 90], 0.75 * nightF);
+            for (const l of b.lamps) glow(b.x + l.x - camX, by + l.y, l.forge ? 60 : 34, l.forge ? [255, 130, 50] : [255, 200, 110], l.forge ? 0.9 : 0.9 * nightF);
+          }
+          if (nightF > 0.2) for (const pr of World.PROPS) if (pr.lamp && pr.x > camX - 60 && pr.x < camX + W + 60) glow(pr.x + 6 - camX, pr.base - 48, 48, [255, 206, 120], 0.95 * nightF);
         } else {
           for (const w of G.interior.windows) glow(w.x + w.w / 2 - camX, w.y + w.h, 70, U.lerpColor(BG.light(hr), [255, 255, 255], 0.2), 0.6 * (1 - nightF * 0.8));
           glow(G.player.x - camX, G.player.y - 26, 55, [190, 150, 100], 0.5 + 0.4 * nightF);
@@ -927,6 +975,7 @@ const Game = (() => {
 
     // readable overlays (not darkened)
     if (G.state !== 'title') {
+      if (G.scene === 'world') Town.drawBubbles(ctx, camX);
       for (const f of G.floaters) {
         const x = Math.round(f.x - camX - Font.width(f.text) / 2), y = Math.round(f.y);
         Font.draw(ctx, f.text, x + 1, y + 1, 'rgba(0,0,0,.7)');

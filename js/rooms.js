@@ -433,9 +433,10 @@ const Rooms = (() => {
     for (let px = 4; px < w; px += 100) for (let y = 54; y < FLOOR; y++) for (let x = px; x < px + 7; x++) p.put(x, y, x === px ? [70, 46, 30] : x === px + 6 ? [80, 54, 34] : [120, 84, 52]);
     for (let x = 0; x < w; x++) if (r() < 0.6) for (let y = 43; y < 48 + r() * 6; y++) p.put(x, y, r() < 0.5 ? [220, 190, 100] : [190, 160, 76]);
   }
-  function wallPlaster(p, r, w) {
+  function wallPlaster(p, r, w, clean) {
     const base = [222, 216, 202];
     for (let y = 14; y < FLOOR; y++) for (let x = 0; x < w; x++) p.put(x, y, r() < 0.07 ? sh(base, 0.94) : base);
+    if (clean) return;
     for (let i = 0; i < w / 80; i++) {
       const bx = Math.floor(r() * (w - 30)), by = 24 + Math.floor(r() * 70), bw = 14 + Math.floor(r() * 20), bh = 10 + Math.floor(r() * 16);
       for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) { if (r() < 0.12) continue; p.put(x, y, y % 3 === 0 ? [90, 66, 46] : [150, 116, 80]); }
@@ -655,7 +656,7 @@ const Rooms = (() => {
   // ------------------------------------------------------- town interiors
   function buildTown(b) {
     const r = U.rng(U.hash(b.id));
-    const RW = { sheriff: 420, store: 460, saloon: 600, bank: 440, stable: 560 }[b.id] || 400;
+    const RW = { sheriff: 420, store: 460, saloon: 600, bank: 440, stable: 560, doctor: 380, post: 380, blacksmith: 420, church: 460 }[b.id] || 400;
     const p = U.pix(RW, H);
     const fgc = U.canvas(RW, H), fg = fgc.getContext('2d');
     const objects = [], npcs = [], lights = [], windows = [];
@@ -665,8 +666,12 @@ const Rooms = (() => {
     else if (b.id === 'saloon') { ceiling(p, RW, [60, 30, 26]); wallPaper(p, r, RW, [130, 40, 44], { wood: [84, 50, 32], motif: [176, 120, 70] }); floorPlanks(p, r, RW, [116, 80, 52]); frame = [70, 40, 30]; }
     else if (b.id === 'bank') { ceiling(p, RW); wallPaper(p, r, RW, [74, 104, 84], { wood: [96, 62, 40], motif: [110, 140, 110] }); floorPlanks(p, r, RW, [140, 104, 70]); }
     else if (b.id === 'stable') { ceiling(p, RW, [70, 40, 30]); wallBarn(p, r, RW); floorDirt(p, r, RW, true); }
-    const WINS = { sheriff: [150], store: [384], saloon: [470], bank: [60, 250] }[b.id] || [];
-    const curtain = { saloon: [120, 30, 36], bank: [60, 80, 60] }[b.id];
+    else if (b.id === 'doctor') { ceiling(p, RW); wallPaper(p, r, RW, [208, 214, 206], { wood: [120, 96, 70], motif: [190, 200, 196] }); floorPlanks(p, r, RW, [140, 110, 80]); }
+    else if (b.id === 'post') { ceiling(p, RW); wallPaper(p, r, RW, [150, 160, 176], { wood: [96, 70, 50], motif: [176, 184, 200] }); floorPlanks(p, r, RW, [128, 96, 64]); }
+    else if (b.id === 'blacksmith') { ceiling(p, RW, [50, 40, 36]); wallPlanks(p, r, RW, [[92, 70, 52], [84, 64, 48], [100, 76, 56]], false); floorDirt(p, r, RW, false); }
+    else if (b.id === 'church') { ceiling(p, RW, [90, 70, 50]); wallPlaster(p, r, RW, true); floorPlanks(p, r, RW, [134, 100, 66]); }
+    const WINS = { sheriff: [150], store: [384], saloon: [470], bank: [60, 250], doctor: [120, 280], post: [300] }[b.id] || [];
+    const curtain = { saloon: [120, 30, 36], bank: [60, 80, 60], doctor: [236, 236, 236] }[b.id];
     WINS.forEach(wx => windows.push(windowHole(p, wx, frame, false, curtain)));
     const door = doorway(p, frame);
     const img = p.done();
@@ -765,6 +770,54 @@ const Rooms = (() => {
       for (const sx of [190, 260, 330, 400, 470]) fg.drawImage(FUR.stall(64), sx - 32, FLOOR - 28);
       npc('stablehand', 'Pete', 136, { face: 1 });
       objects.push({ x: 136, r: 22, label: 'Talk to Pete about horses', act: 'horses' });
+    }
+    if (b.id === 'doctor') {
+      place(ctx, FUR.coatRack(), 48);
+      place(ctx, SEARCH.cupboard.closed, 72);
+      ctx.drawImage(FUR.wallShelf(40, 3, 'jars'), 110, 70); ctx.drawImage(FUR.frame(18, 14, 21), 200, 54);
+      // exam table with a white sheet
+      const table = FUR.table(52, [150, 140, 130]);
+      place(ctx, table, 180); ctx.fillStyle = '#ecece6'; ctx.fillRect(181, FLOOR - 20, 52, 3);
+      place(ctx, FUR.chair(), 244); place(ctx, FUR.washstand(false), 300); place(ctx, FUR.desk(false), 330);
+      place(ctx, FUR.lamp(), 350, FLOOR - 20);
+      lights.push({ x: 352, y: FLOOR - 28, r: 60, col: [255, 210, 140] });
+      npc('doc', 'Doc Halloway', 160, { face: 1 });
+      objects.push({ x: 160, r: 22, label: 'See Doc Halloway', act: 'doctor' });
+    } else if (b.id === 'post') {
+      // wall of mail slots and the telegraph key on the counter
+      for (let row = 0; row < 4; row++) for (let col = 0; col < 8; col++) {
+        const x = 140 + col * 12, y = 46 + row * 12;
+        ctx.fillStyle = '#5a3a24'; ctx.fillRect(x, y, 12, 12); ctx.fillStyle = '#24160e'; ctx.fillRect(x + 1, y + 1, 10, 10);
+        if ((row * 5 + col * 3) % 4 === 0) { ctx.fillStyle = '#eae2cc'; ctx.fillRect(x + 2, y + 5, 8, 5); }
+      }
+      place(ctx, FUR.bench(40), 50); place(ctx, SEARCH.sacks.closed, 100); place(ctx, FUR.clock(), 290);
+      const ctr = FUR.counter(110, [80, 60, 44], [140, 110, 80]);
+      fg.drawImage(ctr, 130, FLOOR - ctr.height + 7);
+      fg.fillStyle = '#3a3a40'; fg.fillRect(200, FLOOR - 24, 10, 3); fg.fillStyle = '#c8a050'; fg.fillRect(204, FLOOR - 27, 2, 3);
+      place(fg, FUR.lamp(), 150, FLOOR - 21);
+      lights.push({ x: 153, y: FLOOR - 28, r: 60, col: [255, 210, 140] });
+      npc('teller', 'Mr. Pike (Postmaster)', 185, { y: GROUND - 10, front: true });
+      objects.push({ x: 185, r: 50, label: 'Talk to Mr. Pike', act: 'post' });
+    } else if (b.id === 'blacksmith') {
+      // the forge: brick hearth with a fire, bellows, anvil, tools
+      const fx = 150;
+      for (let y = FLOOR - 40; y < FLOOR; y++) for (let x = fx; x < fx + 50; x++) { ctx.fillStyle = ((y >> 2) + (x >> 3)) % 2 ? '#7a6e64' : '#665c54'; ctx.fillRect(x, y, 1, 1); }
+      for (let x = fx + 8; x < fx + 42; x++) for (let y = FLOOR - 46; y < FLOOR - 40; y++) { ctx.fillStyle = (x + y) % 3 ? '#ffb040' : '#ffe08a'; ctx.fillRect(x, y, 1, 1); }
+      ctx.fillStyle = '#3c3632'; ctx.fillRect(fx + 18, 14, 14, FLOOR - 60);
+      place(ctx, FUR.anvil(), 240); place(ctx, FUR.bucket(), 270);
+      ctx.drawImage(FUR.tools(), 60, 60); ctx.drawImage(FUR.tools(), 300, 60);
+      place(ctx, SEARCH.barrel.closed, 330); place(ctx, SEARCH.crate.closed, 350);
+      lights.push({ x: fx + 25, y: FLOOR - 44, r: 120, col: [255, 140, 60] });
+      npc('smith', 'Hank (Blacksmith)', 228, { face: 1 });
+      objects.push({ x: 228, r: 24, label: 'Talk to Hank', act: 'smith' });
+    } else if (b.id === 'church') {
+      for (const sx of [100, 200, 300]) ctx.drawImage(FUR.stained(), sx, 44);
+      for (const px of [90, 150, 210, 270]) place(ctx, FUR.pew(), px);
+      place(ctx, FUR.altar(), 360); place(ctx, FUR.candle(), 352); place(ctx, FUR.candle(), 400);
+      ctx.drawImage(FUR.frame(26, 20, 77), 364, 50);
+      lights.push({ x: 376, y: FLOOR - 34, r: 70, col: [255, 214, 140] });
+      for (const sx of [112, 212, 312]) windows.push({ x: sx, y: 64, w: 2, h: 2, glow: true });
+      objects.push({ x: 376, r: 26, label: 'Pray at the altar', act: 'pray' });
     }
     return { kind: 'town', building: b, w: RW, img, fg: fgc, containers: [], windows, doorRect: door, objects, npcs, lights, door: 24, name: b.label,
       stalls: b.id === 'stable' ? [190, 260, 330] : null };
