@@ -772,7 +772,6 @@ const Buildings = (() => {
     cap(p, x0, top, W, trim);
     const sg = sign(p, x0 + 3, top + 6, W - 6, 15, [228, 210, 160], trim);
     label(sg, 'SILVERBEND', '#5a2a1a', -3); label(sg, 'SUPPLY CO.', '#2a3a4a', 3);
-    paint.push([x0 + 4, top + 25, 'PICKS', '#e8e0cc'], [x0 + W - 27, top + 25, 'BEANS', '#e8e0cc']);
     const goods = [[150, 150, 156], [200, 160, 90], [160, 60, 50], [110, 130, 90]];
     window(p, x0 + 3, gy - 24, 17, 16, { frame: [228, 210, 160], single: true, goods });
     window(p, x0 + W - 20, gy - 24, 17, 16, { frame: [228, 210, 160], single: true, goods });
@@ -856,6 +855,157 @@ const Buildings = (() => {
     return { img: finish(p), door: (px + pw / 2) * S, wins: [], lamps: [lamp], smoke: [] };
   };
 
+  // A massive rock buttress framing the ends of the Silverbend pocket.
+  function buttress(seed, flip) {
+    const r = U.rng(seed), W = 70, Hh = 78, { p, gy } = sheet(W, Hh);
+    redRock(p, r, 0, 0, W, gy, (x, y) => {
+      const xx = flip ? W - 1 - x : x;
+      const edge = 6 + Math.round(Math.sin(y * 0.21) * 2 + Math.sin(y * 0.07 + seed) * 3) + (y > gy - 20 ? Math.round((y - gy + 20) * -0.4) : 0);
+      return xx > edge;
+    });
+    for (let y = 0; y < gy; y++) for (let x = 0; x < W; x++) if (p.has(x, y) && ((flip ? x : W - 1 - x) < 14)) p.put(x, y, sh(p.get(x, y), 0.78));
+    rect(p, 0, gy, W, 3, [176, 124, 86]);
+    return finish(p);
+  }
+
+  // The cliff behind Silverbend: the town climbs it. Cliff houses on ledges,
+  // plank walkways with rails, ladders, a mine headframe and a water flume.
+  function pocketWall(w) {
+    const r = U.rng(42), W = Math.round(w / 2), Hh = 77, p = U.pix(W, Hh);
+    redRock(p, r, 0, 0, W, Hh, (x, y) => y > 2 + Math.round(Math.sin(x * 0.05) * 2 + Math.sin(x * 0.13) * 1.5));
+    for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) if (p.has(x, y)) p.put(x, y, sh(p.get(x, y), 0.88));
+    const wood = [126, 92, 58], dark = [30, 18, 16];
+    function house(x, y, w, h, col) {   // y = floor of the ledge
+      rect(p, x, y - h, w, h, col); rect(p, x - 1, y - h - 2, w + 2, 2, sh(col, 0.7));
+      rect(p, x + 2, y - h + 3, 3, 4, dark); rect(p, x + w - 6, y - 7, 3, 7, dark);
+      for (let i = 0; i < w; i += 5) p.put(x + i, y - h, sh(col, 1.15));
+    }
+    function walkway(x0, x1, y) {
+      rect(p, x0, y, x1 - x0, 1, wood); rect(p, x0, y + 1, x1 - x0, 1, sh(wood, 0.6));
+      for (let x = x0; x < x1; x += 4) { p.put(x, y - 1, wood); p.put(x, y - 2, wood); }
+      rect(p, x0, y - 3, x1 - x0, 1, sh(wood, 1.1));
+      for (let x = x0 + 2; x < x1; x += 12) for (let k = 0; k < 6; k++) p.put(x + k, y + 2 + k, sh(wood, 0.75));   // braces
+    }
+    function ladder(x, y0, y1) { for (let y = y0; y < y1; y++) { p.put(x, y, wood); p.put(x + 3, y, wood); if ((y - y0) % 3 === 0) { p.put(x + 1, y, sh(wood, 0.8)); p.put(x + 2, y, sh(wood, 0.8)); } } }
+    // ledges along the wall at three heights, with houses and walkways
+    for (let x = 6, k = 0; x < W - 30; x += 34 + Math.floor(r() * 30), k++) {
+      const y = [16, 26, 36][k % 3];
+      rect(p, x - 3, y, 30, 2, [120, 64, 46]);
+      house(x, y, 12 + Math.floor(r() * 8), 8 + Math.floor(r() * 4), U.pick(r, [[176, 128, 92], [150, 138, 120], [190, 150, 104], [134, 110, 90]]));
+      walkway(x + 18, x + 34, y);
+      ladder(x + 26, y, y + 18);
+    }
+    // the mine headframe over the shaft, and a flume running down the wall
+    const hx = Math.round(W * 0.42);
+    for (let y = 6; y < 44; y++) { const o = Math.round((44 - y) * 0.18); p.put(hx - o, y, wood); p.put(hx + 10 + o, y, wood); if (y % 6 === 0) rect(p, hx - o, y, 11 + o * 2, 1, sh(wood, 0.8)); }
+    for (let a = 0; a < 24; a++) { const ang = a / 24 * Math.PI * 2; p.put(hx + 5 + Math.round(Math.cos(ang) * 3), 6 + Math.round(Math.sin(ang) * 3), [80, 80, 86]); }
+    for (let x = Math.round(W * 0.7), y = 8; y < 50; x += 2, y++) { rect(p, x, y, 3, 1, wood); if (y % 8 === 0) rect(p, x + 1, y + 1, 1, 50 - y, sh(wood, 0.7)); }
+    return finish(p);
+  }
+
+  // The ledge you can climb up to: a stone retaining wall with a plank deck
+  // and railing on top, ladders at both ends, and the mine cut into the base.
+  // LEDGE_Y is where people stand on the deck (screen px).
+  const LEDGE_Y = 84;
+  function ledge(w, mineAt) {
+    const W = Math.round(w / 2), top = (LEDGE_Y - 14) / 2, deck = LEDGE_Y / 2 - top, Hh = 154 / 2 - top;
+    const r = U.rng(17), p = U.pix(W, Hh), gy = Hh - 1;
+    stone(p, 0, deck + 1, W, gy - deck - 1, [150, 132, 116]);
+    rect(p, 0, deck - 1, W, 2, (i, j) => (j === 0 ? [176, 132, 82] : [126, 90, 56]));
+    for (let x = 0; x < W; x += 5) p.put(x, deck - 1, [100, 70, 44]);
+    rect(p, 0, deck + 1, W, 1, INK);
+    // railing
+    rect(p, 0, 0, W, 1, [150, 108, 66]); rect(p, 0, 1, W, 1, [100, 70, 44]);
+    for (let x = 2; x < W; x += 8) rect(p, x, 2, 1, deck - 3, [120, 86, 52]);
+    // braces under the deck front
+    for (let x = 10; x < W - 6; x += 24) for (let k = 0; k < 7; k++) { p.put(x + k, deck + 2 + k, [110, 78, 48]); p.put(x - k, deck + 2 + k, [110, 78, 48]); }
+    // ladders at both ends, from the street up past the deck
+    for (const lx of [3, W - 9]) for (let y = 0; y < gy; y++) { p.put(lx, y, [140, 100, 62]); p.put(lx + 5, y, [140, 100, 62]); if (y % 3 === 0) rect(p, lx + 1, y, 4, 1, [110, 78, 48]); }
+    // the mine portal in the base of the wall
+    const mx = Math.round(mineAt / 2), pw = 22, ph = 30;
+    rect(p, mx - pw / 2, gy - ph, pw, ph, (i, j) => (j < 5 ? [30, 18, 16] : [18, 10, 10]));
+    for (const tx of [mx - pw / 2 - 3, mx + pw / 2]) rect(p, tx, gy - ph - 3, 3, ph + 3, [126, 90, 56]);
+    rect(p, mx - pw / 2 - 5, gy - ph - 5, pw + 10, 3, [136, 98, 62]);
+    const sg = sign(p, mx + pw / 2 + 6, gy - ph + 2, 50, 9, [228, 210, 160], [100, 70, 44]);
+    label(sg, 'SILVER MINE', '#3a2416');
+    for (let x = mx - pw / 2 - 10; x < mx + pw / 2 + 10; x++) { p.put(x, gy - 1, [110, 110, 118]); if (x % 3 === 0) p.put(x, gy - 2, [92, 66, 44]); }
+    void r;
+    return finish(p);
+  }
+
+  // Buildings up on the ledge: shorter doors (they stand on the deck).
+  const LDOOR = 32;
+  SILVER.bunkhouse = () => {
+    const r = U.rng(107), p = U.pix(68, 42), gy = 41;
+    const x0 = 4, W = 60, eave = 10;
+    boards(p, r, x0, eave, W, gy - eave, [118, 98, 80], 0.4);
+    tinRoof(p, x0 - 3, x0 + W + 3, eave - 6, 6);
+    const sg = sign(p, x0 + W / 2 - 22, eave + 1, 44, 9, [226, 210, 170], [92, 64, 44]);
+    label(sg, 'BUNKHOUSE', '#4a2a1a');
+    window(p, x0 + 5, gy - 22, 10, 12, { frame: [210, 196, 170] }); window(p, x0 + W - 15, gy - 22, 10, 12, { frame: [210, 196, 170] });
+    door(p, x0 + W / 2 - 6, gy - LDOOR, 12, LDOOR, { col: [100, 72, 50], frame: [210, 196, 170] });
+    const ch = chimney(p, x0 + 8, eave - 12, 6, [120, 110, 100]);
+    return { img: finish(p), door: (x0 + W / 2) * S, wins: [R([x0 + 5, gy - 22, 10, 12]), R([x0 + W - 15, gy - 22, 10, 12])], lamps: [], smoke: [ch] };
+  };
+  SILVER.clinic = () => {
+    const r = U.rng(108), p = U.pix(50, 42), gy = 41;
+    const x0 = 4, W = 42, eave = 10, trim = [232, 228, 216];
+    planks(p, r, x0, eave, W, gy - eave, [176, 168, 150], 0.2);
+    tinRoof(p, x0 - 3, x0 + W + 3, eave - 6, 6);
+    const sg = sign(p, x0 + W / 2 - 16, eave + 1, 32, 9, [244, 240, 228], [140, 40, 40]);
+    label(sg, 'CLINIC', '#8a1e1e');
+    window(p, x0 + 4, gy - 22, 9, 12, { frame: trim, curtains: [240, 240, 240] });
+    door(p, x0 + W - 18, gy - LDOOR, 12, LDOOR, { col: [140, 40, 40], frame: trim });
+    return { img: finish(p), door: (x0 + W - 12) * S, wins: [R([x0 + 4, gy - 22, 9, 12])], lamps: [], smoke: [] };
+  };
+
+  // ------------------------------------------------- signs of people
+  function campsite(seed) {
+    const r = U.rng(seed), p = U.pix(36, 10);
+    for (const [x, y] of [[4, 8], [7, 9], [11, 9], [14, 8], [5, 6], [13, 6]]) rect(p, x, y, 2, 1, [120, 116, 110]);
+    rect(p, 6, 7, 7, 2, [40, 30, 26]); rect(p, 7, 6, 2, 1, [70, 50, 36]); rect(p, 10, 6, 2, 1, [70, 50, 36]);
+    rect(p, 20, 6, 14, 4, (i, j) => (j === 0 ? [150, 70, 60] : i > 10 ? [96, 90, 70] : [120, 54, 46]));   // bedroll
+    void r;
+    return finish(p);
+  }
+  function brokenWagon() {
+    const p = U.pix(40, 20);
+    for (let x = 2; x < 34; x++) { const y = 8 + Math.round((x - 2) * 0.15); rect(p, x, y, 1, 5, x % 5 === 0 ? [92, 64, 40] : [134, 96, 60]); }
+    for (let a = 0; a < 40; a++) { const ang = a / 40 * Math.PI * 2; p.put(9 + Math.round(Math.cos(ang) * 5), 14 + Math.round(Math.sin(ang) * 5), [90, 60, 38]); if (a % 5 === 0) for (let d = 0; d < 5; d++) p.put(9 + Math.round(Math.cos(ang) * d), 14 + Math.round(Math.sin(ang) * d), [120, 84, 52]); }
+    for (let a = 0; a < 20; a++) { const ang = Math.PI + a / 20 * Math.PI; p.put(32 + Math.round(Math.cos(ang) * 5), 19 + Math.round(Math.sin(ang) * 2), [90, 60, 38]); }   // a wheel lying flat
+    for (let x = 34; x < 40; x++) p.put(x, 17 - (x - 34), [110, 76, 48]);
+    return finish(p);
+  }
+  function claimStake(text) {
+    const p = U.pix(Font.width(text) + 6, 18);
+    const w = Font.width(text) + 6;
+    sign(p, 0, 0, w, 9, [222, 206, 160], [110, 76, 46]);
+    label({ x: 0, y: 0, w, h: 9 }, text, '#4a2a1a');
+    rect(p, Math.floor(w / 2), 9, 1, 9, [110, 76, 46]);
+    for (let x = 1; x < w - 1; x += 4) p.put(x, 17, [150, 150, 150]);
+    return finish(p);
+  }
+  function gear(seed) {
+    const r = U.rng(seed), p = U.pix(26, 12);
+    rect(p, 2, 9, 12, 1, [140, 100, 62]); rect(p, 0, 8, 4, 2, [90, 90, 98]);      // a pick lying down
+    rect(p, 16, 4, 6, 6, (i, j) => (j === 0 || j === 5 ? [70, 66, 66] : [230, 190, 100])); rect(p, 18, 2, 2, 2, [70, 66, 66]);   // lantern
+    if (r() < 0.6) rect(p, 6, 6, 6, 3, [150, 104, 60]);                         // a broken crate lid
+    return finish(p);
+  }
+  // A rope bridge strung across the top of the canyon, seen from below.
+  function ropeBridge(w) {
+    const W = Math.round(w / 2), p = U.pix(W, 14);
+    for (let x = 0; x < W; x++) {
+      const sag = Math.round(Math.sin(x / W * Math.PI) * 6);
+      p.put(x, 2 + sag, [120, 96, 64]);
+      if (x % 3 === 0) rect(p, x, 5 + sag, 2, 1, [150, 110, 66]);
+      p.put(x, 6 + sag, [96, 74, 50]);
+      if (x % 6 === 0) for (let y = 2 + sag; y < 6 + sag; y++) p.put(x, y, [110, 86, 58]);
+    }
+    return finish(p);
+  }
+
+  // Mining street dressing (chunky, finished at 2x)
   // Mining street dressing (chunky, finished at 2x)
   function oreCart() {
     const p = U.pix(20, 14);
@@ -878,6 +1028,7 @@ const Buildings = (() => {
 
   return {
     TOWN, abandoned, waterTower, windmill, wagon, well, lampPost, bench, laundry, corral, telegraphPole, DOOR_H,
-    canyonGate, hoodoo, boulders, SILVER, oreCart, tailings, rails,
+    canyonGate, hoodoo, boulders, SILVER, oreCart, tailings, rails, buttress, pocketWall, ledge, LEDGE_Y,
+    campsite, brokenWagon, claimStake, gear, ropeBridge,
   };
 })();

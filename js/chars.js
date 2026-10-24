@@ -348,7 +348,7 @@ const Chars = (() => {
   };
   const person = kind => build(PEOPLE[kind] || PEOPLE.townsman);
 
-  const FRAMES = ['idle', 'walk', 'run', 'punch', 'jump', 'fall', 'land', 'damage', 'death'];
+  const FRAMES = ['idle', 'walk', 'run', 'punch', 'jump', 'fall', 'land', 'damage', 'death', 'climb'];
   const cache = {};
   // Build (and cache) every animation for a look.
   function build(look) {
@@ -357,8 +357,10 @@ const Chars = (() => {
     const pal = palette(look), src = CHAR_FRAMES[look.g === 'f' ? 'f' : 'm'];
     const set = { look };
     for (const name of FRAMES) {
+      // climbing is seen from behind: no badge or face details on the back
+      const lk = name === 'climb' ? Object.assign({}, look, { star: false, face: 0, mask: false, apron: false }) : look;
       set[name] = src[name].map(rows => {
-        let g = dress(rows, look);
+        let g = dress(rows, lk);
         if (look.kid) g = shrink(g);
         return render(g, pal);
       });
@@ -384,6 +386,7 @@ const Chars = (() => {
       case 'fall': return set.fall[0];
       case 'land': return set.land[0];
       case 'hurt': return set.damage[0];
+      case 'climb': return loop(set.climb, 1);
       case 'dead': return set.death[Math.min(set.death.length - 1, Math.floor(t))];
       default: return loop(set.idle, 1);
     }

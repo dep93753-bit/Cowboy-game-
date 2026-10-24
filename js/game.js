@@ -446,6 +446,8 @@ const Game = (() => {
       [null, 'Tall, wiry, black duster, flat black hat. Silver front tooth. Fights dirty. $500 REWARD.'],
     ]);
     else if (act === 'cot') sleep("the Sheriff's Office", b.doorWorld);
+    else if (act === 'bunk') sleep('the Silverbend bunkhouse', b.doorWorld);
+    else if (act === 'furnace') UI.dialogue([[null, 'The little furnace roars. A crucible of crushed ore glows inside, white hot.'], [null, 'Silver bubbles up through the slag like quicksilver.']]);
     else if (act === 'shop') storeMenu();
     else if (act === 'bar' || act === 'stairs') saloonMenu(b);
     else if (act === 'piano') { Sound.sfx('piano'); UI.toast(`You plink out a few notes. ${who('singer', 'Miss Lila')} winces politely.`, 2); }
@@ -533,18 +535,30 @@ const Game = (() => {
       return list;
     }
     World.BUILDINGS.forEach(b => list.push({
-      x: b.doorWorld, r: 18, label: (b.room || b.id) === 'bank' || (b.room || b.id) === 'stable' ? `Visit the ${b.label}` : `Enter ${b.label}`,
-      box: [b.x, 153 - b.img.height, b.img.width, b.img.height], act: () => enterBuilding(b),
+      x: b.doorWorld, r: 18, lvl: b.level, label: (b.room || b.id) === 'bank' || /stable|livery/.test(b.room || b.id) ? `Visit the ${b.label}` : `Enter ${b.label}`,
+      box: [b.x, (b.base || 154) - 1 - b.img.height, b.img.width, b.img.height], act: () => enterBuilding(b),
     }));
+    World.OBJECTS.forEach(o => list.push({ x: o.x, r: 16, lvl: o.level, label: o.label, box: [o.x - 14, o.level ? 30 : 84, 28, 70], act: () => (o.ladder ? climbLadder(o) : UI.dialogue(o.lines)) }));
     World.HOUSES.forEach(h => list.push({
       x: h.doorWorld, r: 18, label: `Enter ${h.name}`, box: [h.x, 154 - h.img.height, h.img.width, h.img.height], act: () => enterHouse(h),
     }));
-    G.npcs.forEach(n => n.present !== false && list.push({ x: n.x, r: 20, label: `Talk to ${n.name}`, box: [n.x - 10, GROUND - 62, 20, 62], act: () => talk(n) }));
+    G.npcs.forEach(n => n.present !== false && list.push({ x: n.x, r: 20, lvl: n.level, label: `Talk to ${n.name}`, box: [n.x - 10, (n.y || GROUND) - 62, 20, 62], act: () => talk(n) }));
     if (G.horse && !G.player.mounted) list.push({ x: G.horse.x, r: 22, label: `Ride ${G.data.horse.name}`, box: [G.horse.x - 38, GROUND - 62, 76, 62], act: mount });
     if (G.data.campfire !== null) list.push({ x: G.data.campfire, r: 20, label: 'Rest at campfire', box: [G.data.campfire - 10, GROUND - 20, 20, 20], act: campMenu });
     World.EXITS.forEach(e => list.push({ x: e.x, r: 24, label: e.label, box: [e.x - 24, 44, 48, 110], act: () => travel(e) }));
     list.push({ x: World.END - 40, r: 40, label: World.blockedEnd ? 'Look at the rockslide' : 'Look ahead', act: () => UI.dialogue(World.endLines) });
-    return list;
+    // only things on the level you're standing on (street or ledge)
+    return list.filter(e => (e.lvl || 'street') === G.player.level);
+  }
+
+  // Ladders up to (and down from) Silverbend's ledge.
+  function climbLadder(o) {
+    const p = G.player;
+    if (p.mounted) { UI.toast(`Get off your horse first (${keyName('H', 'HORSE')}).`); return; }
+    const up = o.ladder === 'up';
+    p.x = o.x; p.vx = 0; p.face = 1;
+    p.climb = { t: 0, dur: 1.1, from: p.y, to: up ? Buildings.LEDGE_Y : GROUND, level: up ? 'ledge' : 'street' };
+    Sound.sfx('stepWood');
   }
 
   function talk(n) {
@@ -558,6 +572,7 @@ const Game = (() => {
     if (b.closed) { UI.dialogue(b.closed); return; }
     const key = 'town:' + b.id;
     const room = G.interiorCache[key] || (G.interiorCache[key] = Rooms.buildTown(b));
+    room.level = b.level || 'street';
     enterInterior(room, b.doorWorld, b.label);
   }
 
@@ -586,6 +601,7 @@ const Game = (() => {
       G.enemies = [];
       G.pickups = [];
       G.player.x = 30; G.player.face = 1; G.player.vx = 0;
+      G.player.setLevel('street');
       G.camX = 0;
       if (onEnter) onEnter();
       UI.place(name);
@@ -600,6 +616,7 @@ const Game = (() => {
       G.enemies = G.worldEnemies || [];
       G.pickups = [];
       G.player.x = I.doorWorld; G.player.vx = 0;
+      G.player.setLevel(I.level || 'street');
       G.interior = null;
       G.camX = U.clamp(G.player.x - W / 2, 0, World.END + 120 - W);
     };
@@ -818,8 +835,14 @@ const Game = (() => {
 
     // player
     const searching = G.searching;
-    const bounds = G.scene === 'interior' ? [20, G.interior.w - 14] : [14, World.END - 50];
-    p.update(dt, !searching && !p.dead, bounds);
+    const bounds = G.scene === 'interior' ? [20, G.interior.w - 14]
+      : p.level === 'ledge' && World.LEDGE ? [World.LEDGE[0] + 8, World.LEDGE[1] - 8] : [14, World.END - 50];
+    if (p.climb) {
+      const c = p.climb;
+      c.t += dt;
+      p.y = U.lerp(c.from, c.to, Math.min(1, c.t / c.dur));
+      if (c.t >= c.dur) { p.climb = null; p.setLevel(c.level); }
+    } else p.update(dt, !searching && !p.dead, bounds);
     horseUpdate(dt);
     if (searching) {
       searching.t += dt;
@@ -864,6 +887,10 @@ const Game = (() => {
     G.enemies = G.enemies.filter(e => (e.alive || e.deadT > 0) && (e.fixedId !== undefined || Math.abs(e.x - p.x) < 480));
     spawning(dt);
     rockfalls(dt);
+    if (G.scene === 'world' && G.biome && G.biome.hard && Math.random() < dt * 0.7) {
+      const x = G.camX + Math.random() * W;
+      for (let i = 0; i < 5; i++) G.particles.push({ x: x + (Math.random() - 0.5) * 6, y: 10 + Math.random() * 16 + i * 4, vx: (Math.random() - 0.5) * 6, vy: 30 + Math.random() * 30, life: 1.6, col: '#c08a6a' });
+    }
     if (G.scene === 'world') { for (const n of G.npcs) if (n.present !== false) n.update(dt, p); Town.update(dt, G, hour()); }
 
     // pickups
@@ -925,6 +952,7 @@ const Game = (() => {
   // ---------------------------------------------------------------- render
   function drawWorld(c, camX, withPlayer) {
     BG.drawLayers(c, (World.biomeAt(camX + W / 2) || {}).bg || 'desert', camX);
+    if (World.life) drawCanyonLife(c, camX);
     const vis = (x, w) => x + w > camX - 10 && x < camX + W + 10;
     // rockslide closing the road
     const lit = G.data && BG.night(hour()) > 0.3;
@@ -937,7 +965,7 @@ const Game = (() => {
     if (World.blockedEnd && vis(World.END - 110, 140)) c.drawImage(World.rockslide, Math.round(World.END - 110 - camX), 164 - World.rockslide.height);
     for (const b of World.BUILDINGS) {
       if (!vis(b.x, b.img.width)) continue;
-      const bx = Math.round(b.x - camX), by = 154 - b.img.height;
+      const bx = Math.round(b.x - camX), by = (b.base || 154) - b.img.height;
       c.drawImage(b.img, bx, by);
       if (lit) {
         // lamplight in the windows after dark
@@ -968,6 +996,31 @@ const Game = (() => {
     }
     return out;
   })();
+
+  // Canyon life: birds wheeling in the strip of sky, and dry brush that
+  // sways in the wind. All drawn in 2px blocks.
+  function drawCanyonLife(c, camX) {
+    const t = G.clock;
+    c.fillStyle = '#2c1a1c';
+    for (let i = 0; i < 3; i++) {
+      const bx = U.snap(((i * 170 + t * 9 - camX * 0.15) % 460 + 460) % 460 - 70 + Math.cos(t * 0.5 + i * 2) * 34);
+      const by = U.snap(14 + i * 8 + Math.sin(t * 0.5 + i * 2) * 8);
+      const up = Math.floor(t * 4 + i) % 2;
+      c.fillRect(bx - 6, by - (up ? 2 : 0), 4, 2); c.fillRect(bx - 2, by, 4, 2); c.fillRect(bx + 2, by - (up ? 2 : 0), 4, 2);
+    }
+    for (const b of World.BRUSH) {
+      const x0 = b.x - camX;
+      if (x0 < -20 || x0 > W + 20) continue;
+      const sway = Math.round(Math.sin(t * 1.7 + b.ph) * 1.5);
+      for (const [dx, hk] of [[-4, 0.6], [-2, 0.9], [0, 1], [2, 0.8], [4, 0.55]]) {
+        const h = Math.max(1, Math.round(b.size * 2 * hk));
+        for (let k = 0; k < h; k++) {
+          c.fillStyle = k >= h - 1 ? '#b09a60' : '#7e6a40';
+          c.fillRect(U.snap(x0 + dx + sway * 2 * (k / h) * (dx / 4 + 1)), b.base - 2 - k * 2, 2, 2);
+        }
+      }
+    }
+  }
 
   function drawPickups(c, camX) {
     for (const k of G.pickups) {
@@ -1036,11 +1089,15 @@ const Game = (() => {
       else G.player.draw(lctx, camX);
       if (G.scene === 'world') for (const p of World.PROPS) if (p.front && p.x + p.img.width > camX && p.x < camX + W) lctx.drawImage(p.img, Math.round(p.x - camX), p.base - p.img.height);
       for (const q of G.particles) { lctx.fillStyle = q.col; lctx.fillRect(U.snap(q.x - camX), U.snap(q.y), 2, 2); }
+      // the near canyon walls pass in front of everything
+      if (G.scene === 'world') BG.drawFront(lctx, G.biome && !G.biome.town ? G.biome.bg : null, camX);
     }
     lctx.restore();
 
     // lighting
     let amb = BG.light(hr);
+    // the canyon floor sits in deep shadow; Silverbend's pocket is a little brighter
+    if (G.scene === 'world' && G.state !== 'title' && G.biome && G.biome.bg === 'canyon') amb = U.lerpColor(amb, [140, 96, 92], G.biome.town ? 0.18 : 0.34);
     if (G.scene === 'interior' && G.state !== 'title') {
       amb = G.interior.kind === 'town' ? U.lerpColor(U.shade(amb, 0.8), [150, 122, 96], 0.4) : U.lerpColor(U.shade(amb, 0.62), [110, 84, 66], 0.25);
     }
@@ -1062,7 +1119,7 @@ const Game = (() => {
           if (d.campfire !== null) glow(d.campfire - camX, GROUND - 8, 95 * flick, [255, 170, 90], 0.95);
           for (const b of World.BUILDINGS) {
             if (b.x + b.img.width < camX - 60 || b.x > camX + W + 60) continue;
-            const by = 154 - b.img.height;
+            const by = (b.base || 154) - b.img.height;
             if (nightF > 0.3) for (const w of b.wins) glow(b.x + w.r[0] + w.r[2] / 2 - camX, by + w.r[1] + w.r[3] / 2, 26, [230, 170, 90], 0.75 * nightF);
             for (const l of b.lamps) glow(b.x + l.x - camX, by + l.y, l.forge ? 60 : 34, l.forge ? [255, 130, 50] : [255, 200, 110], l.forge ? 0.9 : 0.9 * nightF);
           }

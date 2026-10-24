@@ -133,6 +133,29 @@ Doc Halloway (top hat, glasses), Deputy Ned, Pete (stablehand), Old Dusty
   is built.
 - **Art:** same chunky 2x2 pixel grid and storefront style as Redemption Gulch.
 
+### Canyon & Silverbend, round 2 (agreed Oct 24 2026)
+- **Very tight canyon:** dark near walls in front and behind, only a thin
+  strip of sky, overhanging rock, deep shadow on the canyon floor.
+- **Silverbend is both a cliff-walled pocket and a cliff town:** the canyon
+  widens into a bowl boxed in by cliffs (walls frame both ends), and the town
+  climbs the walls: buildings on ledges, wooden walkways, ladders, mine
+  scaffolding, cliff houses. **You can climb ladders** (USE) up to an upper
+  walkway level with more doors.
+- **Mining-themed buildings and custom interiors** (not Redemption Gulch's):
+  - Assay office: scales, ore samples, assay furnace, silver-bar safe.
+  - Miners' saloon: rough plank bar, lanterns, mine-cart tables, ore on
+    shelves, bunk rooms.
+  - Supply store: picks, shovels, dynamite crates, lanterns, rope, food.
+  - Bunkhouse (sleep/save), a rough clinic (doctor), livery with mule stalls
+    and ore packs.
+- **More detail everywhere in the canyon:**
+  - Rock & ground: varied rocks, cracks, pebbles, bones, dry brush, tracks.
+  - Signs of people: old campsites, broken wagons, mining claims, rope
+    bridges overhead, abandoned gear.
+  - Life: birds circling, lizards, falling dust, swaying plants.
+  - NPCs: more townsfolk with jobs and animations (miners swinging picks,
+    pushing ore carts) and more lines.
+
 ## Saving
 - **3 save slots** (local to the device/browser).
 

@@ -37,6 +37,12 @@ class Player {
     this.blocking = false; this.blockAge = 0;
     this.invuln = 0; this.flashT = 0;
     this.dead = false; this.lying = false;
+    this.level = 'street'; this.floor = GROUND;   // Silverbend's ledge is a second floor
+  }
+  setLevel(level) {
+    this.level = level;
+    this.floor = level === 'ledge' ? Buildings.LEDGE_Y : GROUND;
+    this.y = this.floor; this.vy = 0; this.onGround = true;
   }
 
   get speedMul() { return Game.data.energy <= 0 ? 0.6 : 1; }
@@ -80,9 +86,9 @@ class Player {
     this.vy += 520 * dt;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
-    if (this.y >= GROUND) {
-      if (!this.onGround && this.vy > 120) { Sound.sfx('land'); Game.dust(this.x, GROUND, 4); }
-      this.y = GROUND; this.vy = 0; this.onGround = true;
+    if (this.y >= this.floor) {
+      if (!this.onGround && this.vy > 120) { Sound.sfx('land'); Game.dust(this.x, this.floor, 4); }
+      this.y = this.floor; this.vy = 0; this.onGround = true;
     }
     this.x = U.clamp(this.x, bounds[0], bounds[1]);
 
@@ -95,7 +101,7 @@ class Player {
         const dirt = !I || (I.house && (I.house.type === 'adobe' || I.house.type === 'barn')) || (I.building && I.building.id === 'stable');
         Sound.sfx(dirt ? 'stepSand' : 'stepWood');
       }
-      if (running && Math.random() < dt * 10) Game.dust(this.x - this.face * 6, GROUND, 1);
+      if (running && Math.random() < dt * 10) Game.dust(this.x - this.face * 6, this.floor, 1);
     } else this.animT = 0;
     if (this.invuln > 0) this.invuln -= dt;
     if (this.flashT > 0) this.flashT -= dt;
@@ -135,6 +141,7 @@ class Player {
   get set() { return Chars.build(Chars.sheriffLook(Game.data.look)); }
 
   pose() {
+    if (this.climb) return 'climb';
     if (this.punchT > 0.06) return 'punch';
     if (this.blocking) return 'block';
     if (!this.onGround) return this.vy < 0 ? 'jump' : 'fall';
@@ -146,7 +153,7 @@ class Player {
   frame() {
     const pose = this.pose();
     if (this.lying) { this.deadT = (this.deadT || 0) + 1 / 60; return Chars.frame(this.set, 'dead', this.deadT * 9); }
-    const t = pose === 'punch' ? (0.34 - this.punchT) / 0.34 * 6 : pose === 'idle' ? Game.clock * 6 : this.animT * 2;
+    const t = pose === 'punch' ? (0.34 - this.punchT) / 0.34 * 6 : pose === 'idle' ? Game.clock * 6 : pose === 'climb' ? this.climb.t * 14 : this.animT * 2;
     return Chars.frame(this.set, pose, t);
   }
 
@@ -322,7 +329,30 @@ class NPC {
     this.def = def; this.home = def.x; this.face = def.face || 1; this.animT = 0; this.walking = false;
   }
   update(dt, player) {
-    const near = Math.abs(player.x - this.x) < 40;
+    const near = Math.abs(player.x - this.x) < 40 && (this.level || 'street') === player.level;
+    this.workT = (this.workT || Math.random()) + dt;
+    if (this.work === 'cart') {
+      // push the ore cart up and down the rails; pause to chat if you're close
+      if (near) { this.walking = false; this.face = Math.sign(player.x - this.x) || this.face; return; }
+      const [a, b] = this.range;
+      if (!this.dir) this.dir = 1;
+      if (this.pause > 0) { this.pause -= dt; this.walking = false; return; }
+      this.x += this.dir * 22 * dt; this.face = this.dir; this.walking = true; this.animT += dt * 22 / 7;
+      if (this.x > b || this.x < a) { this.x = U.clamp(this.x, a, b); this.dir *= -1; this.pause = 2 + Math.random() * 2; }
+      return;
+    }
+    if (this.work === 'pick') {
+      if (near) { this.face = Math.sign(player.x - this.x) || this.face; this.swinging = false; return; }
+      this.face = this.def.face || this.face;
+      // a swing every 1.3s: the pick comes down with a clink and sparks
+      const ph = (this.workT % 1.3) / 1.3, was = this.swinging;
+      this.swinging = ph > 0.55;
+      if (this.swinging && !was && Math.abs(player.x - this.x) < 220) {
+        Sound.sfx('clang');
+        for (let i = 0; i < 4; i++) Game.spark(this.x + this.face * 26, (this.y || GROUND) - 2, '#ffe2a0');
+      }
+      return;
+    }
     if (this.wander && !near) {
       this.walking = wanderStep(this, dt, this.wander, 18);
     } else if (!this.wander && Math.abs(this.home - this.x) > 1) {
@@ -350,9 +380,35 @@ class NPC {
       ctx.restore();
       return;
     }
+    if (this.work === 'pick' && this.swinging !== undefined && !(Math.abs(Game.player.x - this.x) < 40)) {
+      const ph = (this.workT % 1.3) / 1.3;
+      const f = ph > 0.55 ? set.punch[2] : set.punch[0];
+      drawFrame(ctx, f, x, y, this.face, Chars.ANCHOR);
+      drawPick(ctx, x, y, this.face, ph > 0.55);
+      return;
+    }
     const f = this.walking ? Chars.frame(set, 'walk', this.animT * 2) : Chars.frame(set, 'idle', Game.clock * 6 + this.x);
+    if (this.work === 'cart') ctx.drawImage(CART_IMG, U.snap(x + this.face * 30 - CART_IMG.width / 2), GROUND - CART_IMG.height + 2);
     drawFrame(ctx, f, x, y, this.face, Chars.ANCHOR);
   }
+}
+
+// A pickaxe in a miner's hands: raised behind the shoulder, or swung down
+// to the rock in front. Drawn in 2px blocks to stay on the pixel grid.
+const CART_IMG = Buildings.oreCart();
+function drawPick(ctx, x, y, face, down) {
+  const sx = U.snap(x), sy = U.snap(y);
+  // from the fist to the pick head: swung down onto the rock in front, or
+  // raised up behind the shoulder ready to come down
+  const [[x0, y0], [x1, y1]] = down ? [[26, -38], [40, -8]] : [[-2, -44], [-16, -66]];
+  const at = (dx, dy, w, h) => ctx.fillRect(sx + (face > 0 ? dx : -dx - w), sy + dy, w, h);
+  ctx.fillStyle = '#2a1a14';
+  for (let i = 0; i <= 10; i++) { const t = i / 10; at(U.snap(x0 + (x1 - x0) * t) - 2, U.snap(y0 + (y1 - y0) * t) - 2, 6, 6); }
+  ctx.fillStyle = '#c8904e';
+  for (let i = 0; i <= 10; i++) { const t = i / 10; at(U.snap(x0 + (x1 - x0) * t), U.snap(y0 + (y1 - y0) * t), 2, 2); }
+  // the iron head, across the end of the handle
+  if (down) { ctx.fillStyle = '#2a1a14'; at(x1 - 8, y1 - 4, 18, 8); ctx.fillStyle = '#a8a8b4'; at(x1 - 6, y1 - 2, 14, 4); ctx.fillStyle = '#e0e0ea'; at(x1 - 6, y1 - 2, 6, 2); }
+  else { ctx.fillStyle = '#2a1a14'; at(x1 - 10, y1 - 4, 20, 8); ctx.fillStyle = '#a8a8b4'; at(x1 - 8, y1 - 2, 16, 4); ctx.fillStyle = '#e0e0ea'; at(x1 - 8, y1 - 2, 6, 2); }
 }
 
 // ---------------------------------------------------------------- campfire
