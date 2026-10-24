@@ -1282,10 +1282,169 @@ const Buildings = (() => {
     return finish(p);
   }
 
+  // ------------------------------------------------------- the farm belt
+  // A big red dairy barn: gambrel roof, hay spilling from the loft door,
+  // white trim, cross-braced doors.
+  function bigBarn(seed) {
+    const r = U.rng(seed), { p, gy } = sheet(80, 66);
+    const x0 = 6, W = 68, eave = gy - 30, red = U.pick(r, [[176, 52, 40], [150, 46, 38], [168, 84, 50]]), trim = [236, 230, 214], roof = [92, 84, 80];
+    boards(p, r, x0, eave, W, gy - eave, red, 0.3);
+    for (let y = eave - 24; y < eave; y++) {
+      const t = (y - (eave - 24)) / 24, hw = t < 0.45 ? 12 + t / 0.45 * 16 : 28 + (t - 0.45) / 0.55 * 10;
+      for (let x = Math.round(x0 + W / 2 - hw); x <= Math.round(x0 + W / 2 + hw); x++) p.put(x, y, (y + (x >> 1)) % 4 === 0 ? sh(roof, 0.8) : x < x0 + W / 2 ? sh(roof, 1.12) : roof);
+    }
+    rect(p, x0 - 2, eave, W + 4, 1, trim);
+    const hx = x0 + W / 2 - 7, hy = eave - 14;
+    rect(p, hx - 1, hy - 1, 16, 14, trim); rect(p, hx, hy, 14, 12, [60, 40, 30]);
+    for (let i = 0; i < 14; i++) for (let j = 7; j < 12; j++) if ((i * 7 + j * 3) % 5 < 3) p.put(hx + i, hy + j, [222, 186, 92]);
+    for (let i = 0; i < 8; i++) p.put(hx + 2 + i * 1.5, hy + 12 + (i % 2), [222, 186, 92]);
+    rect(p, x0 + W / 2 - 1, hy - 5, 2, 4, [80, 70, 64]);
+    const dw = 26, dx = x0 + W / 2 - dw / 2, dh = 24;
+    rect(p, dx - 1, gy - dh - 1, dw + 2, dh + 1, trim); rect(p, dx, gy - dh, dw, dh, sh(red, 0.85));
+    for (let k = 0; k < dh; k++) { const t = k / dh; for (const s2 of [0, 1]) { const ox = dx + s2 * dw / 2; p.put(ox + Math.round(t * (dw / 2 - 1)), gy - dh + k, trim); p.put(ox + Math.round((1 - t) * (dw / 2 - 1)), gy - dh + k, trim); } }
+    rect(p, x0 + W / 2, gy - dh, 1, dh, trim);
+    rect(p, x0, eave, 2, gy - eave, trim); rect(p, x0 + W - 2, eave, 2, gy - eave, trim);
+    for (const wx of [x0 + 6, x0 + W - 15]) { rect(p, wx - 1, eave + 6, 10, 9, trim); rect(p, wx, eave + 7, 8, 7, [52, 70, 96]); rect(p, wx + 3, eave + 7, 2, 7, trim); rect(p, wx, eave + 10, 8, 1, trim); }
+    rect(p, 0, gy, 80, 3, [110, 150, 70]);
+    return finish(p);
+  }
+  // A stone silo with iron hoops, a domed tin cap and a ladder up the side.
+  function silo(seed) {
+    const r = U.rng(seed), { p, gy } = sheet(26, 84);
+    const x0 = 4, W = 18, top = 14, col = U.pick(r, [[176, 164, 146], [190, 120, 90]]);
+    stone(p, x0, top, W, gy - top, col);
+    for (let x = x0; x < x0 + W; x++) { const u = (x - x0) / (W - 1), f = u < 0.25 ? 1.15 : u > 0.7 ? 0.78 : 1; for (let y = top; y < gy; y++) p.put(x, y, sh(p.get(x, y), f)); }
+    for (const by of [top + 14, top + 34, top + 54]) rect(p, x0, by, W, 1, [90, 90, 96]);
+    for (let y = 0; y < top; y++) { const hw = Math.round(Math.sqrt(Math.max(0, 1 - ((top - y) / top) ** 2)) * (W / 2 + 1)); for (let x = -hw; x <= hw; x++) p.put(x0 + W / 2 + x, y + 1, x < -hw / 3 ? [190, 196, 204] : x > hw / 3 ? [120, 126, 134] : [156, 162, 170]); }
+    rect(p, x0 + W / 2 - 1, 0, 2, 2, [120, 126, 134]);
+    for (let y = top + 2; y < gy - 2; y += 3) rect(p, x0 + W - 5, y, 3, 1, [86, 66, 46]);
+    rect(p, x0 + W - 6, top + 2, 1, gy - top - 4, [86, 66, 46]); rect(p, x0 + W - 2, top + 2, 1, gy - top - 4, [86, 66, 46]);
+    rect(p, 0, gy, 26, 3, [110, 150, 70]);
+    return finish(p);
+  }
+  // A two-storey farmhouse with a deep porch, shutters and a chimney.
+  function farmhouse(seed) {
+    const r = U.rng(seed), { p, gy } = sheet(70, 70);
+    const x0 = 8, W = 50, eave = gy - 40, col = U.pick(r, [[236, 230, 214], [214, 196, 150], [190, 206, 210], [210, 170, 140]]), roofC = U.pick(r, [[96, 80, 72], [120, 70, 56], [80, 90, 100]]), white = [236, 230, 214];
+    planks(p, r, x0, eave, W, gy - eave, col);
+    gable(p, r, x0 + W / 2, eave - 16, W / 2 + 4, eave, roofC);
+    chimney(p, x0 + 8, eave - 14, 8);
+    window(p, x0 + W / 2 - 4, eave - 10, 8, 8, { frame: white });
+    for (const wx of [x0 + 6, x0 + W - 15]) window(p, wx, eave + 3, 9, 10, { frame: white, curtains: [200, 80, 70] });
+    const py = gy - 21;
+    rect(p, x0 - 4, py - 3, W + 8, 3, roofC); rect(p, x0 - 4, py, W + 8, 1, sh(roofC, 0.7));
+    for (const px of [x0 - 3, x0 + 13, x0 + W - 15, x0 + W + 1]) pillar(p, px, py + 1, gy, white);
+    door(p, x0 + W / 2 - 5, gy - 20, 10, 20, { col: [120, 80, 50] });
+    window(p, x0 + 3, gy - 17, 8, 9, { frame: white });
+    window(p, x0 + W - 11, gy - 17, 8, 9, { frame: white });
+    for (let x = x0 - 3; x < x0 + W + 3; x++) { if (x > x0 + W / 2 - 8 && x < x0 + W / 2 + 7) continue; if (x % 3 === 0) rect(p, x, gy - 6, 1, 5, [220, 214, 200]); p.put(x, gy - 7, white); }
+    // a rocking chair on the porch
+    rect(p, x0 + 16, gy - 9, 1, 8, [110, 76, 48]); rect(p, x0 + 16, gy - 5, 5, 1, [110, 76, 48]); rect(p, x0 + 20, gy - 5, 1, 4, [110, 76, 48]); rect(p, x0 + 15, gy - 1, 7, 1, [86, 58, 36]);
+    rect(p, x0 - 4, gy, W + 8, 1, [150, 116, 80]); rect(p, 0, gy + 1, 70, 2, [110, 150, 70]);
+    return finish(p);
+  }
+  function coop(seed) {
+    const r = U.rng(seed), { p, gy } = sheet(42, 32);
+    const x0 = 6, W = 24, base = gy - 6, wall = U.pick(r, [[200, 170, 110], [170, 120, 80], [210, 206, 194]]);
+    for (const lx of [x0 + 1, x0 + W - 3]) rect(p, lx, base, 2, 6, [96, 70, 46]);
+    boards(p, r, x0, base - 12, W, 12, wall, 0.4);
+    gable(p, r, x0 + W / 2, base - 22, W / 2 + 3, base - 12, [120, 70, 56]);
+    rect(p, x0 + W - 8, base - 6, 4, 5, [50, 36, 28]);
+    for (let k = 0; k < 12; k++) { p.put(x0 + W - 6 + k, base + Math.round(k / 2), [130, 96, 62]); if (k % 3 === 0) p.put(x0 + W - 6 + k, base + Math.round(k / 2) - 1, [96, 70, 46]); }
+    rect(p, x0 + 3, base - 9, 6, 5, [50, 36, 28]); rect(p, x0 + 4, base - 6, 4, 2, [230, 220, 200]);   // a nest box with eggs
+    rect(p, 0, gy, 42, 3, [110, 150, 70]);
+    return finish(p);
+  }
+  function outhouse(seed) {
+    const r = U.rng(seed), { p, gy } = sheet(18, 34);
+    const x0 = 2, W = 14, col = U.pick(r, [[150, 116, 80], [130, 100, 72], [170, 140, 100]]);
+    boards(p, r, x0, 8, W, gy - 8, col, 0.6);
+    rect(p, x0 - 1, 5, W + 2, 3, [100, 80, 64]); rect(p, x0 - 1, 4, W + 2, 1, [80, 64, 52]);
+    rect(p, x0 + 3, 11, 8, gy - 11, sh(col, 0.82)); rect(p, x0 + 3, 11, 8, 1, sh(col, 0.6));
+    for (const [x, y] of [[7, 14], [8, 13], [9, 13], [7, 15], [7, 16], [8, 17], [9, 17]]) p.put(x0 - 1 + x, y, [40, 30, 24]);   // the crescent moon
+    p.put(x0 + 9, 21, [200, 190, 150]);
+    rect(p, 0, gy, 18, 3, [110, 150, 70]);
+    return finish(p);
+  }
+  function rootCellar() {
+    const { p, gy } = sheet(36, 16);
+    for (let x = 0; x < 36; x++) { const h = Math.round(12 * Math.sin((x + 0.5) / 36 * Math.PI) ** 0.7); for (let y = gy - h; y < gy; y++) p.put(x, y, y < gy - h + 2 ? [120, 160, 74] : (x + y) % 5 === 0 ? [96, 136, 60] : [108, 148, 66]); }
+    stone(p, 11, gy - 9, 14, 9, [150, 140, 126]);
+    rect(p, 14, gy - 7, 8, 7, [100, 70, 44]); rect(p, 14, gy - 7, 8, 1, [130, 96, 62]); rect(p, 17, gy - 7, 1, 7, [80, 56, 36]); p.put(20, gy - 4, [180, 180, 186]);
+    rect(p, 0, gy, 36, 3, [110, 150, 70]);
+    return finish(p);
+  }
+  // A pig sty: a lean-to shelter, a muddy wallow, a trough and a low plank fence.
+  function pigsty(w) {
+    const W = Math.round(w / 2), { p, gy } = sheet(W, 22);
+    for (let x = 0; x < W; x++) for (let y = gy - 3; y < gy; y++) p.put(x, y, (x * 3 + y) % 7 === 0 ? [96, 70, 46] : [120, 90, 60]);
+    rect(p, 2, gy - 16, 22, 2, [110, 90, 70]); for (const lx of [3, 21]) rect(p, lx, gy - 14, 2, 14, [96, 70, 46]); rect(p, 5, gy - 14, 16, 11, [70, 52, 36]);
+    rect(p, W - 16, gy - 4, 12, 3, [130, 96, 62]); rect(p, W - 15, gy - 4, 10, 1, [80, 110, 160]);
+    for (let x = 0; x < W; x += 10) rect(p, x, gy - 10, 2, 10, [130, 100, 70]);
+    for (const ry of [gy - 9, gy - 5]) rect(p, 0, ry, W, 2, i => (i % 10 < 2 ? [110, 84, 58] : [150, 116, 80]));
+    rect(p, 0, gy, W, 3, [110, 150, 70]);
+    return finish(p);
+  }
+  function hayWagon(seed) {
+    const r = U.rng(seed), { p, gy } = sheet(48, 36);
+    for (let x = 4; x < 42; x++) { const h = Math.round(12 * Math.sin((x - 3) / 39 * Math.PI) ** 0.6 + r() * 2); for (let y = gy - 9 - h; y < gy - 9; y++) p.put(x, y, (x * 7 + y * 3) % 5 === 0 ? [196, 160, 70] : y < gy - 9 - h + 2 ? [236, 206, 112] : [222, 186, 92]); }
+    rect(p, 2, gy - 10, 42, 3, [130, 96, 62]); rect(p, 2, gy - 8, 42, 1, [96, 70, 46]);
+    for (const wx of [9, 36]) {
+      for (let a = 0; a < 40; a++) { const g = a / 40 * Math.PI * 2; p.put(wx + Math.round(Math.cos(g) * 5), gy - 5 + Math.round(Math.sin(g) * 5), [96, 70, 46]); }
+      for (let k = 0; k < 4; k++) { const g = k / 4 * Math.PI; for (let d = -4; d <= 4; d++) p.put(wx + Math.round(Math.cos(g) * d), gy - 5 + Math.round(Math.sin(g) * d), [120, 90, 60]); }
+    }
+    rect(p, 44, gy - 9, 4, 1, [110, 80, 52]);
+    rect(p, 30, gy - 32, 1, 12, [140, 110, 70]); for (const tx of [29, 30, 31]) p.put(tx, gy - 33, [150, 150, 158]);   // a pitchfork in the top
+    rect(p, 0, gy, 48, 3, [110, 150, 70]);
+    return finish(p);
+  }
+  function pump() {
+    const { p, gy } = sheet(26, 24);
+    rect(p, 6, gy - 14, 3, 14, [70, 90, 80]); rect(p, 5, gy - 16, 5, 2, [90, 110, 100]); rect(p, 9, gy - 12, 4, 1, [70, 90, 80]);
+    for (let k = 0; k < 6; k++) p.put(4 - Math.round(k * 0.6), gy - 15 - k, [60, 60, 66]);
+    rect(p, 11, gy - 6, 13, 6, [130, 96, 62]); rect(p, 12, gy - 6, 11, 1, [90, 130, 180]); rect(p, 11, gy - 2, 13, 1, [96, 70, 46]);
+    rect(p, 0, gy, 26, 3, [110, 150, 70]);
+    return finish(p);
+  }
+  function hives() {
+    const { p, gy } = sheet(30, 18);
+    for (const hx of [2, 16]) { for (let k = 0; k < 3; k++) rect(p, hx, gy - 3 - k * 3, 11, 3, (i, j) => (j === 2 ? [180, 150, 100] : [236, 220, 180])); rect(p, hx - 1, gy - 12, 13, 2, [200, 190, 170]); rect(p, hx + 4, gy - 2, 3, 1, [60, 40, 30]); }
+    rect(p, 0, gy, 30, 3, [110, 150, 70]);
+    return finish(p);
+  }
+  function picket(w) {
+    const W = Math.round(w / 2), { p, gy } = sheet(W, 14);
+    for (let x = 0; x < W; x += 3) { rect(p, x, gy - 9, 2, 9, [236, 232, 220]); p.put(x, gy - 10, [236, 232, 220]); p.put(x + 1, gy - 9, [200, 196, 186]); }
+    for (const ry of [gy - 7, gy - 3]) rect(p, 0, ry, W, 1, [210, 206, 196]);
+    return finish(p);
+  }
+  // the plow a farmer walks behind
+  function plow() {
+    const p = U.pix(22, 14);
+    rect(p, 0, 3, 14, 1, [130, 96, 62]); rect(p, 13, 4, 1, 6, [130, 96, 62]);           // handles
+    for (let k = 0; k < 8; k++) p.put(13 + k, 10 - Math.round(k * 0.4), [110, 80, 52]);   // beam up to the traces
+    rect(p, 11, 10, 5, 3, [150, 150, 158]); rect(p, 10, 12, 4, 1, [200, 200, 210]);      // the share
+    return finish(p);
+  }
+  // a hay bale carried on the shoulder
+  function bale() {
+    const p = U.pix(14, 8);
+    rect(p, 0, 0, 14, 8, (i, j) => ((i * 3 + j * 5) % 7 === 0 ? [196, 160, 70] : j < 2 ? [236, 206, 112] : [222, 186, 92]));
+    for (const x of [4, 9]) rect(p, x, 0, 1, 8, [150, 110, 60]);
+    return finish(p);
+  }
+  function pail() {
+    const p = U.pix(8, 8);
+    rect(p, 1, 2, 6, 6, (i) => (i < 2 ? [200, 200, 210] : [150, 150, 160])); rect(p, 2, 2, 4, 1, [244, 244, 240]);
+    for (const [x, y] of [[1, 1], [2, 0], [5, 0], [6, 1]]) p.put(x, y, [90, 90, 96]);
+    return finish(p);
+  }
+
   return {
     TOWN, abandoned, waterTower, windmill, wagon, well, lampPost, bench, laundry, corral, telegraphPole, DOOR_H,
     warnings, canyonGate, hoodoo, boulders, SILVER, oreCart, tailings, rails, buttress, pocketWall, ledge, LEDGE_Y,
     campsite, brokenWagon, claimStake, gear, ropeBridge,
     tree, grassClump, flowers, bush, wheat, railFence, haystack, scarecrow, log, stump, fern, reeds, camp, homestead, FARM,
+    bigBarn, silo, farmhouse, coop, outhouse, rootCellar, pigsty, hayWagon, pump, hives, picket, plow, bale, pail,
   };
 })();

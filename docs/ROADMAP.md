@@ -86,6 +86,10 @@ Built in small, playable stages. Each stage is pushed to the repo when it's done
 - [x] Bison herds (charge if one is hit, or at night), bears, coyote packs at night
 - [x] Deer, rabbits, prairie dogs, cows, hawks; travelers who talk, give hints and trade; wagons
 - [x] Fast travel in the pause menu: Start / Canyon / Prairie
+- [x] River ford is a real dip: the trail runs down a bank into the water and you wade in waist deep
+- [x] New plants and trees (js/flora.js): 10 tree kinds, shrubs, grasses, wildflowers, cattails, ferns, rocks, logs; planted on the grass verges with ragged trail edges
+- [x] New animal models (js/fauna.js): shaded bodies, jointed legs, walk/run cycles for bison, bears, deer, coyotes, cows, rabbits, prairie dogs
+- [x] Farm belt around Willow Creek: 7 farmsteads (barn, silo, farmhouse, coop, sty, orchard, paddock...), pigs, sheep, goats, horses, farmers plowing, hoeing, milking, carrying hay, feeding
 - [ ] Farm jobs, more interiors, the mountains beyond the foothills
 
 ## Stage 6 — Forest & Mountains
