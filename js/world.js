@@ -474,7 +474,7 @@ const World = (() => {
     const BACK = {
       prairie: [['grass1', 22], ['grass2', 14], ['flowers', 16], ['shrub', 8], ['cottonwood', 6], ['oak', 5], ['dead', 1], ['sapling', 3], ['rock', 5], ['skull', 1], ['fence', 4], ['camp', 1], ['pdog', 3], ['rabbit', 3]],
       farm: [['wheat', 12], ['corn', 6], ['fence', 10], ['haystack', 5], ['grass1', 14], ['flowers', 8], ['oak', 3], ['apple', 4], ['homestead', 3], ['scarecrow', 2], ['shrub', 4], ['sunflower', 3], ['rabbit', 2]],
-      forest: [['pine', 22], ['spruce', 10], ['cottonwood', 8], ['birch', 7], ['aspen', 4], ['dead', 2], ['sapling', 5], ['fern', 12], ['log', 5], ['stump', 5], ['mushrooms', 4], ['mossrock', 4], ['shrub', 7], ['grass1', 5], ['deer', 3], ['rabbit', 2]],
+      forest: [['pine', 22], ['spruce', 10], ['cottonwood', 8], ['birch', 11], ['dead', 2], ['sapling', 5], ['fern', 12], ['log', 5], ['stump', 5], ['mushrooms', 4], ['mossrock', 4], ['shrub', 7], ['grass1', 5], ['deer', 3], ['rabbit', 2]],
       buttes: [['grass1', 18], ['grass2', 12], ['rock', 10], ['boulders', 3], ['sage', 8], ['juniper', 5], ['dead', 2], ['skull', 3], ['hoodoo', 3], ['camp', 1], ['pdog', 3], ['oak', 1]],
       foothills: [['pine', 14], ['spruce', 8], ['aspen', 6], ['birch', 3], ['grass1', 12], ['rock', 8], ['mossrock', 3], ['boulders', 5], ['lupine', 8], ['juniper', 5], ['deer', 2], ['log', 2]],
     };
@@ -537,7 +537,7 @@ const World = (() => {
     }
     // willows and cattails along the river
     for (const [k, x] of [['willow', RIVER[0] - 70], ['willow', RIVER[1] + 30], ['cottonwood', RIVER[0] - 150], ['willow', RIVER[1] + 110]]) plant(k, x, 142);
-    for (const x of [RIVER[0] + 96, RIVER[0] + 150, RIVER[1] - 190, RIVER[1] - 130]) add(F.cattails(x), x, 152, { back: true });
+    for (const x of [RIVER[0] + 60, RIVER[1] - 110]) add(F.cattails(x), x, 152, { back: true });
     for (const x of [RIVER[0] + 76, RIVER[1] - 104]) add(F.cattails(x + 3), x, 184, { front: true });
     for (const x of [RIVER[0] - 30, RIVER[1] + 4]) add(F.grass(x, 2), x, 150);
     // deeper things first, so nearer ones overlap them

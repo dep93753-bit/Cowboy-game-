@@ -25,7 +25,13 @@ const Town = (() => {
         if (this.t <= 0) { this.t = 1 + Math.random() * 3; this.face *= -1; }
       } else if (FARM_SETS[this.kind]) {
         // farm animals graze and amble about their pen or pasture
-        if (this.t <= 0) { this.t = 2 + Math.random() * 5; this.state = Math.random() < 0.6 ? 'graze' : Math.random() < 0.5 ? 'idle' : 'walk'; this.tx = this.home + (Math.random() * 2 - 1) * this.range; this.face = Math.sign(this.tx - this.x) || 1; }
+        if (this.t <= 0) {
+          const roll = Math.random();
+          this.state = roll < 0.45 ? 'graze' : roll < 0.65 ? 'idle' : roll < 0.88 ? 'walk' : 'lie';
+          this.t = this.state === 'lie' ? 10 + Math.random() * 12 : 2 + Math.random() * 5;
+          this.tx = this.home + (Math.random() * 2 - 1) * this.range;
+          if (this.state === 'walk') this.face = Math.sign(this.tx - this.x) || 1;
+        }
         this.vx = this.state === 'walk' && Math.abs(this.tx - this.x) > 2 ? Math.sign(this.tx - this.x) * (this.kind === 'cow' ? 10 : 14) : 0;
         if (this.kind === 'cow' && Math.random() < dt * 0.02 && Math.abs(dx) < 200) Sound.sfx('moo');
       } else if (this.kind === 'lizard') {
@@ -84,7 +90,9 @@ const Town = (() => {
       if (this.kind === 'pdog') { const s = FA.pdog; drawFrame(ctx, this.state === 'down' ? s.down : s.stand, x, GROUND, this.face, s.anchor); return; }
       if (FARM_SETS[this.kind]) {
         const s = FA[FARM_SETS[this.kind][this.brown ? 1 : 0]];
-        drawFrame(ctx, this.state === 'graze' ? s.graze : this.vx ? Fauna.cycle(s.walk, this.animT * 1.5) : s.stand, x, GROUND, this.face, s.anchor); return;
+        const f = this.state === 'graze' ? Fauna.cycle(s.graze, this.animT * 0.8) : this.state === 'lie' ? Fauna.cycle(s.lie, this.animT * 0.25)
+          : this.vx ? Fauna.cycle(s.walk, this.animT * 1.5) : Fauna.cycle(s.stand, this.animT * 0.6);
+        drawFrame(ctx, f, x, GROUND, this.face, s.anchor); return;
       }
       if (this.kind === 'lizard') {
         const s = Sprites.creatures.lizard;
