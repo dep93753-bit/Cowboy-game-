@@ -11,7 +11,13 @@ const Town = (() => {
     update(dt, player) {
       this.t -= dt;
       const dx = player.x - this.x, near = Math.abs(dx) < 60;
-      if (this.kind === 'dog') {
+      if (this.kind === 'lizard') {
+        // basks on the warm ground; darts off when you come close
+        if (Math.abs(dx) < 40 && this.state !== 'run') { this.state = 'run'; this.face = -Math.sign(dx) || 1; this.t = 0.7; }
+        if (this.t <= 0) { this.state = 'idle'; this.t = 2 + Math.random() * 4; if (Math.random() < 0.3) this.face *= -1; }
+        this.vx = this.state === 'run' ? this.face * 90 : 0;
+        if (this.state !== 'run') this.home = this.x;
+      } else if (this.kind === 'dog') {
         // Rusty trots over to say hello, wags, wanders, sits
         if (near && Math.abs(dx) > 26 && this.state !== 'sit') { this.state = 'run'; this.tx = player.x - Math.sign(dx) * 22; }
         if (this.t <= 0) {
@@ -50,6 +56,11 @@ const Town = (() => {
       const x = this.x - camX;
       if (x < -30 || x > W + 30) return;
       let frame;
+      if (this.kind === 'lizard') {
+        const s = Sprites.creatures.lizard;
+        drawFrame(ctx, this.vx ? (Math.floor(this.animT * 2) % 2 ? s.run : s.stand) : s.stand, x, GROUND, this.face, 12);
+        return;
+      }
       if (this.kind === 'dog') {
         const s = Sprites.creatures.dog;
         frame = this.state === 'run' ? (Math.floor(this.animT / 2) % 2 ? s.run0 : s.run1)
@@ -73,7 +84,7 @@ const Town = (() => {
     smokeT = 0.18;
     for (const b of World.BUILDINGS) {
       if (b.x + b.img.width < camX - 40 || b.x > camX + W + 40) continue;
-      for (const s of b.smoke) smoke.push({ x: b.x + s.x + (Math.random() - 0.5) * 2, y: 154 - b.img.height + s.y, life: 3.2, vx: 4 + Math.random() * 4, size: 2.5 });
+      for (const s of b.smoke) smoke.push({ x: b.x + s.x + (Math.random() - 0.5) * 2, y: (b.base || 154) - b.img.height + s.y, life: 3.2, vx: 4 + Math.random() * 4, size: 2.5 });
     }
   }
   function drawSmoke(ctx, camX) {
@@ -100,6 +111,7 @@ const Town = (() => {
       n.present = !n.hours || inHours(hour, n.hours);
       if (!n.present || !n.greet) continue;
       const d = Math.abs(n.x - p.x);
+      if ((n.level || 'street') !== p.level) continue;
       if (d < 34 && !G.bubbles.length && (!n.greetedAt || G.clock - n.greetedAt > 45)) {
         n.greetedAt = G.clock;
         G.bubbles.push({ who: n, text: U.pick(Math.random, n.greet), life: 2.6 });

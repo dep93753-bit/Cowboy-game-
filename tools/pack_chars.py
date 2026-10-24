@@ -12,7 +12,7 @@ from PIL import Image
 SRC = sys.argv[1]
 BODIES = {'m': 'Male/Character 1/Clothes 1/Character1M_1', 'f': 'Female/Character 1/Clothes 1/Character1F_1'}
 ANIMS = {'idle': None, 'walk': None, 'run': None, 'punch': None, 'jump': None, 'fall': None,
-         'land': None, 'damage': [1], 'death': None}
+         'land': None, 'damage': [1], 'death': None, 'climb': None}
 # pack colour -> role letter
 ROLE = {
     (14, 7, 27): 'A',                                      # outline
@@ -20,7 +20,8 @@ ROLE = {
     (138, 72, 54): 'H', (93, 44, 40): 'h',                 # hair, hair shade
     (234, 50, 60): 'T', (196, 36, 48): 't', (137, 30, 43): 'u',  # shirt
     (0, 152, 220): 'P', (0, 105, 170): 'p',                # pants
-    (199, 207, 221): 'B', (146, 161, 185): 'b',            # shoes
+    (199, 207, 221): 'B', (146, 161, 185): 'b', (101, 115, 146): 'b',  # shoes
+    (26, 25, 50): 'A',                                     # soles seen from behind
 }
 def split_hair(rows):
     # The pack paints hair and the deepest skin shade the same brown. Hair is

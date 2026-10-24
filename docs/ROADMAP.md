@@ -63,6 +63,15 @@ Built in small, playable stages. Each stage is pushed to the repo when it's done
   Office, Supply Co., The Silver Spur saloon with rooms, Doc Ames, the
   Livery, and the Silver Mine (shut for now). Its own townsfolk, miners,
   a dog called Nugget, ore cart and tailings.
+- 3.1b (done): very tight canyon (near walls, overhang, sliver of sky, shadowed
+  floor, foreground rock). Silverbend rebuilt as a cliff-walled pocket that
+  climbs its back wall (cliff houses, walkways, ladders, headframe, flume),
+  with a ledge you climb to by ladder (Bunkhouse, Clinic) over the mine.
+  Custom mining interiors: Assay Office, The Silver Spur, Supply Co.,
+  Bunkhouse (free sleep/save), Clinic, Livery. Miners swing picks and push
+  ore carts. Canyon details: campsites, broken wagons, claim stakes, gear,
+  rope bridges overhead, tracks and cracks, birds, lizards, swaying brush,
+  trickling dust.
 - 3.2: scorpions, mountain lions, canyon outlaws
 - 3.3: canyon loot spots: cliff dwelling, miner's cabin, wagon camp, mine shed
 - 3.5: the walk-in mine, and the "close call" cutscene with Jack

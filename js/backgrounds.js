@@ -303,23 +303,23 @@ const BG = (() => {
     return p.done();
   }
   // Dark crags overhanging the top of the screen: the narrow strip of sky.
-  function rim(seed, col) {
+  function rim(seed, col, deep = 8, spread = 9) {
     const r = U.rng(seed);
-    const p = U.pix(640, 40, true);
-    const waves = [[3, r() * 6], [7, r() * 6], [13, r() * 6]];
+    const p = U.pix(640, 70, true);
+    const waves = [[3, r() * 6], [7, r() * 6], [13, r() * 6], [29, r() * 6]];
     for (let x = 0; x < 640; x++) {
       let v = 0;
       waves.forEach(([k, ph], i) => { v += Math.sin(x / 640 * Math.PI * 2 * k + ph) / (i + 1); });
-      const depth = Math.max(0, Math.round(8 + v * 9));
+      const depth = Math.max(0, Math.round(deep + v * spread));
       for (let y = 0; y < depth; y++) p.put(x, y, y === depth - 1 ? U.shade(col, 1.25) : (x * 7 + y * 3) % 11 === 0 ? U.shade(col, 0.85) : col);
     }
     return p.done();
   }
   // Dry riverbed: pale sand, cracked mud flats and river pebbles.
-  function riverbed(seed) {
+  function riverbed(seed, opts = {}) {
     const r = U.rng(seed);
     const top = 132, gh = H - top;
-    const sand = [[214, 170, 122], [206, 160, 114], [198, 150, 106], [188, 140, 98]];
+    const sand = opts.shade ? [[170, 126, 96], [178, 134, 100], [186, 142, 104], [180, 136, 98]] : [[214, 170, 122], [206, 160, 114], [198, 150, 106], [188, 140, 98]];
     const p = U.pix(320, gh, true);
     for (let y = 0; y < gh; y++) for (let x = 0; x < 320; x++) {
       let c = sand[Math.min(3, Math.floor((y / gh) * 4))];
@@ -337,6 +337,16 @@ const BG = (() => {
         p.put(cx + x, cy + y, crack ? [140, 100, 70] : [176, 128, 90]);
       }
     }
+    // hoof and boot tracks along the trail
+    for (let x = 4; x < 320; x += 9) { const y = 22 + ((x * 7) % 5); p.put(x, y, U.shade(sand[1], 0.8)); p.put(x + 1, y, U.shade(sand[1], 0.8)); p.put(x + 4, y + 3, U.shade(sand[1], 0.84)); }
+    // cracks
+    for (let i = 0; i < 8; i++) {
+      let x = r() * 320, y = 4 + r() * (gh - 6);
+      for (let k = 0; k < 10; k++) { p.put(x, y, U.shade(sand[2], 0.7)); x += 1; y += r() < 0.4 ? 1 : r() < 0.3 ? -1 : 0; }
+    }
+    // dry brush tufts and bleached bone bits
+    for (let i = 0; i < 9; i++) { const x = r() * 320, y = 2 + r() * 6; for (let k = -2; k <= 2; k++) p.put(x + k, y - Math.abs(k) % 2, [130, 112, 70]); p.put(x, y - 2, [156, 136, 84]); }
+    for (let i = 0; i < 4; i++) { const x = r() * 320, y = 10 + r() * (gh - 14); p.put(x, y, [226, 218, 196]); p.put(x + 1, y, [226, 218, 196]); p.put(x + 2, y + 1, [200, 190, 170]); }
     // river pebbles
     for (let i = 0; i < 90; i++) {
       const x = r() * 320, y = 3 + r() * (gh - 4), c = U.pick(r, [[150, 140, 132], [176, 120, 90], [120, 110, 104], [200, 186, 170]]);
@@ -346,12 +356,14 @@ const BG = (() => {
   }
 
   const BIOMES = {
+    // very tight: walls close on both sides, only a sliver of sky, an
+    // overhang hanging over the top and the floor in shadow
     canyon: {
-      far: () => canyonWall(21, { cap: [156, 100, 102], bands: [[150, 90, 94], [144, 86, 90], [158, 98, 100], [148, 90, 94]] }, 10, 30, 126, { band: 10, ledge: 31 }),
-      mid: () => canyonWall(23, { cap: [130, 60, 42], bands: [[196, 86, 54], [190, 82, 52], [204, 96, 60], [186, 80, 52], [214, 120, 80], [182, 76, 50]] }, 14, 64, 130, { band: 9, ledge: 29, alcoves: 7 }),
-      hills: () => talus(25, [180, 110, 76]),
-      ground: () => riverbed(27),
-      rim: () => rim(29, [92, 40, 34]),
+      far: () => canyonWall(21, { cap: [140, 74, 64], bands: [[132, 64, 56], [124, 58, 52], [142, 72, 62], [130, 62, 54]] }, 12, 22, 126, { band: 10, ledge: 31 }),
+      mid: () => canyonWall(23, { cap: [120, 52, 38], bands: [[178, 74, 48], [168, 68, 44], [186, 84, 54], [172, 70, 46], [196, 102, 70], [164, 64, 42]] }, 14, 30, 130, { band: 9, ledge: 29, alcoves: 9 }),
+      hills: () => talus(25, [150, 86, 62]),
+      ground: () => riverbed(27, { shade: true }),
+      rim: () => rim(29, [70, 30, 28], 9, 12),
     },
     desert: {
       // distant plateaus, hazy with distance
@@ -379,6 +391,31 @@ const BG = (() => {
     for (; x < W; x += w) ctx.drawImage(img, x, y);
   }
 
+  // Near walls in front of the player (canyon only): dark rock hanging over
+  // the top edge and a rubble lip along the bottom.
+  const fronts = {};
+  function frontLayer(id) {
+    if (id !== 'canyon') return null;
+    if (!fronts[id]) {
+      const r = U.rng(31), p = U.pix(320, 90, true), q = U.pix(320, 12, true);
+      for (let x = 0; x < 320; x++) {
+        const d = Math.max(0, Math.round(5 + Math.sin(x / 320 * Math.PI * 2 * 3) * 6 + Math.sin(x / 320 * Math.PI * 2 * 11 + 1) * 3));
+        for (let y = 0; y < d; y++) p.put(x, y, y === d - 1 ? [64, 30, 26] : [36, 18, 18]);
+        if (x % 53 < 4 && x % 53 > 0) for (let y = d; y < d + 6 + (x % 7); y++) p.put(x, y, [36, 18, 18]);   // hanging points
+        const b = Math.max(0, Math.round(4 + Math.sin(x / 320 * Math.PI * 2 * 5) * 3 + (r() < 0.2 ? 1 : 0)));
+        for (let y = 12 - b; y < 12; y++) q.put(x, y, y === 12 - b ? [70, 36, 30] : [40, 20, 18]);
+      }
+      fronts[id] = { top: U.chunky(p.done()), bottom: U.chunky(q.done()) };
+    }
+    return fronts[id];
+  }
+  function drawFront(ctx, id, camX) {
+    const f = frontLayer(id);
+    if (!f) return;
+    tile(ctx, f.top, camX * 1.25, 0);
+    tile(ctx, f.bottom, camX * 1.25, H - 12);
+  }
+
   function drawLayers(ctx, id, camX) {
     const L = layers(id);
     tile(ctx, L.far, camX * 0.1, 0);
@@ -388,5 +425,5 @@ const BG = (() => {
     tile(ctx, L.ground, camX, 132);
   }
 
-  return { drawSky, drawLayers, light, night, skyColors };
+  return { drawSky, drawLayers, drawFront, light, night, skyColors };
 })();

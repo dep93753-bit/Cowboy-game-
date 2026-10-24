@@ -184,12 +184,19 @@ const Sprites = (() => {
     return out;
   }
 
+  // a little canyon lizard: flat, long tail, sits on rocks and darts away
+  const LIZ_PAL = { L: [150, 130, 80], l: [110, 92, 56], E: [20, 14, 12], o: [196, 120, 70] };
+  const LIZARD = {
+    stand: ['.........LL.', 'lLLLLoLLLLEL', '..l.l..l.l..'],
+    run: ['.........LL.', 'lLLLLoLLLLEL', '.l...ll...l.'],
+  };
   const creatures = {
     snake: creatureSet(SNAKE, SNAKE_PAL),
     coyote: creatureSet(COYOTE, COYOTE_PAL),
     dog: creatureSet(DOG, DOG_PAL),
     chicken: creatureSet(CHICK, CHICK_PAL),
     chickenBrown: creatureSet(CHICK, CHICK_BROWN),
+    lizard: creatureSet(LIZARD, LIZ_PAL),
   };
 
   return { creatures, build, silhouette, paint };

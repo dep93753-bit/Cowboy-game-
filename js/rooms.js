@@ -350,6 +350,32 @@ const Rooms = (() => {
   FUR.hatPeg = () => mk(30, 10, p => { const d = at(p); d.box(0, 0, 30, 2, WOOD_D); d.box(3, 2, 8, 3, [70, 60, 50]); d.box(5, 1, 4, 1, [90, 80, 70]); d.box(18, 2, 3, 8, [110, 60, 40]); d.box(24, 2, 2, 6, [160, 150, 120]); }, null);
 
   // ------------------------------------------------------------- walls
+  // ------------------------------------------------- mining furniture
+  const ORE = [[150, 146, 150], [120, 116, 122], [196, 200, 210], [96, 90, 92]];
+  FUR.oreShelf = (w, seed) => mk(w, 12, p => { const d = at(p); const r = U.rng(seed);
+    d.box(0, 9, w, 3, WOOD_D);
+    for (let x = 1; x < w - 4; x += 4 + Math.floor(r() * 3)) { const h = 3 + Math.floor(r() * 5), c = U.pick(r, ORE); d.box(x, 9 - h, 4, h, c); if (r() < 0.5) d.put(x + 1, 9 - h, [230, 232, 240]); } });
+  FUR.furnace = () => mk(30, 40, p => { const d = at(p);
+    for (let y = 0; y < 40; y++) for (let x = 2; x < 28; x++) d.put(x, y, ((y >> 2) + ((x + (y >> 2) % 2 * 3) / 6 | 0)) % 2 ? [150, 70, 54] : [132, 60, 46]);
+    d.box(0, 34, 30, 6, [110, 106, 100]); d.box(8, 18, 14, 10, [40, 24, 20]); d.box(10, 22, 10, 6, [255, 150, 60]); d.box(12, 24, 6, 3, [255, 220, 130]); d.box(11, 0, 8, 4, [90, 86, 84]); });
+  FUR.silverBars = () => mk(24, 12, p => { const d = at(p);
+    for (let row = 0; row < 3; row++) for (let i = 0; i < 4 - row; i++) d.box(i * 6 + row * 3, 9 - row * 4, 6, 3, row % 2 ? [200, 204, 214] : [222, 226, 236]); });
+  FUR.dynamite = () => mk(22, 16, p => { const d = at(p); d.box(0, 0, 22, 16, [150, 104, 60]); d.box(0, 0, 22, 2, [176, 128, 80]); d.box(3, 5, 16, 6, [196, 50, 40]);
+    for (const [x, y] of [[5, 7], [6, 7], [7, 7], [6, 8], [6, 9], [10, 7], [11, 7], [11, 8], [11, 9], [13, 7], [14, 7], [15, 7], [14, 8], [14, 9]]) d.put(x, y, [240, 230, 200]); });
+  FUR.toolRack = () => mk(40, 44, p => { const d = at(p); d.box(0, 4, 40, 3, WOOD_D);
+    for (const [x, pick] of [[3, true], [12, false], [21, true], [30, false]]) { d.box(x + 2, 7, 2, 36, WOOD_L); if (pick) d.box(x - 1, 5, 9, 3, IRON); else d.box(x + 0, 36, 6, 8, IRON); } });
+  FUR.rope = () => mk(16, 14, p => { const d = at(p); for (let a = 0; a < 40; a++) { const ang = a / 40 * Math.PI * 2; for (const rr of [6, 4]) d.put(8 + Math.round(Math.cos(ang) * rr), 7 + Math.round(Math.sin(ang) * rr * 0.9), rr === 6 ? [196, 170, 116] : [160, 134, 88]); } });
+  FUR.cartTable = () => mk(36, 26, p => { const d = at(p); d.box(0, 0, 36, 3, WOOD_L); d.box(2, 3, 32, 14, [110, 110, 118]); for (let x = 4; x < 32; x += 4) d.box(x, 4, 1, 12, [86, 86, 94]);
+    for (const wx of [6, 26]) { d.box(wx, 17, 6, 6, [52, 48, 50]); d.put(wx + 2, 19, [150, 150, 158]); } d.box(0, 24, 36, 2, [120, 120, 128]); });
+  FUR.bunk = () => mk(60, 56, p => { const d = at(p); d.box(0, 0, 4, 56, WOOD_D); d.box(56, 0, 4, 56, WOOD_D);
+    for (const y of [16, 44]) { d.box(4, y, 52, 4, WOOD); d.box(6, y - 4, 48, 4, [180, 170, 150]); d.box(26, y - 5, 28, 5, [120, 60, 50]); d.box(8, y - 6, 12, 3, [230, 226, 210]); } });
+  FUR.timber = (h = 136) => mk(8, h, p => { const d = at(p); d.box(0, 0, 8, h, [110, 78, 48]); for (let y = 6; y < h; y += 17) d.box(1, y, 6, 1, [90, 62, 38]); });
+  FUR.hangLantern = () => mk(8, 30, p => { const d = at(p); for (let y = 0; y < 18; y += 2) d.put(4, y, IRON); d.box(3, 18, 2, 2, IRON); d.box(1, 20, 6, 2, IRON); d.box(1, 22, 6, 6, [255, 210, 110]); d.box(1, 28, 6, 2, IRON); }, null);
+  FUR.orePack = () => mk(30, 16, p => { const d = at(p); d.box(0, 4, 14, 12, [150, 120, 80]); d.box(16, 4, 14, 12, [140, 110, 74]); d.box(6, 0, 18, 4, [96, 66, 42]); d.box(3, 2, 8, 3, U.pick(Math.random, ORE)); });
+  FUR.claimMap = () => mk(30, 22, p => { const d = at(p); d.box(0, 0, 30, 22, [226, 210, 170]); for (let i = 0; i < 6; i++) d.box(3 + i * 4, 4 + (i * 7) % 12, 3, 2, [140, 90, 60]); d.box(2, 18, 26, 1, [140, 90, 60]); });
+  FUR.locker = () => mk(18, 48, p => { const d = at(p); d.box(0, 0, 18, 48, [110, 116, 120]); d.panel(2, 3, 14, 42, [110, 116, 120]); d.box(13, 22, 2, 4, [60, 60, 66]); });
+  FUR.bandages = () => mk(24, 10, p => { const d = at(p); for (let i = 0; i < 4; i++) d.box(i * 6, 2, 5, 8, [236, 232, 222]); d.box(0, 0, 24, 2, WOOD_D); }, null);
+
   function wallPlanks(p, r, w, cols, old = true) {
     for (let x = 0; x < w; x++) {
       const c = cols[(Math.floor(x / 7) * 5) % cols.length];
@@ -432,6 +458,18 @@ const Rooms = (() => {
     for (let x = 0; x < w; x++) for (let y = 48; y < 54; y++) p.put(x, y, y === 48 ? [176, 132, 82] : [110, 76, 46]);
     for (let px = 4; px < w; px += 100) for (let y = 54; y < FLOOR; y++) for (let x = px; x < px + 7; x++) p.put(x, y, x === px ? [70, 46, 30] : x === px + 6 ? [80, 54, 34] : [120, 84, 52]);
     for (let x = 0; x < w; x++) if (r() < 0.6) for (let y = 43; y < 48 + r() * 6; y++) p.put(x, y, r() < 0.5 ? [220, 190, 100] : [190, 160, 76]);
+  }
+  // Rough rock wall shored up with timbers: the cliff the building backs onto.
+  function wallRock(p, r, w) {
+    const bands = [[150, 78, 56], [138, 70, 50], [160, 88, 62], [144, 74, 54]];
+    for (let y = 14; y < FLOOR; y++) for (let x = 0; x < w; x++) {
+      let c = bands[Math.floor((y + Math.sin(x / 23) * 3) / 9) % 4];
+      if (r() < 0.08) c = sh(c, r() < 0.5 ? 0.86 : 1.1);
+      if ((x * 7 + y * 3) % 89 === 0) c = sh(c, 0.7);
+      p.put(x, y, c);
+    }
+    for (let px = 30; px < w; px += 120) for (let y = 14; y < FLOOR; y++) for (let x = px; x < px + 8; x++) p.put(x, y, x === px || x === px + 7 ? [80, 56, 36] : [112, 80, 50]);
+    for (let x = 0; x < w; x++) for (let y = 14; y < 22; y++) p.put(x, y, y === 21 ? [70, 48, 30] : [112, 80, 50]);
   }
   function wallPlaster(p, r, w, clean) {
     const base = [222, 216, 202];
@@ -661,7 +699,8 @@ const Rooms = (() => {
     const T = b.room || b.id;
     const who = (kind, name) => (b.cast && b.cast[kind] && b.cast[kind].name) || name;
     const r = U.rng(U.hash(b.id));
-    const RW = { sheriff: 420, store: 460, saloon: 600, bank: 440, stable: 560, doctor: 380, post: 380, blacksmith: 420, church: 460 }[T] || 400;
+    const RW = { sheriff: 420, store: 460, saloon: 600, bank: 440, stable: 560, doctor: 380, post: 380, blacksmith: 420, church: 460,
+      sb_assay: 420, sb_saloon: 560, sb_store: 460, sb_bunk: 420, sb_clinic: 360, sb_livery: 520 }[T] || 400;
     const p = U.pix(RW, H);
     const fgc = U.canvas(RW, H), fg = fgc.getContext('2d');
     const objects = [], npcs = [], lights = [], windows = [];
@@ -675,7 +714,14 @@ const Rooms = (() => {
     else if (T === 'post') { ceiling(p, RW); wallPaper(p, r, RW, [150, 160, 176], { wood: [96, 70, 50], motif: [176, 184, 200] }); floorPlanks(p, r, RW, [128, 96, 64]); }
     else if (T === 'blacksmith') { ceiling(p, RW, [50, 40, 36]); wallPlanks(p, r, RW, [[92, 70, 52], [84, 64, 48], [100, 76, 56]], false); floorDirt(p, r, RW, false); }
     else if (T === 'church') { ceiling(p, RW, [90, 70, 50]); wallPlaster(p, r, RW, true); floorPlanks(p, r, RW, [134, 100, 66]); }
-    const WINS = { sheriff: [150], store: [384], saloon: [470], bank: [60, 250], doctor: [120, 280], post: [300] }[T] || [];
+    // Silverbend: rough boards and bare rock, timber shoring, plank floors
+    else if (T === 'sb_assay') { ceiling(p, RW, [60, 46, 36]); wallRock(p, r, RW); floorPlanks(p, r, RW, [110, 84, 60]); }
+    else if (T === 'sb_saloon') { ceiling(p, RW, [50, 36, 28]); wallPlanks(p, r, RW, [[104, 78, 58], [96, 72, 54], [112, 84, 62]], true); floorPlanks(p, r, RW, [104, 78, 54]); frame = [70, 48, 32]; }
+    else if (T === 'sb_store') { ceiling(p, RW, [60, 46, 36]); wallPlanks(p, r, RW, [[128, 116, 100], [120, 108, 94], [136, 124, 108]], true); floorPlanks(p, r, RW, [116, 88, 60]); }
+    else if (T === 'sb_bunk') { ceiling(p, RW, [56, 40, 30]); wallPlanks(p, r, RW, [[112, 90, 68], [104, 84, 62], [120, 96, 72]], true); floorPlanks(p, r, RW, [104, 80, 56]); }
+    else if (T === 'sb_clinic') { ceiling(p, RW, [70, 56, 44]); wallPlaster(p, r, RW, false); floorPlanks(p, r, RW, [120, 92, 64]); }
+    else if (T === 'sb_livery') { ceiling(p, RW, [56, 40, 30]); wallRock(p, r, RW); floorDirt(p, r, RW, true); }
+    const WINS = { sheriff: [150], store: [384], saloon: [470], bank: [60, 250], doctor: [120, 280], post: [300], sb_store: [380], sb_saloon: [480], sb_bunk: [190], sb_clinic: [250] }[T] || [];
     const curtain = { saloon: [120, 30, 36], bank: [60, 80, 60], doctor: [236, 236, 236] }[T];
     WINS.forEach(wx => windows.push(windowHole(p, wx, frame, false, curtain)));
     const door = doorway(p, frame);
@@ -684,7 +730,7 @@ const Rooms = (() => {
     const npc = (kind, name, x, extra = {}) => {
       const c = b.cast && b.cast[kind];
       if (c && c.lines) extra = Object.assign({}, extra, { lines: c.lines });
-      npcs.push(Object.assign({ kind, name: who(kind, name), x, face: -1, y: GROUND - 2 }, extra));
+      npcs.push(Object.assign({ kind: (c && c.look) || kind, name: who(kind, name), x, face: -1, y: GROUND - 2 }, extra));
     };
 
     if (T === 'sheriff') {
@@ -828,8 +874,81 @@ const Rooms = (() => {
       for (const sx of [112, 212, 312]) windows.push({ x: sx, y: 64, w: 2, h: 2, glow: true });
       objects.push({ x: 376, r: 26, label: 'Pray at the altar', act: 'pray' });
     }
+    if (T === 'sb_assay') {
+      ctx.drawImage(FUR.claimMap(), 60, 50); ctx.drawImage(FUR.claimMap(), 96, 58);
+      for (const [sx, sy] of [[150, 44], [150, 66], [220, 44]]) ctx.drawImage(FUR.oreShelf(60, sx + sy), sx, sy);
+      place(ctx, FUR.furnace(), 300); place(ctx, FUR.bucket(), 336);
+      place(ctx, FUR.safe(), 360); place(ctx, FUR.silverBars(), 362, FLOOR - 26);
+      ctx.drawImage(FUR.hangLantern(), 120, 22); ctx.drawImage(FUR.hangLantern(), 280, 22);
+      const ctr = FUR.counter(130, [92, 64, 44], [150, 112, 72]);
+      fg.drawImage(ctr, 130, FLOOR - ctr.height + 7);
+      place(fg, FUR.scale(), 150, FLOOR - 21); place(fg, FUR.scale(), 230, FLOOR - 21); place(fg, FUR.oreShelf(30, 7), 180, FLOOR - 21);
+      lights.push({ x: 124, y: 48, r: 70, col: [255, 200, 120] }, { x: 284, y: 48, r: 70, col: [255, 200, 120] }, { x: 315, y: FLOOR - 20, r: 60, col: [255, 140, 60] });
+      npc('teller', 'Assayer', 195, { y: GROUND - 10, front: true });
+      objects.push({ x: 372, r: 26, label: 'Look at the silver', act: 'vault' });
+      objects.push({ x: 314, r: 18, label: 'Look at the assay furnace', act: 'furnace' });
+    } else if (T === 'sb_saloon') {
+      for (const tx of [40, 160, 280, 400, 520]) place(ctx, FUR.timber(136), tx);
+      ctx.drawImage(FUR.oreShelf(100, 3), 66, 70); ctx.drawImage(FUR.bottles(96, 9), 66, 88); ctx.drawImage(FUR.wallShelf(100, 4, 'none'), 64, 88);
+      for (const lx of [100, 230, 360, 470]) ctx.drawImage(FUR.hangLantern(), lx, 14);
+      for (const tx of [250, 360]) { place(ctx, FUR.chair(), tx - 14); place(ctx, FUR.cartTable(), tx); place(ctx, FUR.cards(), tx + 12, FLOOR - 26); place(ctx, FUR.bottle(), tx + 4, FLOOR - 26); place(ctx, FUR.chair(), tx + 40); }
+      place(ctx, SEARCH.barrel.closed, 200); place(ctx, FUR.spittoon(), 440);
+      const st = FUR.stairs(12, 7, 7);
+      ctx.fillStyle = '#3a2418'; ctx.fillRect(RW - 24, FLOOR - 84 - 50, 22, 50);
+      ctx.fillStyle = '#140c08'; ctx.fillRect(RW - 22, FLOOR - 84 - 48, 18, 48);
+      place(ctx, st, RW - st.width);
+      // a plank bar laid across barrels
+      const bar = FUR.counter(150, [80, 58, 40], [132, 100, 66]);
+      fg.drawImage(bar, 44, FLOOR - bar.height + 7);
+      for (const bx of [50, 120, 176]) place(fg, FUR.barrel(false), bx, FLOOR + 1);
+      place(fg, FUR.bottle(), 70, FLOOR - 21); place(fg, FUR.bottle(), 150, FLOOR - 21);
+      lights.push({ x: 104, y: 40, r: 80, col: [255, 196, 110] }, { x: 234, y: 40, r: 80, col: [255, 196, 110] }, { x: 364, y: 40, r: 80, col: [255, 196, 110] }, { x: 474, y: 40, r: 80, col: [255, 196, 110] });
+      npc('bartender', 'Bartender', 118, { y: GROUND - 10, front: true });
+      npc('singer', 'Singer', 224, { face: 1 });
+      npc('gambler', 'Gambler', 330, { face: -1 });
+      npc('townsman', 'Miner', 420, { face: -1 });
+      objects.push({ x: 118, r: 70, label: `Talk to ${who('bartender', 'the bartender')} at the bar`, act: 'bar' });
+      objects.push({ x: RW - 50, r: 30, label: 'Go upstairs (rent a bunk room)', act: 'stairs' });
+    } else if (T === 'sb_store') {
+      ctx.drawImage(FUR.toolRack(), 50, 60); ctx.drawImage(FUR.toolRack(), 96, 60);
+      for (const [sx, sy] of [[170, 40], [170, 62], [280, 40], [280, 62]]) ctx.drawImage(FUR.wallShelf(90, sx + sy, sy === 62 ? 'cans' : 'mixed'), sx, sy);
+      for (const lx of [150, 330]) ctx.drawImage(FUR.hangLantern(), lx, 14);
+      place(ctx, FUR.dynamite(), 380); place(ctx, FUR.dynamite(), 384, FLOOR - 15); place(ctx, FUR.rope(), 410);
+      place(ctx, SEARCH.sacks.closed, 420); place(ctx, SEARCH.barrel.closed, 140);
+      const ctr = FUR.counter(150);
+      fg.drawImage(ctr, 180, FLOOR - ctr.height + 7);
+      place(fg, FUR.lantern(), 200, FLOOR - 21); place(fg, FUR.rope(), 240, FLOOR - 21); place(fg, FUR.scale(), 300, FLOOR - 21);
+      lights.push({ x: 154, y: 40, r: 80, col: [255, 200, 120] }, { x: 334, y: 40, r: 80, col: [255, 200, 120] });
+      npc('shopkeep', 'Shopkeeper', 255, { y: GROUND - 10, front: true });
+      objects.push({ x: 255, r: 60, label: `Shop with ${who('shopkeep', 'the shopkeeper')}`, act: 'shop' });
+    } else if (T === 'sb_bunk') {
+      for (const bx of [60, 140, 280, 350]) place(ctx, FUR.bunk(), bx);
+      place(ctx, FUR.stove(false), 236); ctx.fillStyle = '#48484e'; ctx.fillRect(244, 14, 4, FLOOR - 24 - 14 + 1);
+      place(ctx, FUR.locker(), 216 - 24); ctx.drawImage(FUR.hatPeg(), 250, 56);
+      ctx.drawImage(FUR.hangLantern(), 130, 14); ctx.drawImage(FUR.hangLantern(), 320, 14);
+      place(ctx, SEARCH.trunk.closed, 410);
+      lights.push({ x: 134, y: 40, r: 80, col: [255, 200, 120] }, { x: 324, y: 40, r: 80, col: [255, 200, 120] }, { x: 246, y: FLOOR - 14, r: 40, col: [255, 140, 70] });
+      npc('cook', 'Cook', 214, { face: 1 });
+      objects.push({ x: 300, r: 30, label: 'Sleep in a bunk (saves)', act: 'bunk' });
+    } else if (T === 'sb_clinic') {
+      ctx.drawImage(FUR.bandages(), 90, 70); ctx.drawImage(FUR.wallShelf(50, 8, 'jars'), 80, 84);
+      const cot = FUR.cot(); place(ctx, cot, 170); ctx.fillStyle = '#ecece6'; ctx.fillRect(171, FLOOR - 12, 50, 3);
+      place(ctx, FUR.washstand(false), 250); place(ctx, FUR.chair(), 140); place(ctx, FUR.bucket(), 296);
+      ctx.drawImage(FUR.hangLantern(), 200, 14);
+      lights.push({ x: 204, y: 40, r: 80, col: [255, 210, 140] });
+      npc('doc', 'Doctor', 120, { face: 1 });
+      objects.push({ x: 120, r: 22, label: `See ${who('doc', 'the doctor')}`, act: 'doctor' });
+    } else if (T === 'sb_livery') {
+      place(ctx, FUR.saddleRack(), 44); place(ctx, FUR.orePack(), 64); place(ctx, FUR.orePack(), 70, FLOOR - 15);
+      place(ctx, FUR.hay(false), 100); ctx.drawImage(FUR.hangLantern(), 130, 14);
+      lights.push({ x: 134, y: 40, r: 90, col: [255, 200, 120] });
+      for (const sx of [190, 260, 330, 400, 470]) fg.drawImage(FUR.stall(64), sx - 32, FLOOR - 28);
+      place(fg, FUR.orePack(), 450, FLOOR + 1);
+      npc('stablehand', 'Stablehand', 136, { face: 1 });
+      objects.push({ x: 136, r: 22, label: `Talk to ${who('stablehand', 'the stablehand')} about horses`, act: 'horses' });
+    }
     return { kind: 'town', building: b, w: RW, img: U.chunky(img), fg: U.chunky(fgc), containers: [], windows, doorRect: door, objects, npcs, lights, door: 24, name: b.label,
-      stalls: T === 'stable' ? [190, 260, 330] : null };
+      stalls: T === 'stable' ? [190, 260, 330] : T === 'sb_livery' ? [260, 330, 400] : null };
   }
 
   return { buildAbandoned, buildTown, FLOOR, FUR, SEARCH };
