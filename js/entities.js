@@ -289,7 +289,7 @@ class Enemy {
         if (this.t <= 0) {
           this.state = 'attack'; this.t = 0.18;
           // lunge
-          this.x += this.face * ({ coyote: 10, snake: 8, bison: 16, bear: 8 }[this.type] || 4);
+          this.x += this.face * ({ coyote: 10, snake: 8, bison: 16, bear: 18 }[this.type] || 4);
           if (dist < d.range + 8 && player.y > GROUND - 22) player.hurt(Math.round(d.dmg * this.mul), this.x, this);
         }
         break;
@@ -326,7 +326,7 @@ class Enemy {
       frame = this.state === 'attack' || (this.moving && this.state === 'chase') ? Fauna.cycle(s.run, this.animT / 2) : this.moving ? Fauna.cycle(s.walk, this.animT / 2) : this.grazing ? s.graze : s.stand;
     } else if (this.type === 'bear') {
       const s = this.black ? Fauna.sets.blackbear : Fauna.sets.bear; anchor = s.anchor;
-      frame = this.state === 'windup' || this.state === 'attack' ? s.rear : this.moving ? Fauna.cycle(s.walk, this.animT / 2) : s.stand;
+      frame = this.state === 'windup' ? s.crouch : this.state === 'attack' ? s.lunge : this.moving ? Fauna.cycle(s.walk, this.animT / 2) : s.stand;
     } else {
       const s = Chars.person(this.look || 'outlaw');
       const st = this.state === 'attack' ? 'punch' : this.state === 'windup' ? 'windup' : this.state === 'hurt' || this.state === 'stun' ? 'hurt'

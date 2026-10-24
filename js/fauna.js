@@ -73,6 +73,11 @@ const Fauna = (() => {
       leg(a, hx + (far ? -1 : 0), hy + q.bob, ang, w, far ? pal.map(c => sh(c, 0.72)) : pal, hoof, taper || 0);
     }
   }
+  // a limb drawn over a body of the same colour: a dark edge first so it reads
+  function arm(a, pts, w, pal) {
+    for (let i = 1; i < pts.length; i++) seg(a, pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], w + 2, [pal[0], pal[0], pal[0], pal[0]]);
+    for (let i = 1; i < pts.length; i++) seg(a, pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], w, pal);
+  }
   const eye = (a, x, y, glint) => { a.put(x, y, [14, 10, 10]); if (glint) a.put(x, y - 1, [240, 236, 226]); };
 
   const P = {
@@ -119,30 +124,37 @@ const Fauna = (() => {
       blob(a, 10, -8 + b, 3, 3, F, { fur: 1 });              // fur over the near front leg
     },
     bear(a, q) {
-      const C = q.pal, b = q.bob;
-      if (q.gait === 'rear') {
-        // up on its hind legs, claws out
-        for (const x of [-3, 2]) seg(a, x, -10, x, 0, 3, C);
-        blob(a, 0, -15, 5.5, 8, C, { fur: 1 });
-        blob(a, 1, -24, 4.5, 4, C, { fur: 1 });
-        blob(a, 3, -23, 2.4, 1.8, P.muzzle);
-        for (const x of [-2, 3]) blob(a, x, -28, 1.3, 1.3, C);
-        eye(a, 2, -25, true); a.put(5, -23, [20, 14, 12]);
-        for (const s of [-1, 1]) { seg(a, s * 4, -19, s * 8, -24, 2, C); for (let k = 0; k < 3; k++) a.put(s * 8 + k - 1, -26, P.white[2]); }
-        blob(a, 0, -14, 3, 4, C.map(c => sh(c, 1.15)), { fur: 1 });
-        return;
-      }
-      const L = { front: [8, -8, 2, C, C[0], 0], hind: [-8, -9, 2, C, C[0], 0], amp: 0.35 };
+      const C = q.pal, M = P.muzzle, b = q.bob, fur = { fur: 1 };
+      const jaw = (hx, hy) => {                                  // the mouth open in a roar
+        blob(a, hx + 4, hy + 3.6, 2.4, 1.1, M);
+        for (let k = 0; k < 3; k++) a.put(hx + 4.5 + k, hy + 2.6, [130, 28, 28]);
+        a.put(hx + 6.5, hy + 2, P.white[3]); a.put(hx + 6, hy + 3.4, P.white[3]); a.put(hx + 4.5, hy + 2, P.white[2]);
+      };
+      const head = (hx, hy, open) => {
+        blob(a, hx - 2, hy + 0.6, 3.4, 3.8, C, fur);              // the ruff behind the jaw
+        blob(a, hx, hy, 4.6, 4, C, fur);
+        blob(a, hx + 4.4, hy + 1.1, 3, 2.1, M);                   // long muzzle
+        a.put(hx + 7.4, hy + 0.4, [16, 10, 10]); a.put(hx + 7.4, hy + 1.2, [16, 10, 10]); a.put(hx + 6.8, hy - 0.2, [16, 10, 10]);
+        for (const ex of [-2.2, 0.6]) { blob(a, hx + ex, hy - 4, 1.5, 1.5, C, fur); a.put(hx + ex, hy - 4, C[0]); }
+        eye(a, hx + 2.2, hy - 1.2, true);
+        if (open) jaw(hx, hy);
+      };
+      const claws = (x, y) => { for (let k = 0; k < 3; k++) a.put(x + k, y, P.white[1]); };
+      // crouch: front end dropped, head low, growling before it charges;
+      // lunge: stretched out mid-leap, head thrust forward, jaws open
+      const lunge = q.pose === 'lunge', crouch = q.pose === 'crouch', roll = q.gait === 'walk' ? Math.round(Math.sin(q.ph * TAU)) : 0;
+      const fb = crouch ? 2 : 0;
+      const L = { front: [8, -10 + fb, 3, C, C[0]], hind: [-9, -11, 3, C, C[0]], amp: 0.32 };
       legs(a, q, L, true);
-      blob(a, -8, -11 + b, 6, 6, C, { fur: 1 });
-      blob(a, -1, -10 + b, 9, 6, C, { fur: 1 });
-      blob(a, 5, -13 + b, 6, 5.5, C, { fur: 1 });           // shoulder hump
-      blob(a, 12, -10 + b, 4.5, 4, C, { fur: 1 });
-      blob(a, 16, -9 + b, 2.4, 1.8, P.muzzle);
-      for (const x of [10, 13]) blob(a, x, -14 + b, 1.3, 1.3, C);
-      eye(a, 14, -11 + b, true); a.put(18, -9 + b, [20, 14, 12]);
+      blob(a, -15.5, -14.5 + b, 1.4, 1.4, C, fur);               // stub tail
+      blob(a, -9, -13 + b - roll * 0.5, 7, 6.5, C, fur);          // rump
+      blob(a, -1, -12.5 + b + fb * 0.5, 10, 6.5, C, fur);         // barrel
+      blob(a, 0, -7 + b + fb * 0.5, 8, 1.6, C.map(c => sh(c, 0.82)), fur);   // shaggy fringe under the belly
+      blob(a, 5, -16 + b + roll * 0.5 + fb, 7.5, 6, C, fur);      // shoulder hump
+      if (q.tips) for (let x = -2; x < 12; x++) if (hash(x, 3) < 0.55) a.put(x, -21.5 + b + roll * 0.5 + fb + Math.abs(x - 5) * 0.28 + (hash(x, 7) < 0.4 ? 1 : 0), q.tips);   // silver-tipped fur
+      head(lunge ? 16 : 13, (lunge ? -11 : crouch ? -7.5 : -11.5) + b, lunge || crouch);
       legs(a, q, L, false);
-      for (const x of [9, -7]) for (let k = 0; k < 2; k++) a.put(x + k + 1, 0, P.white[1]);   // claws
+      if (!lunge) { claws(8, 0); claws(-10, 0); }
     },
     deer(a, q) {
       const D = P.deer, b = q.bob, down = q.head === 'down';
@@ -192,21 +204,28 @@ const Fauna = (() => {
       eye(a, 1.5, -10, true); a.put(2.5, -9, [40, 30, 26]);
     },
     cow(a, q) {
-      const W = q.pal, K = q.spots, b = q.bob, down = q.head === 'down';
-      const spots = { patch: q.patch, patchPal: K };
-      const L = { front: [8, -9, 2, W, [44, 36, 32]], hind: [-8, -10, 2, W, [44, 36, 32]], amp: 0.35 };
-      legs(a, q, L, true);
-      seg(a, -11, -16 + b, -12.5, -8 + b, 1, W); blob(a, -12.5, -7 + b, 1, 1.6, K);   // tail
-      blob(a, -1, -13 + b, 10, 5.5, W, spots);
-      blob(a, -4, -8 + b, 2.6, 1.6, P.pink);                     // udder
-      const hx = down ? 13 : 12, hy = down ? -6 : -14;
-      seg(a, 8, -14 + b, hx - 1, hy + b, 4, W);
-      blob(a, hx, hy + b, 3.4, 2.8, q.face, { patch: [[1, -1, 1.5]], patchPal: W });
-      blob(a, hx + 3, hy + 1 + b, 1.6, 1.4, P.pink);             // muzzle
-      a.put(hx - 1, hy - 3 + b, P.horn[3]); a.put(hx - 2, hy - 4 + b, P.horn[2]);
-      blob(a, hx - 3, hy - 1 + b, 1.4, 0.9, q.face);              // ear
-      eye(a, hx + 1, hy - 1 + b, true);
-      legs(a, q, L, false);
+      const W = q.pal, K = q.spots, b = q.bob + (q.chew || 0) * 0, down = q.head === 'down', lie = q.lie, lo = lie ? 7 : 0;
+      const HC = [44, 36, 32];
+      // the spots are laid out over the whole cow, then each part takes its share
+      const spot = (cx, cy) => ({ patch: q.patch.map(([x, y, r]) => [x - Math.round(cx), y - Math.round(cy), r]), patchPal: K });
+      const L = { front: [8, -10, 2, W, HC], hind: [-9, -11, 2, W, HC], amp: 0.32 };
+      if (!lie) legs(a, q, L, true);
+      const tx = -12.5 + (q.tail || 0) * 1.6;                       // the tail swishes
+      seg(a, -11.5, -17.5 + b + lo, tx, (lie ? -3 : -9) + b, 1, W); blob(a, tx, (lie ? -2 : -8) + b, 1, 1.8, K);
+      blob(a, -1, -14 + b + lo, 10.5, 5.5, W, spot(-1, -14));
+      blob(a, -8.5, -16.5 + b + lo, 3.6, 2.8, W, spot(-8.5, -16.5));   // hip bones
+      blob(a, 6, -15 + b + lo, 4.2, 4.6, W, spot(6, -15));             // shoulders
+      if (!lie) { blob(a, -4, -8.5 + b, 2.6, 1.8, P.pink); a.put(-5, -6.5 + b, P.pink[1]); a.put(-3, -6.5 + b, P.pink[1]); }   // udder
+      blob(a, 9.5, -11 + b + lo, 1.6, 2.4, W);                        // dewlap
+      const hx = down ? 14 : 13, hy = (down ? -5 : -15) + b + (lie ? 5 : 0) + (q.chew || 0);
+      seg(a, 8, -15 + b + lo, hx - 1.5, hy + 0.5, 4, W);
+      blob(a, hx, hy, 2.6, 2.9, q.face, { patch: [[1, -1, 1.3], [2, 0, 1]], patchPal: W });   // white blaze down the face
+      blob(a, hx + 2.8, hy + 1.6, 1.8, 1.5, P.pink); a.put(hx + 4, hy + 1.4, P.pink[0]);
+      seg(a, hx - 1.8, hy - 2, hx - 4.4, hy - 2.4 - (q.ear ? 1 : 0), 1, q.face); a.put(hx - 3, hy - 2.2, P.pink[2]);   // ear
+      a.put(hx - 1, hy - 3.6, P.horn[3]); a.put(hx - 1.5, hy - 4.6, P.horn[2]);
+      eye(a, hx + 0.6, hy - 1, true);
+      if (lie) { blob(a, 6, -1.5, 3, 1.3, W); blob(a, -7, -1.8, 3.6, 1.5, W); a.put(9, 0, HC); a.put(-4, 0, HC); }
+      else legs(a, q, L, false);
     },
     coyote(a, q) {
       const C = P.coyote, b = q.bob, bite = q.pose === 'bite';
@@ -228,47 +247,59 @@ const Fauna = (() => {
       legs(a, q, L, false);
     },
     pig(a, q) {
-      const C = P.pink, b = q.bob, down = q.head === 'down';
-      const L = { front: [5, -4, 2, C, [120, 70, 70]], hind: [-5, -4, 2, C, [120, 70, 70]], amp: 0.4 };
-      legs(a, q, L, true);
-      for (const [x, y] of [[-7, -7], [-8, -8], [-9, -7], [-8, -6]]) a.put(x, y + b, C[1]);   // curly tail
-      blob(a, 0, -6.5 + b, 7, 4, C, q.patch ? { patch: q.patch, patchPal: P.face } : {});
-      const hx = 7, hy = (down ? -4 : -7) + b;
-      blob(a, hx, hy, 3, 2.8, C);
-      blob(a, hx + 3, hy + 0.5, 1.2, 1.5, C.map(c => sh(c, 0.92)));
-      a.put(hx + 3, hy, [130, 70, 70]); a.put(hx + 3, hy + 1, [130, 70, 70]);
-      blob(a, hx - 1, hy - 2.8, 1.6, 1, C.map(c => sh(c, 0.95)));   // floppy ear
-      eye(a, hx + 1, hy - 1);
-      legs(a, q, L, false);
+      const C = P.pink, b = q.bob, down = q.head === 'down', lie = q.lie, lo = lie ? 3 : 0, TR = [130, 74, 74];
+      const L = { front: [5, -4.5, 2, C, TR], hind: [-5, -4.5, 2, C, TR], amp: 0.4 };
+      if (!lie) legs(a, q, L, true);
+      const w = q.tail || 0;                                          // the curly tail wiggles
+      for (const [x, y] of [[-7.5, -7.5], [-8.5, -8.5 + w * 0.5], [-9.5, -7.5 + w], [-9, -6.5]]) a.put(x, y + b + lo, C[1]);
+      const pat = q.patch ? { patch: q.patch, patchPal: P.face } : {};
+      blob(a, -3.5, -7.5 + b + lo, 4, 3.8, C, pat);
+      blob(a, 0.5, -7 + b + lo, 7, 4.2, C, pat);
+      const hx = 7, hy = (down ? -4 : -7.5) + b + lo + (q.chew || 0);
+      blob(a, hx, hy, 3.2, 2.9, C);
+      blob(a, hx + 3.2, hy + 0.6, 1.1, 1.6, C.map(c => sh(c, 0.88)));                         // snout
+      a.put(hx + 4, hy, [120, 64, 64]); a.put(hx + 4, hy + 1.4, [120, 64, 64]);
+      seg(a, hx - 0.6, hy - 2.6, hx + 1.8, hy - 1.2 - (q.ear ? 1 : 0), 2, C.map(c => sh(c, 0.94)));   // ear flopped over the eye
+      eye(a, hx + 1.2, hy - 0.1);
+      a.put(hx + 2.4, hy + 2, C[0]);
+      if (lie) { a.put(4, 0, TR); a.put(5, 0, TR); a.put(-4, 0, TR); }
+      else legs(a, q, L, false);
     },
     sheep(a, q) {
-      const C = P.wool, F = P.face, b = q.bob, down = q.head === 'down';
+      const C = P.wool, F = P.face, b = q.bob, down = q.head === 'down', lie = q.lie, lo = lie ? 4 : 0, wool = { wool: 1 };
       const L = { front: [5, -5, 1, F, null], hind: [-5, -5, 1, F, null], amp: 0.4 };
-      legs(a, q, L, true);
-      blob(a, 0, -8 + b, 7, 4.2, C, { wool: 1 });
-      blob(a, -4, -9 + b, 3.5, 3.5, C, { wool: 1 }); blob(a, 3, -9.5 + b, 3.5, 3.5, C, { wool: 1 });
-      const hx = 7.5, hy = (down ? -4 : -9) + b;
-      blob(a, hx, hy, 2.2, 2.2, F);
-      blob(a, hx + 1.8, hy + 0.8, 1.2, 1.1, F.map(c => sh(c, 1.1)));
-      blob(a, hx - 1.5, hy - 1.5, 1.2, 0.8, F);                    // ear
-      blob(a, hx - 1, hy - 2.5, 1.6, 1, C, { wool: 1 });           // wool on top of the head
-      eye(a, hx + 0.5, hy - 0.5, true);
-      legs(a, q, L, false);
+      if (!lie) legs(a, q, L, true);
+      blob(a, -7.6, -8 + b + lo + (q.tail || 0) * 0.6, 1.4, 2, C, wool);
+      for (const [x, y, rx, ry] of [[0, -8.5, 7, 4.5], [-4, -10, 3.6, 3.4], [3.5, -10.5, 3.6, 3.4], [0, -11.6, 3, 2.6]]) blob(a, x, y + b + lo, rx, ry, C, wool);
+      for (const [x, y] of [[-5, -9], [-1, -10.5], [3, -9], [-3, -7], [1, -7], [5, -8]]) { a.put(x, y + b + lo, C[1]); a.put(x + 1, y - 1 + b + lo, C[1]); }   // curls
+      const hx = 7.5, hy = (down ? -4 : -10) + b + lo + (q.chew || 0);
+      blob(a, hx, hy, 2.3, 2.5, F);
+      blob(a, hx + 1.8, hy + 1, 1.3, 1.2, F.map(c => sh(c, 1.15)));
+      seg(a, hx - 1, hy - 1.4, hx - 4, hy - 0.8 - (q.ear ? 1 : 0), 1, F);                   // ears out to the side
+      blob(a, hx - 1, hy - 2.8, 1.8, 1.2, C, wool);                                           // topknot
+      a.put(hx + 0.4, hy - 0.6, [214, 186, 110]); a.put(hx + 1, hy - 0.6, [14, 10, 10]);
+      if (lie) { a.put(4, 0, F[1]); a.put(-4, 0, F[1]); }
+      else legs(a, q, L, false);
     },
     goat(a, q) {
-      const C = q.pal, b = q.bob, down = q.head === 'down';
-      const L = { front: [5, -7, 1, C, [40, 32, 28]], hind: [-5, -7, 1, C, [40, 32, 28]], amp: 0.45 };
-      legs(a, q, L, true);
-      seg(a, -6, -10 + b, -7.5, -12 + b, 1, C);                      // tail, flicked up
-      blob(a, 0, -9.5 + b, 6, 3.2, C, { fur: 1 });
-      const hx = down ? 8.5 : 7.5, hy = (down ? -5 : -14) + b;
-      seg(a, 4, -11 + b, hx - 1, hy + 1, 2, C);
-      blob(a, hx, hy, 2.2, 1.8, C);
-      blob(a, hx + 2, hy + 0.8, 1.3, 1, C.map(c => sh(c, 1.08)));
-      for (const [x, y] of [[-1, -2], [-2, -3], [-3, -3.5], [-4, -3]]) a.put(hx + x, hy + y, [120, 110, 96]);   // horns sweeping back
-      seg(a, hx + 1, hy + 2, hx + 1, hy + 4, 1, C.map(c => sh(c, 0.85)));   // beard
-      eye(a, hx + 0.5, hy - 0.6, true);
-      legs(a, q, L, false);
+      const C = q.pal, b = q.bob, down = q.head === 'down', lie = q.lie, lo = lie ? 6 : 0, HC = [40, 32, 28], fur = { fur: 1 };
+      const L = { front: [5, -7.5, 1, C, HC], hind: [-5, -8, 1, C, HC], amp: 0.45 };
+      if (!lie) legs(a, q, L, true);
+      seg(a, -6, -11 + b + lo, -7 - (q.tail || 0) * 0.8, -13.5 + b + lo, 1, C);            // tail flicked up
+      blob(a, -4.5, -11 + b + lo, 2.6, 2.7, C, fur);
+      blob(a, 0, -10 + b + lo, 6.2, 3.4, C, fur);
+      blob(a, 4, -10 + b + lo, 2.8, 3.3, C, fur);
+      if (q.stripe) for (let x = -5; x <= 4; x++) a.put(x, -13 + b + lo + (x > 2 ? 0.5 : 0), q.stripe);   // dark stripe down the back
+      const hx = down ? 8.5 : 7, hy = (down ? -5 : -15) + b + (lie ? 4 : 0) + (q.chew || 0);
+      seg(a, 4.5, -12 + b + lo, hx - 0.8, hy + 1, 2, C);
+      blob(a, hx, hy, 2, 1.8, C);
+      blob(a, hx + 1.9, hy + 1, 1.4, 1.2, C.map(c => sh(c, 1.08)));
+      for (const [x, y, k] of [[-0.5, -2, 3], [-1.5, -3, 3], [-2.5, -3.5, 2], [-3.5, -3.2, 2], [-4.2, -2.4, 1]]) a.put(hx + x, hy + y, P.horn[k]);   // horns sweeping back
+      seg(a, hx - 1, hy - 0.4, hx - 3, hy + 0.6 - (q.ear ? 1 : 0), 1, C.map(c => sh(c, 0.88)));
+      seg(a, hx + 1.6, hy + 2, hx + 1.6, hy + 4, 1, C.map(c => sh(c, 0.78)));                // beard
+      a.put(hx + 0.4, hy - 0.6, [210, 176, 80]); a.put(hx + 0.9, hy - 0.6, [14, 10, 10]);
+      if (lie) { a.put(4, 0, HC); a.put(-4, 0, HC); }
+      else legs(a, q, L, false);
     },
   };
 
@@ -284,23 +315,32 @@ const Fauna = (() => {
   }
   const WALK = [0, 0.25, 0.5, 0.75].map((ph, i) => ({ gait: 'walk', ph, bob: i % 2 ? -1 : 0 }));
   const RUN = [{ gait: 'run', ph: 0, bob: -1 }, { gait: 'run', ph: 0.5, bob: 0 }];
-  const COW_SPOTS = [[-5, -2, 3], [3, 1, 2.5], [6, -3, 2], [-8, 2, 2]];
+  // farm animals have more life: a tail swish and an ear flick while they
+  // stand, chewing while they graze, and lying down for a rest
+  const FARM = {
+    stand: [{ tail: 0 }, { tail: 1 }, { tail: 0 }, { tail: -1, ear: 1 }],
+    walk: WALK.map((w, i) => Object.assign({ tail: [0, 1, 0, -1][i] }, w)),
+    graze: [{ head: 'down' }, { head: 'down', chew: 1, tail: 1 }],
+    lie: [{ lie: 1 }, { lie: 1, chew: 1, ear: 1 }],
+  };
+  const COW_SPOTS = [[-6, -16, 3.2], [2, -13, 2.6], [6, -17, 2.2], [-10, -12, 2.2], [-2, -18, 1.6]];
+  const BEAR = { stand: {}, walk: WALK, crouch: { pose: 'crouch' }, lunge: { gait: 'run', ph: 0, bob: -2, pose: 'lunge' } };
   const sets = {
     bison: make('bison', 40, 28, 20, { stand: {}, walk: WALK, run: RUN, graze: { head: 'down' } }),
-    bear: make('bear', 36, 32, 16, { stand: {}, walk: WALK, rear: { gait: 'rear' } }, { pal: P.bear }),
-    blackbear: make('bear', 36, 32, 16, { stand: {}, walk: WALK, rear: { gait: 'rear' } }, { pal: P.blackbear }),
+    bear: make('bear', 46, 44, 18, BEAR, { pal: P.bear, tips: [184, 150, 112] }),
+    blackbear: make('bear', 46, 44, 18, BEAR, { pal: P.blackbear }),
     deer: make('deer', 30, 34, 12, { stand: {}, walk: WALK, run: RUN, graze: { head: 'down' } }, { buck: true }),
     doe: make('deer', 30, 34, 12, { stand: {}, walk: WALK, run: RUN, graze: { head: 'down' } }),
     rabbit: make('rabbit', 14, 12, 6, { stand: {}, run: [{ gait: 'run', ph: 0 }, { gait: 'run', ph: 0.6 }] }),
     pdog: make('pdog', 10, 13, 4, { stand: {}, down: { pose: 'down' } }),
-    cow: make('cow', 34, 22, 15, { stand: {}, walk: WALK, graze: { head: 'down' } }, { pal: P.white, spots: P.cowK, face: P.cowK, patch: COW_SPOTS }),
-    browncow: make('cow', 34, 22, 15, { stand: {}, walk: WALK, graze: { head: 'down' } }, { pal: P.cowB, spots: P.white, face: P.white, patch: [[-4, -3, 2], [5, 2, 1.5]] }),
+    cow: make('cow', 36, 24, 16, FARM, { pal: P.white, spots: P.cowK, face: P.cowK, patch: COW_SPOTS }),
+    browncow: make('cow', 36, 24, 16, FARM, { pal: P.cowB, spots: P.white, face: P.cowB, patch: [[-5, -17, 2], [4, -12, 1.6]] }),
     coyote: make('coyote', 32, 20, 15, { stand: {}, walk: WALK, run: RUN, bite: { pose: 'bite' } }),
-    pig: make('pig', 22, 14, 10, { stand: {}, walk: WALK, graze: { head: 'down' } }),
-    spotpig: make('pig', 22, 14, 10, { stand: {}, walk: WALK, graze: { head: 'down' } }, { patch: [[-3, -1, 2], [3, 1, 1.5]] }),
-    sheep: make('sheep', 22, 16, 10, { stand: {}, walk: WALK, graze: { head: 'down' } }),
-    goat: make('goat', 22, 20, 10, { stand: {}, walk: WALK, graze: { head: 'down' } }, { pal: P.white }),
-    browngoat: make('goat', 22, 20, 10, { stand: {}, walk: WALK, graze: { head: 'down' } }, { pal: P.goatB }),
+    pig: make('pig', 24, 14, 11, FARM),
+    spotpig: make('pig', 24, 14, 11, FARM, { patch: [[-3, -1, 2], [3, 1, 1.5]] }),
+    sheep: make('sheep', 24, 16, 11, FARM),
+    goat: make('goat', 24, 20, 11, FARM, { pal: P.white }),
+    browngoat: make('goat', 24, 20, 11, FARM, { pal: P.goatB, stripe: [50, 32, 22] }),
   };
   const cycle = (frames, t) => frames[((Math.floor(t) % frames.length) + frames.length) % frames.length];
   return { sets, cycle };

@@ -1155,9 +1155,53 @@ const Game = (() => {
   const RIVER_WATER_A = ['rgba(136,190,226,0.8)', 'rgba(108,168,214,0.8)', 'rgba(86,146,198,0.82)', 'rgba(70,126,178,0.84)'];
   const RIVER_EARTH = ['#6a5236', '#5e4830', '#523e2a', '#463424'];
   const RIVER_STONES = [[0.32, 6, 4], [0.42, 14, 3], [0.5, 2, 5], [0.6, 18, 3], [0.68, 8, 4]];
+  // The river upstream: it winds back from the ford to the horizon,
+  // narrowing and hazing with distance. Each row moves at the speed of the
+  // scenery at that depth, so the far reaches drift slowly like the hills.
+  // Pines crowd both banks, nearer ones bigger.
+  let riverSpan = null;
+  function drawUpstream(c, camX, R) {
+    const SW = World.WATER, flow = G.clock * 10, HZ = 114, top = 144;
+    if (!riverSpan) { let a = R[0]; while (World.sink(a) <= SW) a += 2; riverSpan = [a, R[0] + R[1] - a]; }
+    const mid = (riverSpan[0] + riverSpan[1]) / 2, half = (riverSpan[1] - riverSpan[0]) / 2;
+    const at = y => {
+      const d = (y - HZ) / (top - HZ), p = 0.2 + 0.8 * Math.pow(d, 1.3);
+      const xc = (mid - camX) * p + (W / 2) * (1 - p) + Math.sin(d * 7 + 0.9) * 74 * Math.pow(1 - d, 0.8);
+      return { d, xc, hw: Math.max(3, half * (0.05 + 0.95 * Math.pow(d, 1.8))) };
+    };
+    const haze = [178, 204, 222], water = [[118, 176, 214], [100, 160, 204], [86, 146, 194]];
+    for (let y = HZ; y < top; y += 2) {
+      const { d, xc, hw } = at(y), x0 = U.snap(xc - hw), x1 = U.snap(xc + hw);
+      if (x1 < 0 || x0 > W) continue;
+      const base = U.lerpColor(water[Math.min(2, Math.floor(d * 3))], haze, (1 - d) * 0.4);
+      // muddy banks with a grassy lip, wider the nearer they are
+      const bw = U.snap(2 + d * 4);
+      c.fillStyle = U.rgb(U.lerpColor([92, 74, 50], haze, (1 - d) * 0.6)); c.fillRect(x0 - bw, y, bw, 2); c.fillRect(x1, y, bw, 2);
+      c.fillStyle = U.rgb(U.lerpColor([58, 92, 48], haze, (1 - d) * 0.6)); c.fillRect(x0 - bw - 2, y, 2, 2); c.fillRect(x1 + bw, y, 2, 2);
+      c.fillStyle = U.rgb(base); c.fillRect(x0, y, x1 - x0, 2);
+      // glints drifting down toward the ford
+      c.fillStyle = U.rgb(U.lerpColor([214, 236, 248], haze, (1 - d) * 0.5));
+      for (let x = x0 + ((y * 7) % 10); x < x1 - 2; x += 14 + (y % 5) * 3) if (((x * 3 + y * 5 - Math.floor(flow * (0.3 + d))) % 19 + 19) % 19 < 3) c.fillRect(U.snap(x), y, 4, 2);
+    }
+    // pines along both banks, far ones first
+    for (let k = 0; k < 26; k++) {
+      const y = HZ + 2 + Math.floor(Math.pow(k / 26, 0.8) * (top - HZ - 2)), { d, xc, hw } = at(y);
+      const h = U.snap(6 + 34 * Math.pow(d, 1.4)), side = k % 2 ? 1 : -1, x = U.snap(xc + side * (hw + 4 + h * 0.25 + ((k * 37) % 7) * d * 2));
+      if (x < -h || x > W + h) continue;
+      const col = U.lerpColor([26, 50, 36], haze, (1 - d) * 0.6), lit = U.lerpColor([46, 82, 52], haze, (1 - d) * 0.55);
+      for (let j = 0; j < h; j += 2) {
+        const hwj = U.snap(1 + (j / h) * h * 0.32 * (j % 6 === 4 ? 0.8 : 1));
+        c.fillStyle = U.rgb(lit); c.fillRect(x - hwj, y - h + j, hwj, 2);
+        c.fillStyle = U.rgb(col); c.fillRect(x, y - h + j, hwj, 2);
+      }
+      c.fillStyle = U.rgb(U.lerpColor([70, 52, 36], haze, (1 - d) * 0.6)); c.fillRect(x - 1, y, 2, 2);
+    }
+  }
   function drawRiver(c, camX, front) {
     const R = World.RIVER;
-    if (!R || R[1] < camX || R[0] > camX + W) return;
+    if (!R) return;
+    if (!front && R[1] > camX - 900 && R[0] < camX + W + 900) drawUpstream(c, camX, R);
+    if (R[1] < camX || R[0] > camX + W) return;
     const t = G.clock, SW = World.WATER, top = 144, y0 = top + SW, flow = Math.floor(t * 16);
     const px = (x, y, col) => { c.fillStyle = col; c.fillRect(x, y, 2, 2); };
     // the river widens toward you, so the shoreline runs at a slant
@@ -1182,9 +1226,11 @@ const Game = (() => {
         if (wetAt(s, y)) {
           col = RIVER_WATER[Math.min(4, Math.floor((y - y0) / (H - y0) * 5))];
           if (((y - flow + n * 5) % 22 + 22) % 22 < 2 && (wx / 2 + y / 2) % 4 === 0) col = '#d6ecf8';
-          if (y === y0) col = '#3a5a6e';
           else if (!wetAt(s - 0.8, y)) col = '#e8f4fa';                  // foam along the shore
           else if (!wetAt(s - 1.6, y) && (n + y) % 3) col = '#b8dcf0';
+        } else if (s > SW && y < y0) {
+          col = RIVER_WATER[0];                                        // the river carrying on upstream
+          if (((y + n * 3 - flow) % 14 + 14) % 14 < 2 && n % 3 === 0) col = '#d6ecf8';
         } else if (y < top + lip || (y < trail && s > SW)) {
           // the far bank: grass on the lip, bare earth with roots and stones below
           const k = y - top;
