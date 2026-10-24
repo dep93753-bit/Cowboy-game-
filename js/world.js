@@ -309,7 +309,7 @@ const World = (() => {
     },
     canyon: {
       END: C_END, TOWN_END: 0, BIOMES: C_BIOMES, BUILDINGS: C_BUILDINGS, HOUSES: [], NPCS: C_NPCS, PROPS: C_PROPS, FIXED_ENEMIES: C_FIXED, HITCHED: C_HITCHED, CRITTERS: C_CRITTERS,
-      OBJECTS: C_OBJECTS, LEDGE, BRUSH: C_BRUSH, life: true,
+      OBJECTS: C_OBJECTS, LEDGE, BRUSH: C_BRUSH, life: true, POCKET: SB, ceiling: true,
       EXITS: [{ x: 96, label: 'Head back to the badlands', to: 'road', toX: TRAIL_X + 96 }],
       endLines: [
         [null, 'The canyon opens out onto wide grassland. The prairie lies ahead.'],
@@ -321,7 +321,7 @@ const World = (() => {
   function use(id) {
     const m = MAPS[id] || MAPS.road;
     api.zone = MAPS[id] ? id : 'road';
-    for (const k of ['END', 'TOWN_END', 'BIOMES', 'BUILDINGS', 'HOUSES', 'NPCS', 'PROPS', 'FIXED_ENEMIES', 'HITCHED', 'CRITTERS', 'EXITS', 'endLines', 'blockedEnd', 'OBJECTS', 'LEDGE', 'BRUSH', 'life']) api[k] = m[k];
+    for (const k of ['END', 'TOWN_END', 'BIOMES', 'BUILDINGS', 'HOUSES', 'NPCS', 'PROPS', 'FIXED_ENEMIES', 'HITCHED', 'CRITTERS', 'EXITS', 'endLines', 'blockedEnd', 'OBJECTS', 'LEDGE', 'BRUSH', 'life', 'POCKET', 'ceiling']) api[k] = m[k];
   }
   const biomeAtIn = (x, zone) => (MAPS[zone] || MAPS.road).BIOMES.find(b => x >= b.x0 && x < b.x1);
 

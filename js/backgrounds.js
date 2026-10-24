@@ -412,7 +412,6 @@ const BG = (() => {
   function drawFront(ctx, id, camX) {
     const f = frontLayer(id);
     if (!f) return;
-    tile(ctx, f.top, camX * 1.25, 0);
     tile(ctx, f.bottom, camX * 1.25, H - 12);
   }
 
