@@ -738,6 +738,77 @@ const Game = (() => {
     G.enemies.push(new Enemy(type, x, { tough: hard }));
   }
 
+  // -------------------------------------------------------- canyon ceiling
+  // The canyon's rock ceiling changes as you go: long stretches hang low just
+  // above your hat, then it cracks open to a sliver of sky and a beam of
+  // sunlight comes down. It lifts away over Silverbend and the canyon mouth.
+  const Ceil = (() => {
+    const hash = n => { const v = Math.sin(n * 127.1) * 43758.5453; return v - Math.floor(v); };
+    const raw = x => (Math.sin(x * 0.0019) + 0.6 * Math.sin(x * 0.0047 + 2) + 0.3 * Math.sin(x * 0.011 + 4) + 1.9) / 3.8;
+    function depth(x) {
+      if (!World.ceiling) return 0;
+      let k = U.clamp((x - 260) / 300, 0, 1);
+      if (World.POCKET) { const [a, b] = World.POCKET; k = Math.min(k, U.clamp(Math.max(a - x, x - b) / 220, 0, 1)); }
+      k = Math.min(k, U.clamp((World.END - 140 - x) / 300, 0, 1));
+      if (k <= 0) return 0;
+      const t = raw(x);
+      let d = 10 + t * 62 + hash(Math.floor(x / 6)) * 4;
+      const tooth = Math.floor(x / 34);                 // hanging points of rock
+      if (hash(tooth) < 0.45) { const u = (x % 34) / 34; d += (1 - Math.abs(u - 0.5) * 2) * (6 + hash(tooth + 9) * 12); }
+      return d * k;
+    }
+    let beams = null, beamsFor = null;
+    function beamList() {
+      if (beamsFor === World.zone) return beams;
+      beamsFor = World.zone; beams = [];
+      if (!World.ceiling) return beams;
+      let prev = raw(0), cur = raw(16);
+      for (let x = 32; x < World.END; x += 16) {
+        const next = raw(x);
+        if (cur < prev && cur <= next && cur < 0.32 && depth(x - 16) > 4) beams.push(x - 16);
+        prev = cur; cur = next;
+      }
+      return beams;
+    }
+    function draw(c, camX) {
+      if (!World.ceiling) return;
+      for (let sx = 0; sx < W; sx += 2) {
+        const wx = camX + sx, d = U.snap(depth(wx));
+        if (d <= 0) continue;
+        c.fillStyle = '#341816'; c.fillRect(sx, 0, 2, d);
+        c.fillStyle = '#5e2c24'; c.fillRect(sx, d - 2, 2, 2);
+        if (hash(Math.floor(wx / 2) * 3.1) < 0.18 && d > 10) { c.fillStyle = '#46201c'; c.fillRect(sx, U.snap(hash(wx) * (d - 6)), 2, 2); }
+      }
+    }
+    // the haze of each sunbeam (drawn over the darkened scene)
+    function drawBeams(c, camX, day) {
+      if (!World.ceiling || day <= 0.05) return;
+      c.save(); c.globalCompositeOperation = 'lighter';
+      for (const bx of beamList()) {
+        const x = bx - camX;
+        if (x < -80 || x > W + 80) continue;
+        const d = depth(bx), g = c.createLinearGradient(0, d, 0, GROUND + 10);
+        g.addColorStop(0, `rgba(255,214,150,${(0.22 * day).toFixed(3)})`); g.addColorStop(1, 'rgba(255,214,150,0)');
+        c.fillStyle = g;
+        c.beginPath(); c.moveTo(x - 10, d); c.lineTo(x + 10, d); c.lineTo(x + 44, GROUND + 10); c.lineTo(x - 30, GROUND + 10); c.closePath(); c.fill();
+      }
+      c.restore();
+    }
+    // light the floor under each beam
+    function light(g, camX, day) {
+      if (!World.ceiling || day <= 0.05) return;
+      for (const bx of beamList()) {
+        const x = bx - camX;
+        if (x < -100 || x > W + 100) continue;
+        const d = depth(bx), gr = g.createLinearGradient(0, d, 0, H);
+        gr.addColorStop(0, `rgba(255,226,180,${(0.9 * day).toFixed(3)})`); gr.addColorStop(1, `rgba(255,200,150,${(0.55 * day).toFixed(3)})`);
+        g.fillStyle = gr;
+        g.beginPath(); g.moveTo(x - 12, d); g.lineTo(x + 12, d); g.lineTo(x + 54, H); g.lineTo(x - 40, H); g.closePath(); g.fill();
+      }
+    }
+    return { depth, draw, drawBeams, light };
+  })();
+
   // ------------------------------------------------------------ rockfalls
   // In the canyon, rocks break off the cliffs now and then: pebbles trickle
   // down and a shadow grows on the ground for a second, then the rock lands.
@@ -1090,14 +1161,15 @@ const Game = (() => {
       if (G.scene === 'world') for (const p of World.PROPS) if (p.front && p.x + p.img.width > camX && p.x < camX + W) lctx.drawImage(p.img, Math.round(p.x - camX), p.base - p.img.height);
       for (const q of G.particles) { lctx.fillStyle = q.col; lctx.fillRect(U.snap(q.x - camX), U.snap(q.y), 2, 2); }
       // the near canyon walls pass in front of everything
-      if (G.scene === 'world') BG.drawFront(lctx, G.biome && !G.biome.town ? G.biome.bg : null, camX);
+      if (G.scene === 'world') { Ceil.draw(lctx, camX); BG.drawFront(lctx, G.biome && !G.biome.town ? G.biome.bg : null, camX); }
     }
     lctx.restore();
 
     // lighting
     let amb = BG.light(hr);
     // the canyon floor sits in deep shadow; Silverbend's pocket is a little brighter
-    if (G.scene === 'world' && G.state !== 'title' && G.biome && G.biome.bg === 'canyon') amb = U.lerpColor(amb, [140, 96, 92], G.biome.town ? 0.18 : 0.34);
+    // the canyon is dark under its ceiling; Silverbend's open pocket is brighter
+    if (G.scene === 'world' && G.state !== 'title' && G.biome && G.biome.bg === 'canyon') amb = U.lerpColor(amb, G.biome.town ? [140, 96, 92] : [70, 44, 48], G.biome.town ? 0.18 : 0.5);
     if (G.scene === 'interior' && G.state !== 'title') {
       amb = G.interior.kind === 'town' ? U.lerpColor(U.shade(amb, 0.8), [150, 122, 96], 0.4) : U.lerpColor(U.shade(amb, 0.62), [110, 84, 66], 0.25);
     }
@@ -1116,6 +1188,7 @@ const Game = (() => {
         const flick = 0.9 + 0.1 * Math.sin(G.clock * 17) * Math.sin(G.clock * 7);
         if (G.scene === 'world') {
           if (nightF > 0) glow(G.player.x - camX, G.player.y - (G.player.mounted ? 46 : 26), 70, [190, 150, 100], 0.85 * nightF);
+          if (World.ceiling) { Ceil.light(gctx, camX, 1 - nightF); if (G.biome && !G.biome.town) glow(G.player.x - camX, G.player.y - 30, 60, [150, 110, 90], 0.35); }
           if (d.campfire !== null) glow(d.campfire - camX, GROUND - 8, 95 * flick, [255, 170, 90], 0.95);
           for (const b of World.BUILDINGS) {
             if (b.x + b.img.width < camX - 60 || b.x > camX + W + 60) continue;
@@ -1151,6 +1224,7 @@ const Game = (() => {
       ctx.restore();
     }
     ctx.drawImage(layer, 0, 0);
+    if (G.state !== 'title' && G.scene === 'world') Ceil.drawBeams(ctx, camX, 1 - nightF);
 
     // readable overlays (not darkened)
     if (G.state !== 'title') {

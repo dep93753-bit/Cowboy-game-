@@ -9,6 +9,12 @@ const Buildings = (() => {
   const DOOR = 35;                    // door height in art pixels (70 on screen)
   const DOOR_H = DOOR * S;
 
+  // Every sign, door, window, porch, awning and balcony records its box, and
+  // finish() checks that no sign touches any of the others (warnings are
+  // kept in Buildings.warnings so tests can catch overlapping text).
+  const parts = [], warnings = [];
+  const mark = (kind, x, y, w, h) => parts.push({ kind, x, y, w, h });
+
   // ------------------------------------------------------------ toolkit
   function rect(p, x, y, w, h, c) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) p.put(x + i, y + j, typeof c === 'function' ? c(i, j) : c); }
   function box(p, x, y, w, h, c) { rect(p, x, y, w, h, c); for (let i = 0; i < w; i++) { p.put(x + i, y, INK); p.put(x + i, y + h - 1, INK); } for (let j = 0; j < h; j++) { p.put(x, y + j, INK); p.put(x + w - 1, y + j, INK); } }
@@ -67,6 +73,7 @@ const Buildings = (() => {
   }
   function pillar(p, x, y0, y1, col) { for (let y = y0; y < y1; y++) { p.put(x, y, sh(col, 1.15)); p.put(x + 1, y, sh(col, 0.75)); } }
   function window(p, x, y, w, h, o = {}) {
+    mark('window', x - (o.shutters ? 4 : 1), y - 3, w + (o.shutters ? 8 : 2), h + 4);
     const fr = o.frame || [236, 226, 198], glass = o.glass || [52, 70, 96];
     box(p, x, y, w, h, fr);
     for (let j = 2; j < h - 2; j++) for (let i = 2; i < w - 2; i++) {
@@ -88,6 +95,7 @@ const Buildings = (() => {
     if (o.shutters) for (const sx of [x - 4, x + w]) { box(p, sx, y, 4, h, o.shutters); for (let j = 2; j < h - 1; j += 2) { p.put(sx + 1, y + j, sh(o.shutters, 0.7)); p.put(sx + 2, y + j, sh(o.shutters, 0.7)); } }
   }
   function door(p, x, y, w, h, o = {}) {
+    mark('door', x - 2, y - (o.transom ? 7 : 2), w + 4, h + (o.transom ? 7 : 2));
     const col = o.col || [118, 74, 42], fr = o.frame || [236, 226, 198];
     rect(p, x - 2, y - 2, w + 4, h + 2, INK);
     rect(p, x - 1, y - 1, w + 2, h + 1, fr);
@@ -119,6 +127,7 @@ const Buildings = (() => {
   // Sign board: ink border, and on boards tall enough an inner trim line in
   // the edge colour; letters always get a clear row above and below.
   function sign(p, x, y, w, h, bg, edge) {
+    mark('sign', x, y, w, h);
     box(p, x, y, w, h, bg);
     if (h >= 11) { box(p, x, y, w, h, edge); for (let i = 0; i < w; i++) { p.put(x + i, y, INK); p.put(x + i, y + h - 1, INK); } for (let j = 0; j < h; j++) { p.put(x, y + j, INK); p.put(x + w - 1, y + j, INK); } rect(p, x + 2, y + 2, w - 4, h - 4, bg); }
     rect(p, x + 1, y + h - 2, w - 2, 1, sh(bg, 0.86));
@@ -126,6 +135,7 @@ const Buildings = (() => {
   }
   // Striped awning: a flat band with a scalloped edge and a shadow under it.
   function awning(p, x0, x1, y, cols) {
+    mark('awning', x0, y, x1 - x0, 7);
     for (let x = x0; x < x1; x++) {
       const c = cols[Math.floor((x - x0) / 3) % cols.length];
       p.put(x, y, INK);
@@ -137,6 +147,7 @@ const Buildings = (() => {
     darken(p, x0, y + 6, x1 - x0, 4, 0.75);
   }
   function porch(p, x0, x1, y, yb, o = {}) {
+    mark('porch', x0, y - 1, x1 - x0, 4);
     const roof = o.roof || [118, 82, 50], post = o.post || [140, 100, 62];
     darken(p, x0, y + 3, x1 - x0, 5, 0.75);
     rect(p, x0 - 1, y - 1, x1 - x0 + 2, 1, INK);
@@ -146,6 +157,7 @@ const Buildings = (() => {
     for (const px of o.posts || [x0, x1 - 2]) { for (let yy = y + 3; yy < yb; yy++) { p.put(px, yy, sh(post, 1.15)); p.put(px + 1, yy, sh(post, 0.7)); } p.put(px - 1, y + 3, sh(post, 0.8)); p.put(px + 2, y + 3, sh(post, 0.8)); }
   }
   function balcony(p, x0, x1, y, col) {
+    mark('balcony', x0, y - 6, x1 - x0, 10);
     rect(p, x0 - 2, y, x1 - x0 + 4, 1, INK);
     rect(p, x0 - 2, y + 1, x1 - x0 + 4, 1, sh(col, 1.2));
     rect(p, x0 - 2, y + 2, x1 - x0 + 4, 1, col);
@@ -201,6 +213,12 @@ const Buildings = (() => {
     paint.push([rect.x + Math.floor((rect.w - Font.width(text)) / 2), rect.y + Math.floor((rect.h - 5) / 2) + dy, text, col]);
   }
   function finish(p) {
+    const signs = parts.filter(q => q.kind === 'sign');
+    for (const a of signs) for (const b of parts) {
+      if (b === a || b.kind === 'sign') continue;
+      if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) warnings.push(`sign at ${a.x},${a.y} overlaps ${b.kind} at ${b.x},${b.y}`);
+    }
+    parts.length = 0;
     Props.outline(p, INK);
     const art = p.done();
     const actx = art.getContext('2d');
@@ -226,16 +244,15 @@ const Buildings = (() => {
     const sg = sign(p, x0 + 9, top + 5, W - 18, 11, [236, 216, 164], trim);
     label(sg, 'SHERIFF', '#3a2416');
     star(p, x0 + 3, top + 9); star(p, x0 + W - 6, top + 9);
-    window(p, x0 + 6, top + 22, 10, 9, { head: 'pediment' }); window(p, x0 + W - 16, top + 22, 10, 9, { head: 'pediment' });
-    porch(p, x0 - 1, x0 + W + 1, gy - 43, gy, { posts: [x0, x0 + 19, x0 + 39, x0 + W - 2], roof: trim });
+    porch(p, x0 - 1, x0 + W + 1, gy - 38, gy, { posts: [x0, x0 + 19, x0 + 39, x0 + W - 2], roof: trim });
     window(p, x0 + 5, gy - 30, 11, 15, { curtains: [130, 60, 50] });
     window(p, x0 + W - 16, gy - 30, 11, 15, { bars: true });
     door(p, x0 + 23, gy - DOOR, 14, DOOR, { col: [100, 62, 36] });
     poster(p, x0 + 17, gy - 26, true); poster(p, x0 + 39, gy - 25, false);
-    const lamp = lantern(p, x0 + 20, gy - 38);
+    const lamp = lantern(p, x0 + 20, gy - 34);
     boardwalk(p, x0 - 2, x0 + W + 2, yb);
     const ch = chimney(p, x0 + W - 10, top - 6, 5);
-    return { img: finish(p), door: (x0 + 30) * S, wins: [R([x0 + 5, gy - 30, 11, 15]), R([x0 + 6, top + 22, 10, 9]), R([x0 + W - 16, top + 22, 10, 9])], lamps: [lamp], smoke: [ch] };
+    return { img: finish(p), door: (x0 + 30) * S, wins: [R([x0 + 5, gy - 30, 11, 15])], lamps: [lamp], smoke: [ch] };
   };
 
   TOWN.bank = () => {
@@ -246,7 +263,7 @@ const Buildings = (() => {
     for (let y = top - 9; y < top; y++) { const hw = Math.round((y - top + 9) / 9 * (W / 2 - 4)); for (let x = x0 + W / 2 - hw; x < x0 + W / 2 + hw; x++) p.put(x, y, y === top - 9 + Math.floor(0) ? sh(st, 1.2) : sh(st, 1.08)); }
     paint.push([x0 + W / 2 - 15, top - 6, '1871', '#6a5e54']);
     cap(p, x0, top, W, [214, 210, 200]);
-    const sg = sign(p, x0 + 12, top + 5, W - 24, 10, [46, 42, 40], [200, 190, 170]);
+    const sg = sign(p, x0 + 12, top + 4, W - 24, 9, [46, 42, 40], [200, 190, 170]);
     label(sg, 'BANK', '#f2c94c');
     for (const cx of [x0 + 2, x0 + 15, x0 + W - 17, x0 + W - 4]) { rect(p, cx - 1, top + 17, 4, 1, [226, 222, 214]); pillar(p, cx, top + 18, gy - 3, [214, 210, 200]); rect(p, cx - 1, gy - 3, 4, 1, [226, 222, 214]); }
     for (const wx of [x0 + 5, x0 + W - 13]) { window(p, wx, top + 19, 8, 11, { head: 'arch', frame: [226, 222, 214] }); window(p, wx, gy - 26, 8, 16, { head: 'arch', frame: [226, 222, 214], bars: true }); }
@@ -269,7 +286,7 @@ const Buildings = (() => {
     rect(p, x0, top + 11, 1, gy - top - 11, trim); rect(p, x0 + W - 1, top + 11, 1, gy - top - 11, trim);
     const sg = sign(p, x0 + 4, top + 12, W - 8, 11, [240, 232, 210], trim);
     label(sg, 'GENERAL STORE', '#7a2e22');
-    paint.push([x0 + W / 2 - 17, top + 4, 'DRY GOODS', '#4a3a22']);
+    paint.push([x0 + W / 2 - 17, top + 5, 'DRY GOODS', '#4a3a22']);
     const goods = [[200, 60, 50], [230, 206, 120], [80, 130, 70], [150, 150, 156], [210, 180, 130]];
     window(p, x0 + 3, gy - 24, 20, 17, { frame: [240, 232, 210], single: true, goods });
     window(p, x0 + W - 23, gy - 24, 20, 17, { frame: [240, 232, 210], single: true, goods });
@@ -304,20 +321,18 @@ const Buildings = (() => {
     const x0 = 4, W = 82, top = 3, wall = [150, 66, 48], trim = [236, 214, 168];
     planks(p, r, x0, top + 2, W, gy - top - 2, wall);
     cap(p, x0, top, W, trim);
-    const sg = sign(p, x0 + 14, top + 5, W - 28, 12, [244, 224, 172], [90, 40, 30]);
-    label(sg, 'SALOON', '#7a1e1a');
+    const sg = sign(p, x0 + 14, top + 4, W - 28, 15, [244, 224, 172], [90, 40, 30]);
+    label(sg, 'SALOON', '#7a1e1a', -3); label(sg, 'AND HOTEL', '#4a2a1a', 3);
     star(p, x0 + 6, top + 9, trim); star(p, x0 + W - 9, top + 9, trim);
-    const hs = sign(p, x0 + W / 2 - 15, top + 19, 30, 9, [60, 30, 26], trim);
-    label(hs, 'HOTEL', '#f2c94c');
     const wins = [];
-    for (const wx of [x0 + 4, x0 + 20, x0 + W - 29, x0 + W - 13]) { window(p, wx, top + 30, 9, 12, { head: 'pediment', frame: trim, curtains: [190, 50, 60] }); wins.push(R([wx, top + 30, 9, 12])); }
-    balcony(p, x0, x0 + W, gy - 42, [120, 56, 40]);
+    for (const wx of [x0 + 4, x0 + 20, x0 + W - 29, x0 + W - 13]) { window(p, wx, top + 23, 9, 10, { frame: trim, curtains: [190, 50, 60] }); wins.push(R([wx, top + 23, 9, 10])); }
+    balcony(p, x0, x0 + W, gy - 37, [120, 56, 40]);
     window(p, x0 + 5, gy - 28, 16, 17, { frame: trim, curtains: [150, 30, 40] });
     window(p, x0 + W - 21, gy - 28, 16, 17, { frame: trim, curtains: [150, 30, 40] });
     wins.push(R([x0 + 5, gy - 28, 16, 17]), R([x0 + W - 21, gy - 28, 16, 17]));
     door(p, x0 + W / 2 - 8, gy - DOOR, 16, DOOR, { type: 'batwing', col: [124, 82, 46], frame: [90, 40, 30] });
-    for (const px of [x0, x0 + 25, x0 + W - 27, x0 + W - 2]) pillar(p, px, gy - 38, gy, trim);
-    const lamps = [lantern(p, x0 + W / 2 - 13, gy - 34), lantern(p, x0 + W / 2 + 11, gy - 34)];
+    for (const px of [x0, x0 + 25, x0 + W - 27, x0 + W - 2]) pillar(p, px, gy - 33, gy, trim);
+    const lamps = [lantern(p, x0 + W / 2 - 13, gy - 30), lantern(p, x0 + W / 2 + 11, gy - 30)];
     boardwalk(p, x0 - 3, x0 + W + 3, yb);
     const ch = chimney(p, x0 + 6, top - 4, 3);
     return { img: finish(p), door: (x0 + W / 2) * S, wins, lamps, smoke: [ch] };
@@ -788,38 +803,20 @@ const Buildings = (() => {
     const x0 = 4, W = 78, top = 3, wall = [112, 84, 64], trim = [222, 196, 140];
     planks(p, r, x0, top + 2, W, gy - top - 2, wall, 0.3);
     cap(p, x0, top, W, trim);
-    const sg = sign(p, x0 + 6, top + 5, W - 12, 12, [40, 34, 40], [200, 200, 210]);
-    label(sg, 'THE SILVER SPUR', '#d8dce6');
-    const hs = sign(p, x0 + W / 2 - 15, top + 19, 30, 9, [120, 40, 34], trim);
-    label(hs, 'ROOMS', '#f2c94c');
+    const sg = sign(p, x0 + 6, top + 4, W - 12, 15, [40, 34, 40], [200, 200, 210]);
+    label(sg, 'THE SILVER SPUR', '#d8dce6', -3); label(sg, 'ROOMS', '#f2c94c', 3);
     const wins = [];
-    for (const wx of [x0 + 4, x0 + 19, x0 + W - 28, x0 + W - 13]) { window(p, wx, top + 30, 9, 12, { head: 'pediment', frame: trim, curtains: [80, 110, 150] }); wins.push(R([wx, top + 30, 9, 12])); }
-    balcony(p, x0, x0 + W, gy - 42, [90, 66, 50]);
+    for (const wx of [x0 + 4, x0 + 19, x0 + W - 28, x0 + W - 13]) { window(p, wx, top + 23, 9, 10, { frame: trim, curtains: [80, 110, 150] }); wins.push(R([wx, top + 23, 9, 10])); }
+    balcony(p, x0, x0 + W, gy - 37, [90, 66, 50]);
     window(p, x0 + 5, gy - 28, 15, 17, { frame: trim, curtains: [130, 30, 40] });
     window(p, x0 + W - 20, gy - 28, 15, 17, { frame: trim, curtains: [130, 30, 40] });
     wins.push(R([x0 + 5, gy - 28, 15, 17]), R([x0 + W - 20, gy - 28, 15, 17]));
     door(p, x0 + W / 2 - 8, gy - DOOR, 16, DOOR, { type: 'batwing', col: [124, 90, 56], frame: [70, 50, 40] });
-    for (const px of [x0, x0 + 23, x0 + W - 25, x0 + W - 2]) pillar(p, px, gy - 38, gy, trim);
-    const lamps = [lantern(p, x0 + W / 2 - 13, gy - 34), lantern(p, x0 + W / 2 + 11, gy - 34)];
+    for (const px of [x0, x0 + 23, x0 + W - 25, x0 + W - 2]) pillar(p, px, gy - 33, gy, trim);
+    const lamps = [lantern(p, x0 + W / 2 - 13, gy - 30), lantern(p, x0 + W / 2 + 11, gy - 30)];
     boardwalk(p, x0 - 3, x0 + W + 3, yb);
     const ch = chimney(p, x0 + W - 10, top - 4, 3, [120, 110, 100]);
     return { img: finish(p), door: (x0 + W / 2) * S, wins, lamps, smoke: [ch] };
-  };
-
-  SILVER.doctor = () => {
-    const r = U.rng(104), { p, yb, gy } = sheet(50, 64);
-    const x0 = 4, W = 42, eave = gy - 46, trim = [232, 228, 216];
-    planks(p, r, x0, eave, W, gy - eave, [176, 168, 150], 0.2);
-    tinRoof(p, x0 - 3, x0 + W + 3, eave - 6, 6);
-    const sg = sign(p, x0 + W / 2 - 16, eave + 2, 32, 9, [244, 240, 228], [140, 40, 40]);
-    label(sg, 'DOCTOR', '#8a1e1e');
-    window(p, x0 + 4, gy - 28, 9, 14, { frame: trim, curtains: [240, 240, 240] });
-    window(p, x0 + W - 13, gy - 28, 9, 14, { frame: trim, curtains: [240, 240, 240] });
-    door(p, x0 + W / 2 - 6, gy - DOOR, 12, DOOR, { col: [140, 40, 40], frame: trim });
-    footing(p, x0, W, gy);
-    boardwalk(p, x0 - 2, x0 + W + 2, yb);
-    const ch = chimney(p, x0 + W - 10, eave - 12, 6, [120, 110, 100]);
-    return { img: finish(p), door: (x0 + W / 2) * S, wins: [R([x0 + 4, gy - 28, 9, 14]), R([x0 + W - 13, gy - 28, 9, 14])], lamps: [], smoke: [ch] };
   };
 
   SILVER.stable = () => {
@@ -936,27 +933,28 @@ const Buildings = (() => {
   // Buildings up on the ledge: shorter doors (they stand on the deck).
   const LDOOR = 32;
   SILVER.bunkhouse = () => {
-    const r = U.rng(107), p = U.pix(68, 42), gy = 41;
-    const x0 = 4, W = 60, eave = 10;
+    const r = U.rng(107), p = U.pix(78, 42), gy = 41;
+    const x0 = 4, W = 70, eave = 8;
     boards(p, r, x0, eave, W, gy - eave, [118, 98, 80], 0.4);
     tinRoof(p, x0 - 3, x0 + W + 3, eave - 6, 6);
-    const sg = sign(p, x0 + W / 2 - 22, eave + 1, 44, 9, [226, 210, 170], [92, 64, 44]);
+    const sg = sign(p, x0 + 3, eave + 3, 44, 9, [226, 210, 170], [92, 64, 44]);
     label(sg, 'BUNKHOUSE', '#4a2a1a');
-    window(p, x0 + 5, gy - 22, 10, 12, { frame: [210, 196, 170] }); window(p, x0 + W - 15, gy - 22, 10, 12, { frame: [210, 196, 170] });
-    door(p, x0 + W / 2 - 6, gy - LDOOR, 12, LDOOR, { col: [100, 72, 50], frame: [210, 196, 170] });
-    const ch = chimney(p, x0 + 8, eave - 12, 6, [120, 110, 100]);
-    return { img: finish(p), door: (x0 + W / 2) * S, wins: [R([x0 + 5, gy - 22, 10, 12]), R([x0 + W - 15, gy - 22, 10, 12])], lamps: [], smoke: [ch] };
+    window(p, x0 + 7, gy - 17, 10, 11, { frame: [210, 196, 170] }); window(p, x0 + 31, gy - 17, 10, 11, { frame: [210, 196, 170] });
+    door(p, x0 + W - 17, gy - LDOOR, 12, LDOOR, { col: [100, 72, 50], frame: [210, 196, 170] });
+    const ch = chimney(p, x0 + 20, eave - 10, 4, [120, 110, 100]);
+    return { img: finish(p), door: (x0 + W - 11) * S, wins: [R([x0 + 7, gy - 17, 10, 11]), R([x0 + 31, gy - 17, 10, 11])], lamps: [], smoke: [ch] };
   };
   SILVER.clinic = () => {
-    const r = U.rng(108), p = U.pix(50, 42), gy = 41;
-    const x0 = 4, W = 42, eave = 10, trim = [232, 228, 216];
+    const r = U.rng(108), p = U.pix(60, 42), gy = 41;
+    const x0 = 4, W = 52, eave = 8, trim = [232, 228, 216];
     planks(p, r, x0, eave, W, gy - eave, [176, 168, 150], 0.2);
     tinRoof(p, x0 - 3, x0 + W + 3, eave - 6, 6);
-    const sg = sign(p, x0 + W / 2 - 16, eave + 1, 32, 9, [244, 240, 228], [140, 40, 40]);
+    const sg = sign(p, x0 + 2, eave + 3, 30, 9, [244, 240, 228], [140, 40, 40]);
     label(sg, 'CLINIC', '#8a1e1e');
-    window(p, x0 + 4, gy - 22, 9, 12, { frame: trim, curtains: [240, 240, 240] });
-    door(p, x0 + W - 18, gy - LDOOR, 12, LDOOR, { col: [140, 40, 40], frame: trim });
-    return { img: finish(p), door: (x0 + W - 12) * S, wins: [R([x0 + 4, gy - 22, 9, 12])], lamps: [], smoke: [] };
+    rect(p, x0 + 12, eave + 15, 7, 2, [200, 50, 50]); rect(p, x0 + 14, eave + 13, 3, 6, [200, 50, 50]);   // red cross
+    window(p, x0 + 23, gy - 17, 9, 11, { frame: trim, curtains: [240, 240, 240] });
+    door(p, x0 + W - 15, gy - LDOOR, 12, LDOOR, { col: [140, 40, 40], frame: trim });
+    return { img: finish(p), door: (x0 + W - 9) * S, wins: [R([x0 + 23, gy - 17, 9, 11])], lamps: [], smoke: [] };
   };
 
   // ------------------------------------------------- signs of people
@@ -1028,7 +1026,7 @@ const Buildings = (() => {
 
   return {
     TOWN, abandoned, waterTower, windmill, wagon, well, lampPost, bench, laundry, corral, telegraphPole, DOOR_H,
-    canyonGate, hoodoo, boulders, SILVER, oreCart, tailings, rails, buttress, pocketWall, ledge, LEDGE_Y,
+    warnings, canyonGate, hoodoo, boulders, SILVER, oreCart, tailings, rails, buttress, pocketWall, ledge, LEDGE_Y,
     campsite, brokenWagon, claimStake, gear, ropeBridge,
   };
 })();
