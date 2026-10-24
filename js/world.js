@@ -100,9 +100,10 @@ const World = (() => {
   const PROPS = [];
   function scatter() {
     const r = U.rng(2024);
-    const keepClear = x => HOUSES.some(h => x > h.x - 30 && x < h.x + (h.w || 80) + 20) || Math.abs(x - END) < 120 || Math.abs(x - TRAIL_X - 50) < 80;
+    const keepClear = x => HOUSES.some(h => x > h.x - 30 && x < h.x + (h.w || 80) + 20) || Math.abs(x - END) < 120 || Math.abs(x - TRAIL_X - 80) < 150;
     const add = adder(PROPS);
-    add(Buildings.canyonGate('CANYON'), TRAIL_X, 154, { back: true });
+    add(Buildings.canyonGate(4), TRAIL_X, 154, { back: true });
+    add(Props.signpost('CANYON|PASS'), TRAIL_X - 60, 153);
     // behind the buildings
     add(Buildings.waterTower(), 1430, 150, { back: true });
     add(Buildings.windmill(0), 1590, 150, { back: true, windmill: true });
@@ -142,51 +143,123 @@ const World = (() => {
   }
 
   // ------------------------------------------------------------- canyon
-  // Deep red canyon. Silverbend and the canyon's abandoned places come in
-  // later updates; the far end opens toward the prairie (not built yet).
-  const C_END = 6400;
+  // Deep red canyon with the mining town of Silverbend part way along.
+  // The far end opens toward the prairie (not built yet).
+  const C_END = 12800;
+  const SB = [5150, 6460];   // Silverbend
   const C_BIOMES = [
-    { id: 'canyon', name: 'Canyon Pass', x0: -1e9, x1: 1e9, bg: 'canyon', heat: true, hard: true, music: 'canyon' },
+    { id: 'canyon', name: 'Canyon Pass', x0: -1e9, x1: SB[0], bg: 'canyon', heat: true, hard: true, music: 'canyon' },
+    { id: 'silverbend', name: 'Silverbend', x0: SB[0], x1: SB[1], town: true, bg: 'canyon', music: 'town' },
+    { id: 'canyon2', name: 'Canyon Pass', x0: SB[1], x1: 1e9, bg: 'canyon', heat: true, hard: true, music: 'canyon' },
   ];
+  const C_BUILDINGS = [
+    { id: 'sb_mine', art: 'mine', label: 'Silver Mine', x: 5236, closed: [
+      ['Foreman Briggs', "Mine's shut, Sheriff. Shoring gave way on the third level last week."],
+      ['Foreman Briggs', "Soon as the new timbers come in, we'll be diggin' again."],
+    ] },
+    { id: 'sb_assay', art: 'assay', room: 'bank', label: 'Assay Office', x: 5420, cast: {
+      teller: { name: 'Mr. Crane (Assayer)', lines: [
+        ['Every ounce that comes out of that mountain gets weighed right here.'],
+        ['A fella with a silver tooth tried to sell me coins from Redemption Gulch\'s bank. I turned him away. He did not like that.'],
+      ] },
+    } },
+    { id: 'sb_store', art: 'store', room: 'store', label: 'Supply Co.', x: 5574, cast: { shopkeep: { name: 'Rosa' } } },
+    { id: 'sb_saloon', art: 'saloon', room: 'saloon', label: 'The Silver Spur', x: 5740, cast: {
+      bartender: { name: 'Big Lou', talk: [
+        ['Big Lou (Bartender)', 'Rider in a black duster came through. Bought a bottle and three days of jerky, paid in silver.'],
+        ['Big Lou (Bartender)', "Asked about the trail to the prairie. Real friendly, 'til somebody asked his name."],
+      ] },
+      singer: { name: 'Miss Opal', lines: [
+        ['They call it Silverbend, Sheriff, but most of the silver ends up in Big Lou\'s till.'],
+        ['Watch the cliffs out there. A rock took my brother\'s mule clean off the trail.'],
+      ] },
+      gambler: { name: 'Three-Card Willy', lines: [
+        ['Fancy a game? No? Then maybe you fancy a tip: miners leave stuff in the old cabins up the canyon.'],
+      ] },
+      townsman: { name: 'Miner', lines: [['First drink after a shift tastes like silver. The second one tastes like Lou\'s boot.']] },
+    } },
+    { id: 'sb_doctor', art: 'doctor', room: 'doctor', label: "Doc Ames' Office", x: 5928, cast: { doc: { name: 'Doc Ames' } } },
+    { id: 'sb_stable', art: 'stable', room: 'stable', label: 'Livery', x: 6048, cast: { stablehand: { name: 'Ike' } } },
+  ];
+  const C_NPCS = [
+    { id: 'briggs', kind: 'foreman', name: 'Foreman Briggs', x: 5400, face: -1, hours: [6, 20], greet: ['Mine\'s closed, Sheriff.'], lines: [
+      ['Mine\'s shut till the new timbers come. Third level caved in.'],
+      ['If you see any outlaws on the trail, tell \'em Silverbend don\'t take kindly to claim jumpers.'],
+    ] },
+    { id: 'jeb', kind: 'miner', name: 'Jeb (Miner)', x: 5560, wander: 50, hours: [7, 22], greet: ['Afternoon.', 'Sheriff.'], lines: [
+      ['Ain\'t seen a lawman in Silverbend in years. Must be somethin\' big.'],
+      ['Saw a fella in a black duster ride through two days back. Real fast horse.'],
+    ] },
+    { id: 'tom', kind: 'miner2', name: 'Tom (Miner)', x: 5900, wander: 40, hours: [9, 23], greet: ['Watch the rocks out there.'], lines: [
+      ['Rockfalls in the canyon\'ll flatten a man. Look for pebbles comin\' down, then get clear.'],
+    ] },
+    { id: 'martha2', kind: 'miningwife', name: 'Mrs. Briggs', x: 5700, wander: 30, hours: [8, 18], greet: ['Good day.'], lines: [
+      ['Rosa at the Supply Co. has the only decent coffee for fifty miles.'],
+      ['My husband runs the mine. Worries himself sick over them timbers.'],
+    ] },
+    { id: 'gideon', kind: 'prospector', name: 'Old Gideon', x: 6240, face: -1, hours: [6, 21], greet: ['Heh heh.'], lines: [
+      ['Mountain lions in these rocks, Sheriff. They wait up high and pounce.'],
+      ['Prairie\'s past the end of the canyon. Flat as a skillet, all the way to the sky.'],
+    ] },
+  ];
+  const C_HITCHED = [{ x: 5730, type: 'bay', face: 1 }, { x: 6036, type: 'mule', face: -1 }];
+  const C_CRITTERS = [{ kind: 'dog', name: 'Nugget', x: 5650, range: 200 }, { kind: 'chicken', x: 6300, range: 40 }, { kind: 'chicken', x: 6330, range: 40, brown: true }];
   const C_FIXED = [
-    { type: 'outlaw', x: 900 }, { type: 'snake', x: 1500 }, { type: 'coyote', x: 2200 }, { type: 'outlaw', x: 4500 },
-    { type: 'snake', x: 5000 }, { type: 'outlaw', x: 5600 }, { type: 'coyote', x: 6000 },
+    { type: 'outlaw', x: 900 }, { type: 'snake', x: 1500 }, { type: 'coyote', x: 2200 }, { type: 'outlaw', x: 3200 },
+    { type: 'snake', x: 4000 }, { type: 'outlaw', x: 4600 }, { type: 'outlaw', x: 7200 }, { type: 'coyote', x: 7900 },
+    { type: 'snake', x: 8600 }, { type: 'outlaw', x: 9400 }, { type: 'coyote', x: 10200 }, { type: 'outlaw', x: 11000 },
+    { type: 'snake', x: 11800 },
   ];
   const C_PROPS = [];
   function scatterCanyon() {
     const r = U.rng(77);
     const add = adder(C_PROPS);
-    add(Buildings.canyonGate('BADLANDS'), 20, 154, { back: true });
-    add(Props.signpost('SILVERBEND|>'), 260, 153);
+    add(Buildings.canyonGate(9), 0, 154, { back: true });
+    add(Props.signpost('BADLANDS|<'), 206, 153);
+    add(Props.signpost('SILVERBEND|>'), 340, 153);
+    add(Props.signpost('SILVERBEND'), SB[0] - 60, 153);
+    add(Props.signpost('PRAIRIE >'), SB[1] + 40, 153);
     add(Props.signpost('PRAIRIE|COMING SOON'), C_END - 120, 153);
     add(Buildings.boulders(5), C_END - 40, 156);
-    for (let x = 360; x < C_END - 160; x += 40 + r() * 80) {
+    // Silverbend's street
+    add(Buildings.tailings(3), 5180, 152, { back: true });
+    add(Buildings.rails(120), 5300, 154);
+    add(Buildings.oreCart(), 5390, 154);
+    add(Buildings.waterTower(), 6290, 150, { back: true });
+    add(Props.hitchPost(), 5720, 156); add(Props.hitchPost(), 6026, 156);
+    add(Props.trough(), 5900, 156); add(Props.barrels(), 5560, 154); add(Props.barrels(), 6200, 154);
+    add(Buildings.lampPost(), 5410, 152, { lamp: true }); add(Buildings.lampPost(), 5722, 152, { lamp: true }); add(Buildings.lampPost(), 6020, 152, { lamp: true });
+    add(Buildings.wagon(), 6360, 156);
+    add(Buildings.bench(), 5900, 152);
+    const inTown = x => x > SB[0] - 140 && x < SB[1] + 80;
+    for (let x = 460; x < C_END - 160; x += 40 + r() * 80) {
+      if (inTown(x)) continue;
       const n = r();
       let img, base = 150 + Math.floor(r() * 6), o = {};
-      if (n < 0.14) { img = Buildings.hoodoo(Math.floor(r() * 1e6)); o.back = true; base = 148; }
-      else if (n < 0.3) img = Buildings.boulders(Math.floor(r() * 1e6));
-      else if (n < 0.52) img = Props.rock(Math.floor(r() * 1e6));
-      else if (n < 0.6) img = Props.skull();
-      else if (n < 0.7) img = Props.deadTree(Math.floor(r() * 1e6));
-      else if (n < 0.76) img = Props.barrelCactus();
+      if (n < 0.1) { img = Buildings.hoodoo(Math.floor(r() * 1e6)); o.back = true; base = 150; }
+      else if (n < 0.26) img = Buildings.boulders(Math.floor(r() * 1e6));
+      else if (n < 0.5) img = Props.rock(Math.floor(r() * 1e6));
+      else if (n < 0.58) img = Props.skull();
+      else if (n < 0.68) img = Props.deadTree(Math.floor(r() * 1e6));
+      else if (n < 0.74) img = Props.barrelCactus();
       else continue;
       add(img, Math.round(x), base, o);
     }
-    for (let x = 300; x < C_END; x += 220 + r() * 300) add(Props.rock(Math.floor(r() * 1e6)), Math.round(x), 178, { front: true });
+    for (let x = 500; x < C_END; x += 220 + r() * 300) if (!inTown(x)) add(Props.rock(Math.floor(r() * 1e6)), Math.round(x), 178, { front: true });
   }
 
   const MAPS = {
     road: {
       END, TOWN_END, BIOMES, BUILDINGS, HOUSES, NPCS, PROPS, FIXED_ENEMIES, HITCHED, CRITTERS, blockedEnd: true,
-      EXITS: [{ x: TRAIL_X + 64, label: 'Take the canyon trail', to: 'canyon', toX: 110 }],
+      EXITS: [{ x: TRAIL_X + 96, label: 'Take the canyon trail', to: 'canyon', toX: 150 }],
       endLines: [
         [null, 'A rockslide has buried the road. Jack must have brought it down behind him.'],
         [null, 'There is a trail into the canyon just back from here.'],
       ],
     },
     canyon: {
-      END: C_END, TOWN_END: 0, BIOMES: C_BIOMES, BUILDINGS: [], HOUSES: [], NPCS: [], PROPS: C_PROPS, FIXED_ENEMIES: C_FIXED, HITCHED: [], CRITTERS: [],
-      EXITS: [{ x: 84, label: 'Head back to the badlands', to: 'road', toX: TRAIL_X + 64 }],
+      END: C_END, TOWN_END: 0, BIOMES: C_BIOMES, BUILDINGS: C_BUILDINGS, HOUSES: [], NPCS: C_NPCS, PROPS: C_PROPS, FIXED_ENEMIES: C_FIXED, HITCHED: C_HITCHED, CRITTERS: C_CRITTERS,
+      EXITS: [{ x: 96, label: 'Head back to the badlands', to: 'road', toX: TRAIL_X + 96 }],
       endLines: [
         [null, 'The canyon opens out onto wide grassland. The prairie lies ahead.'],
         [null, 'The prairie opens up in a future update.'],
@@ -202,8 +275,8 @@ const World = (() => {
   const biomeAtIn = (x, zone) => (MAPS[zone] || MAPS.road).BIOMES.find(b => x >= b.x0 && x < b.x1);
 
   function init() {
-    BUILDINGS.forEach(b => {
-      const art = Buildings.TOWN[b.id]();
+    [...BUILDINGS, ...C_BUILDINGS].forEach(b => {
+      const art = b.art ? Buildings.SILVER[b.art]() : Buildings.TOWN[b.id]();
       b.img = art.img; b.doorWorld = b.x + art.door;
       b.wins = art.wins.map(([x, y, w, h]) => ({ r: [x, y, w, h] }));
       b.lamps = art.lamps || []; b.smoke = art.smoke || [];

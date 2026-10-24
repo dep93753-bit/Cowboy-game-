@@ -53,15 +53,18 @@ Built in small, playable stages. Each stage is pushed to the repo when it's done
   animals, horses, sky, mesas, interiors, effects
 
 ## Stage 3 — The Canyon & Silverbend (see VISION.md, "Area 2")
-- 3.1 (done): the road stays blocked by the rockslide; a trail beside it leads
-  into Canyon Pass, its own side-scrolling map (press USE at the trail; your
-  horse comes along). Deep red canyon walls, dry riverbed, hoodoos and
-  boulders, rockfalls, more frequent and tougher enemies, canyon music
-  ("Lasso Lady"), "Prairie - coming soon" sign at the far end. Saves remember
-  which map you're on.
+- 3.1 (done): the road stays blocked by the rockslide; a slot in the cliff
+  beside it leads into Canyon Pass, its own long side-scrolling map (press
+  USE at the slot; your horse comes along). Deep red canyon walls, dry
+  riverbed, rock spires and boulders, rockfalls, more frequent and tougher
+  enemies, canyon music ("Lasso Lady"), "Prairie - coming soon" sign at the
+  far end. Saves remember which map you're on.
+- 3.1 (done): Silverbend, the silver-mining town half way along: Assay
+  Office, Supply Co., The Silver Spur saloon with rooms, Doc Ames, the
+  Livery, and the Silver Mine (shut for now). Its own townsfolk, miners,
+  a dog called Nugget, ore cart and tailings.
 - 3.2: scorpions, mountain lions, canyon outlaws
 - 3.3: canyon loot spots: cliff dwelling, miner's cabin, wagon camp, mine shed
-- 3.4: Silverbend, the silver-mining town, with interiors and townsfolk
 - 3.5: the walk-in mine, and the "close call" cutscene with Jack
 
 ## Stage 4 — Town life
