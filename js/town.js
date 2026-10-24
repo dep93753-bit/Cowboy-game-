@@ -11,7 +11,21 @@ const Town = (() => {
     update(dt, player) {
       this.t -= dt;
       const dx = player.x - this.x, near = Math.abs(dx) < 60;
-      if (this.kind === 'lizard') {
+      if (this.kind === 'deer' || this.kind === 'rabbit') {
+        // grazes, then bolts away when you get close; wanders back later
+        const scareR = this.kind === 'deer' ? 90 : 50;
+        if (Math.abs(dx) < scareR && this.state !== 'flee') { this.state = 'flee'; this.face = -Math.sign(dx) || 1; this.t = 1.6; }
+        if (this.t <= 0) { this.state = Math.random() < 0.6 ? 'idle' : 'walk'; this.t = 2 + Math.random() * 3; this.face = Math.sign(this.home - this.x) || this.face; }
+        this.vx = this.state === 'flee' ? this.face * (this.kind === 'deer' ? 120 : 90) : this.state === 'walk' && Math.abs(this.home - this.x) > 4 ? Math.sign(this.home - this.x) * 18 : 0;
+      } else if (this.kind === 'pdog') {
+        // pops down into its burrow when you come near
+        this.state = Math.abs(dx) < 70 ? 'down' : 'up'; this.vx = 0;
+        if (this.t <= 0) { this.t = 1 + Math.random() * 3; this.face *= -1; }
+      } else if (this.kind === 'cow') {
+        if (this.t <= 0) { this.t = 2 + Math.random() * 5; this.state = Math.random() < 0.6 ? 'graze' : 'walk'; this.tx = this.home + (Math.random() * 2 - 1) * this.range; this.face = Math.sign(this.tx - this.x) || 1; }
+        this.vx = this.state === 'walk' && Math.abs(this.tx - this.x) > 2 ? Math.sign(this.tx - this.x) * 10 : 0;
+        if (Math.random() < dt * 0.02 && Math.abs(dx) < 200) Sound.sfx('moo');
+      } else if (this.kind === 'lizard') {
         // basks on the warm ground; darts off when you come close
         if (Math.abs(dx) < 40 && this.state !== 'run') { this.state = 'run'; this.face = -Math.sign(dx) || 1; this.t = 0.7; }
         if (this.t <= 0) { this.state = 'idle'; this.t = 2 + Math.random() * 4; if (Math.random() < 0.3) this.face *= -1; }
@@ -56,6 +70,11 @@ const Town = (() => {
       const x = this.x - camX;
       if (x < -30 || x > W + 30) return;
       let frame;
+      const C = Sprites.creatures;
+      if (this.kind === 'deer') { drawFrame(ctx, this.vx ? (Math.floor(this.animT / 2) % 2 ? C.deer.run : C.deer.stand) : C.deer.stand, x, GROUND, this.face, 18); return; }
+      if (this.kind === 'rabbit') { drawFrame(ctx, this.vx ? (Math.floor(this.animT) % 2 ? C.rabbit.run : C.rabbit.stand) : C.rabbit.stand, x, GROUND, this.face, 7); return; }
+      if (this.kind === 'pdog') { drawFrame(ctx, this.state === 'down' ? C.pdog.down : C.pdog.stand, x, GROUND, this.face, 3); return; }
+      if (this.kind === 'cow') { const s = this.brown ? C.browncow : C.cow; drawFrame(ctx, this.state === 'graze' ? s.graze : s.stand, x, GROUND, this.face, 22); return; }
       if (this.kind === 'lizard') {
         const s = Sprites.creatures.lizard;
         drawFrame(ctx, this.vx ? (Math.floor(this.animT * 2) % 2 ? s.run : s.stand) : s.stand, x, GROUND, this.face, 12);

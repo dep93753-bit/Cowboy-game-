@@ -71,6 +71,8 @@ class Player {
     const running = control && I.down('run') && Game.data.energy > 0 && move !== 0;
     this.running = running;
     let speed = this.mounted ? (running ? 180 : 82) * Game.horseSpeed() : (running ? 94 : 54) * this.speedMul;
+    // wading across a river is slow going (and splashy)
+    if (!this.mounted && Game.inRiver(this.x)) { speed *= 0.55; if (Math.abs(this.vx) > 10 && Math.random() < dt * 14) for (let i = 0; i < 2; i++) Game.particles.push({ x: this.x + (Math.random() - 0.5) * 16, y: GROUND - 4, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 40, life: 0.5, col: '#cfe6f4' }); }
     if (this.punchT > 0.05 || this.blocking) speed = 0;
     if (move !== 0 && !(this.punchT > 0)) this.face = move;
 
@@ -169,6 +171,11 @@ const ENEMY_TYPES = {
     loot: { snakemeat: 0.6, rattle: 0.35 } },
   coyote: { name: 'Coyote', hp: 28, speed: 74, aggro: 160, range: 28, windup: 0.5, recover: 0.7, dmg: 10, half: 20, anchor: 26,
     loot: { pelt: 0.7 } },
+  bear: { name: 'Bear', hp: 90, speed: 52, aggro: 150, range: 34, windup: 0.75, recover: 0.9, dmg: 22, half: 24, anchor: 24,
+    loot: { bearpelt: 0.9, jerky: 0.3 } },
+  // bison graze in herds and only charge if one is hit, or if you get close at night
+  bison: { name: 'Bison', hp: 80, speed: 96, aggro: 100, range: 36, windup: 0.6, recover: 1.1, dmg: 26, half: 26, anchor: 30, passive: true,
+    loot: { steak: 0.8, hide: 0.7 } },
   outlaw: { name: 'Outlaw', hp: 48, speed: 46, aggro: 130, range: 22, windup: 0.6, recover: 0.75, dmg: 15, half: 6, anchor: Chars.ANCHOR,
     loot: { money: 1, jerky: 0.3, bandage: 0.2 } },
 };
@@ -185,6 +192,7 @@ class Enemy {
     this.home = x; this.fixedId = opts.fixedId;
     this.alerted = false;
     if (type === 'outlaw') this.look = ['outlaw', 'outlaw2', 'outlaw3'][Math.floor(Math.abs(x) / 7) % 3];
+    if (type === 'bear') this.black = Math.floor(Math.abs(x) / 13) % 2 === 0;
   }
 
   get alive() { return this.state !== 'dead'; }
@@ -196,6 +204,8 @@ class Enemy {
 
   hit(dmg, fromX) {
     if (!this.alive) return;
+    // hit one bison and the whole herd turns on you
+    if (this.def.passive) for (const e of Game.enemies) if (e.type === this.type && Math.abs(e.x - this.x) < 240) { e.angry = true; e.calmT = 14; }
     this.hp -= dmg;
     this.flashT = 0.12;
     this.vx = Math.sign(this.x - fromX || 1) * 110;
@@ -211,7 +221,7 @@ class Enemy {
     this.state = 'hurt'; this.t = 0.3;
   }
 
-  height() { return this.type === 'outlaw' ? 60 : this.type === 'coyote' ? 24 : 16; }
+  height() { return { outlaw: 60, coyote: 24, bison: 36, bear: 30 }[this.type] || 16; }
 
   update(dt, player) {
     const d = this.def;
@@ -230,6 +240,15 @@ class Enemy {
         this.deadT -= dt;
         return;
       case 'idle': {
+        if (d.passive) {
+          // grazing: amble about, head down now and then
+          this.moving = wanderStep(this, dt, 60, 9);
+          this.grazing = !this.moving && Math.sin(Game.clock * 0.7 + this.home) > -0.3;
+          const night = Game.isNight() && dist < d.aggro;
+          if (!(this.angry || night) || player.dead) break;
+          this.state = 'chase';
+          break;
+        }
         if (this.type !== 'snake') this.moving = wanderStep(this, dt, 30, d.speed * 0.35);
         if (dist < d.aggro && !player.dead && !Game.data.sleeping) {
           this.state = 'chase';
@@ -237,6 +256,7 @@ class Enemy {
             this.alerted = true;
             if (this.type === 'snake') Sound.sfx('rattle');
             if (this.type === 'coyote') Sound.sfx('growl');
+            if (this.type === 'bear' || this.type === 'bison') Sound.sfx('roar');
           }
         }
         break;
@@ -251,7 +271,8 @@ class Enemy {
           this.animT += dt * 6;
           break;
         }
-        if (dist > d.aggro * 1.8 || player.dead) { this.state = 'idle'; break; }
+        if (d.passive && this.angry && (this.calmT -= dt) <= 0 && dist > d.aggro) { this.angry = false; this.state = 'idle'; break; }
+        if (dist > d.aggro * 1.8 || player.dead) { this.state = 'idle'; this.angry = false; break; }
         if (dist > d.range) {
           this.x += this.face * d.speed * dt;
           this.animT += dt * d.speed / 7;
@@ -268,7 +289,7 @@ class Enemy {
         if (this.t <= 0) {
           this.state = 'attack'; this.t = 0.18;
           // lunge
-          this.x += this.face * (this.type === 'coyote' ? 10 : this.type === 'snake' ? 8 : 4);
+          this.x += this.face * ({ coyote: 10, snake: 8, bison: 16, bear: 8 }[this.type] || 4);
           if (dist < d.range + 8 && player.y > GROUND - 22) player.hurt(Math.round(d.dmg * this.mul), this.x, this);
         }
         break;
@@ -300,6 +321,12 @@ class Enemy {
       const s = Sprites.creatures.coyote;
       frame = this.state === 'attack' ? s.bite
         : this.moving ? (Math.floor(this.animT / 2) % 2 ? s.run0 : s.run1) : s.stand;
+    } else if (this.type === 'bison') {
+      const s = Sprites.creatures.bison;
+      frame = this.moving || this.state === 'attack' ? (Math.floor(this.animT / 2) % 2 ? s.walk : s.stand) : this.grazing ? s.graze : s.stand;
+    } else if (this.type === 'bear') {
+      const s = this.black ? Sprites.creatures.blackbear : Sprites.creatures.bear;
+      frame = this.state === 'windup' || this.state === 'attack' ? s.rear : this.moving ? (Math.floor(this.animT / 2) % 2 ? s.walk : s.stand) : s.stand;
     } else {
       const s = Chars.person(this.look || 'outlaw');
       const st = this.state === 'attack' ? 'punch' : this.state === 'windup' ? 'windup' : this.state === 'hurt' || this.state === 'stun' ? 'hurt'
@@ -331,6 +358,18 @@ class NPC {
   update(dt, player) {
     const near = Math.abs(player.x - this.x) < 40 && (this.level || 'street') === player.level;
     this.workT = (this.workT || Math.random()) + dt;
+    if (this.work === 'travel') {
+      // travelers walk the trail between two points, turning round at each end;
+      // they stop to talk when you're right there
+      if (near) { this.walking = false; this.face = Math.sign(player.x - this.x) || this.face; return; }
+      const [a, b] = this.range;
+      if (!this.dir) this.dir = this.face || 1;
+      if (this.pause > 0) { this.pause -= dt; this.walking = false; return; }
+      const sp = this.speed || 20;
+      this.x += this.dir * sp * dt; this.face = this.dir; this.walking = true; this.animT += dt * sp / 7;
+      if (this.x > b || this.x < a) { this.x = U.clamp(this.x, a, b); this.dir *= -1; this.pause = 3 + Math.random() * 4; }
+      return;
+    }
     if (this.work === 'cart') {
       // push the ore cart up and down the rails; pause to chat if you're close
       if (near) { this.walking = false; this.face = Math.sign(player.x - this.x) || this.face; return; }
@@ -389,6 +428,13 @@ class NPC {
     }
     const f = this.walking ? Chars.frame(set, 'walk', this.animT * 2) : Chars.frame(set, 'idle', Game.clock * 6 + this.x);
     if (this.work === 'cart') ctx.drawImage(CART_IMG, U.snap(x + this.face * 30 - CART_IMG.width / 2), GROUND - CART_IMG.height + 2);
+    if (this.wagon) {
+      // a covered wagon rolling behind, a mule pulling it in front
+      const wx = U.snap(x - this.face * 62);
+      if (this.face > 0) ctx.drawImage(WAGON_IMG, wx - WAGON_IMG.width / 2, GROUND - WAGON_IMG.height + 4);
+      else { ctx.save(); ctx.translate(wx, 0); ctx.scale(-1, 1); ctx.drawImage(WAGON_IMG, -WAGON_IMG.width / 2, GROUND - WAGON_IMG.height + 4); ctx.restore(); }
+      Horses.draw(ctx, { type: this.wagon, face: this.face, vx: this.walking ? 30 : 0, animT: this.animT, saddle: false }, x + this.face * 44, false);
+    }
     drawFrame(ctx, f, x, y, this.face, Chars.ANCHOR);
   }
 }
@@ -396,6 +442,7 @@ class NPC {
 // A pickaxe in a miner's hands: raised behind the shoulder, or swung down
 // to the rock in front. Drawn in 2px blocks to stay on the pixel grid.
 const CART_IMG = Buildings.oreCart();
+const WAGON_IMG = U.chunky(Buildings.wagon());
 function drawPick(ctx, x, y, face, down) {
   const sx = U.snap(x), sy = U.snap(y);
   // from the fist to the pick head: swung down onto the rock in front, or

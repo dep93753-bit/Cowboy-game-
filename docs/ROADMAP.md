@@ -79,8 +79,14 @@ Built in small, playable stages. Each stage is pushed to the repo when it's done
 ## Stage 4 — Town life
 - Side jobs for money, saloon brawls for prize money
 
-## Stage 5 — Prairie
-- Prairie biome, Town 3
+## Stage 5 — Prairie & Willow Creek (first pass done, see VISION.md, "Area 3")
+- [x] Prairie map reached from the canyon's far end (about 20,000px, road + canyon combined)
+- [x] Stretches: rolling prairie, farms, Willow Creek, open range, cottonwood forest, river ford, painted buttes, foothills
+- [x] Willow Creek farm town: mercantile, saloon, doctor, livery, church, grain mill with interior
+- [x] Bison herds (charge if one is hit, or at night), bears, coyote packs at night
+- [x] Deer, rabbits, prairie dogs, cows, hawks; travelers who talk, give hints and trade; wagons
+- [x] Fast travel in the pause menu: Start / Canyon / Prairie
+- [ ] Farm jobs, more interiors, the mountains beyond the foothills
 
 ## Stage 6 — Forest & Mountains
 - Forest biome, bears and wolves, cold nights, Town 4

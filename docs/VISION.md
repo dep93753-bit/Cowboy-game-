@@ -156,6 +156,27 @@ Doc Halloway (top hat, glasses), Deputy Ned, Pete (stablehand), Old Dusty
   - NPCs: more townsfolk with jobs and animations (miners swinging picks,
     pushing ore carts) and more lines.
 
+## Area 3: the Prairie & Willow Creek (agreed Oct 24 2026)
+- **Entry:** the far end of Canyon Pass opens onto the prairie (USE at the
+  canyon mouth, like the canyon entrance). Its own long map, about as long as
+  the badlands and the canyon put together (~20,000px).
+- **Not one flat grassland:** it changes as you go: rolling grass hills with
+  wildflowers and lone trees, farmland (wheat, fences, barns, windmills), a
+  **forest sub-biome** (pines and cottonwoods) with a **river you ford**
+  (wade through shallow water, slower, splashing), buttes and meadows, then
+  foothills at the end ("Mountains - coming soon").
+- **Town 3: Willow Creek**, a farm town: general store, saloon, stable,
+  doctor, grain mill, church.
+- **Animals:** bears and coyotes attack (coyotes travel in packs at night);
+  **bison travel in herds** and are peaceful unless you hit one or it's
+  night, then they charge. Peaceful wildlife: deer, rabbits, prairie dogs,
+  hawks, cattle on the farms.
+- **Travelers on the trail:** settlers, wagons and riders. Some you can
+  talk to for hints (some saw Jack), some trade food and supplies, and
+  others just pass by in the background.
+- **Fast travel:** the pause menu has a Travel option to jump to the start
+  (Redemption Gulch), Canyon Pass, or the Prairie.
+
 ## Saving
 - **3 save slots** (local to the device/browser).
 
