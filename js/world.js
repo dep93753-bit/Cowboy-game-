@@ -100,10 +100,12 @@ const World = (() => {
   const PROPS = [];
   function scatter() {
     const r = U.rng(2024);
-    const keepClear = x => HOUSES.some(h => x > h.x - 30 && x < h.x + (h.w || 80) + 20) || Math.abs(x - END) < 120 || Math.abs(x - TRAIL_X - 80) < 150;
+    const keepClear = x => HOUSES.some(h => x > h.x - 30 && x < h.x + (h.w || 80) + 20) || Math.abs(x - END) < 120 || (x > TRAIL_X - 140 && x < END + 200);
     const add = adder(PROPS);
-    add(Buildings.canyonGate(4), TRAIL_X, 154, { back: true });
-    add(Props.signpost('CANYON|PASS'), TRAIL_X - 60, 153);
+    // the canyon mouth: cliffs from just before the trail to past the rockslide,
+    // a slot canyon (the trail) and the main gorge the rockslide has filled
+    add(Buildings.canyonGate({ seed: 4, w: 240, slot: (TRAIL_X + 96 - (TRAIL_X - 40)) / 2, gorge: [(END - 100 - (TRAIL_X - 40)) / 2, (END + 20 - (TRAIL_X - 40)) / 2] }), TRAIL_X - 40, 154, { back: true });
+    add(Props.signpost('CANYON|PASS'), TRAIL_X - 110, 153);
     // behind the buildings
     add(Buildings.waterTower(), 1430, 150, { back: true });
     add(Buildings.windmill(0), 1590, 150, { back: true, windmill: true });
@@ -214,9 +216,9 @@ const World = (() => {
   function scatterCanyon() {
     const r = U.rng(77);
     const add = adder(C_PROPS);
-    add(Buildings.canyonGate(9), 0, 154, { back: true });
-    add(Props.signpost('BADLANDS|<'), 206, 153);
-    add(Props.signpost('SILVERBEND|>'), 340, 153);
+    add(Buildings.canyonGate({ seed: 9, w: 120, slot: 48, left: false, right: true }), 0, 154, { back: true });
+    add(Props.signpost('BADLANDS|<'), 250, 153);
+    add(Props.signpost('SILVERBEND|>'), 380, 153);
     add(Props.signpost('SILVERBEND'), SB[0] - 60, 153);
     add(Props.signpost('PRAIRIE >'), SB[1] + 40, 153);
     add(Props.signpost('PRAIRIE|COMING SOON'), C_END - 120, 153);

@@ -628,35 +628,79 @@ const Buildings = (() => {
       p.put(x, y, c);
     }
   }
-  // The way into (or out of) the canyon: a natural slot where two cliff
-  // masses part at ground level, fading into deep shadow. No frame, no door.
-  function canyonGate(seed) {
-    const r = U.rng(seed || 3), W = 96, Hh = 88, { p, gy } = sheet(W, Hh);
-    const slotX = 48, slotW = 28, slotTop = 18;
-    // a tall cliff face, ragged along the top, stepping down at both ends
+  // The canyon mouth, seen side-on: the cliffs where the badlands end. A
+  // flat-topped wall with a caprock rim, rising almost to the top of the
+  // screen and running on past the right edge. o.slot = centre (art px) of a
+  // narrow slot canyon you can walk into; o.gorge = [x0, x1] of the main
+  // gorge (where the road went), left open for the rockslide to fill.
+  function canyonGate(o = {}) {
+    const r = U.rng(o.seed || 3), W = o.w || 240, { p, gy } = sheet(W, 80);
+    const rimY = 6, slot = o.slot, gorge = o.gorge;
+    // left end: a sheer face that steps down to a rubble slope
+    const left = o.left === false ? -1 : 22;
     const top = x => {
-      const e = Math.min(x, W - 1 - x);
-      return Math.round((e < 14 ? (14 - e) * 2.6 : 0) + 2 + Math.abs(Math.sin(x * 0.31)) * 3 + Math.sin(x * 0.09) * 2);
+      if (x < left) return gy;
+      let t = rimY + Math.round(Math.sin(x * 0.13) * 1.2 + Math.sin(x * 0.041) * 2);
+      if (x < left + 10) t += [30, 24, 24, 16, 16, 16, 9, 9, 4, 2][x - left];   // stepped end
+      if (o.right && x > W - 12) { const k = x - (W - 12); if (k > 9) return gy; t += [2, 4, 9, 9, 16, 16, 16, 24, 24, 30][k]; }
+      return t;
     };
-    redRock(p, r, 0, 0, W, gy, (x, y) => y >= top(x));
-    // the slot: wide enough for a horse and rider, closing to a sliver up high
-    const half = y => { const t = (y - slotTop) / (gy - slotTop); return t < 0 ? 0 : (slotW / 2) * Math.pow(t, 0.45); };
-    for (let y = slotTop; y < gy; y++) {
-      const hw = half(y), cx = slotX + Math.sin(y * 0.12) * 1.5;
-      for (let x = Math.floor(cx - hw - 2); x <= Math.ceil(cx + hw + 2); x++) {
-        const d = Math.abs(x + 0.5 - cx);
-        if (d > hw + 2) continue;
-        let c;
-        if (d > hw) c = x < cx ? [232, 150, 104] : [130, 56, 40];        // lit / shaded lip
-        else { const t = d / Math.max(1, hw); c = t > 0.7 ? [110, 48, 36] : t > 0.4 ? [70, 30, 26] : [40, 18, 18]; }
+    const bands = [[200, 92, 58], [186, 80, 52], [210, 108, 66], [190, 84, 54], [224, 138, 94], [178, 74, 48]];
+    for (let x = 0; x < W; x++) {
+      const t = top(x);
+      for (let y = t; y < gy; y++) {
+        const d = y - t;
+        let c = bands[Math.floor((y + Math.sin(x / 37) * 1.5) / 5) % bands.length];
+        if (d < 2) c = [214, 168, 120];                                   // caprock
+        else if (d === 2) c = [120, 60, 42];                              // its shadow
+        if ((x * 7) % 61 < 2 && d > 3 && d < 26) c = sh(c, 0.78);         // varnish streaks
+        if ((x * 13) % 97 === 0 && d > 4) c = sh(c, 0.85);                // fractures
+        if (r() < 0.05) c = sh(c, r() < 0.5 ? 0.9 : 1.08);
         p.put(x, y, c);
       }
     }
-    // a little daylight at the far end, low down
-    for (let y = gy - 18; y < gy - 2; y++) for (let x = slotX - 2; x <= slotX + 2; x++) if (Math.abs(x - slotX) <= (y - (gy - 18)) / 5) p.put(x, y, [120, 70, 60]);
-    // sandy path running into the slot, rubble at its mouth
-    for (let y = gy - 4; y < gy; y++) for (let x = slotX - 10 - (y - gy + 4) * 2; x < slotX + 11 + (y - gy + 4) * 2; x++) p.put(x, y, y === gy - 4 ? [196, 150, 106] : [214, 170, 122]);
-    for (let i = 0; i < 12; i++) { const bx = slotX - 30 + r() * 60, by = gy - 2 - r() * 3; if (Math.abs(bx - slotX) < 12) continue; rect(p, Math.round(bx), Math.round(by), 2 + Math.round(r() * 2), 2, [168, 90, 60]); }
+    // rubble slope at the left foot of the cliff
+    if (left > 0) for (let x = 0; x < left + 14; x++) {
+      const h = Math.max(0, Math.round((x + 4) * 0.6 - (x > left ? (x - left) * 0.4 : 0)));
+      for (let y = gy - h; y < gy; y++) p.put(x, y, r() < 0.3 ? [150, 86, 60] : r() < 0.5 ? [196, 120, 80] : [176, 100, 68]);
+    }
+    // the main gorge: open to the sky, a far wall inside, rockslide fills it
+    if (gorge) {
+      const [g0, g1] = gorge, mid = (g0 + g1) / 2;
+      for (let y = rimY - 2; y < gy; y++) {
+        const t = (y - rimY) / (gy - rimY), hw = (g1 - g0) / 2 * (0.55 + 0.45 * t);
+        for (let x = Math.floor(mid - hw); x <= Math.ceil(mid + hw); x++) {
+          const e = Math.abs(x - mid) / hw;
+          if (e > 1) continue;
+          if (y < rimY + 4 && e < 0.8) { p.put(x, y, [0, 0, 0], 0); continue; }   // sky through the gap
+          // the far wall inside the gorge: the same strata, hazy with distance
+          const far = U.lerpColor(bands[Math.floor((y + 3) / 4) % bands.length], [130, 86, 104], 0.55);
+          p.put(x, y, e > 0.85 ? (x < mid ? [236, 150, 104] : [120, 52, 40]) : sh(far, 0.85 + t * 0.2));
+        }
+      }
+    }
+    // the slot canyon: tall and narrow with wavy walls, dark inside, a sliver
+    // of light from above, and a sand trail running in
+    if (slot !== undefined) {
+      for (let y = rimY + 1; y < gy; y++) {
+        const t = (y - rimY) / (gy - rimY);
+        const hw = 2 + t * t * 9 + Math.sin(y * 0.35) * 0.9;
+        const cx = slot + Math.sin(y * 0.11) * 2.2;
+        for (let x = Math.floor(cx - hw - 2); x <= Math.ceil(cx + hw + 2); x++) {
+          const d = (x + 0.5 - cx) / hw, ad = Math.abs(d);
+          let c;
+          if (ad > 1) c = d < 0 ? [240, 160, 110] : [132, 58, 42];          // sunlit / shaded lip
+          else {
+            const glow = Math.max(0, 1 - t * 2.2) * (1 - ad);                 // daylight from the top
+            const base = ad > 0.7 ? [118, 50, 38] : ad > 0.4 ? [74, 30, 28] : [44, 20, 20];
+            c = U.lerpColor(base, [230, 150, 110], glow * 0.8);
+          }
+          p.put(x, y, c);
+        }
+      }
+      for (let y = gy - 4; y < gy; y++) for (let x = slot - 9 - (y - gy + 4) * 2; x < slot + 10 + (y - gy + 4) * 2; x++) p.put(x, y, y === gy - 4 ? [196, 150, 106] : [214, 170, 122]);
+      for (let i = 0; i < 10; i++) { const bx = slot - 26 + r() * 52; if (Math.abs(bx - slot) < 11) continue; rect(p, Math.round(bx), gy - 2 - Math.round(r() * 2), 2 + Math.round(r() * 2), 2, [168, 90, 60]); }
+    }
     rect(p, 0, gy, W, 3, [176, 124, 86]);
     return finish(p);
   }

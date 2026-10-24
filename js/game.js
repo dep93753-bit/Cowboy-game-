@@ -927,13 +927,14 @@ const Game = (() => {
     BG.drawLayers(c, (World.biomeAt(camX + W / 2) || {}).bg || 'desert', camX);
     const vis = (x, w) => x + w > camX - 10 && x < camX + W + 10;
     // rockslide closing the road
-    if (World.blockedEnd && vis(World.END - 110, 140)) c.drawImage(World.rockslide, Math.round(World.END - 110 - camX), 164 - World.rockslide.height);
     const lit = G.data && BG.night(hour()) > 0.3;
     for (const p of World.PROPS) {
       if (!p.back || !vis(p.x, p.img.width)) continue;
       const img = p.windmill ? Town.millFrames[Math.floor(Math.max(0, G.clock) * 6) % Town.millFrames.length] : p.img;
       c.drawImage(img, Math.round(p.x - camX), p.base - img.height);
     }
+    // the rockslide fills the gorge in the canyon mouth
+    if (World.blockedEnd && vis(World.END - 110, 140)) c.drawImage(World.rockslide, Math.round(World.END - 110 - camX), 164 - World.rockslide.height);
     for (const b of World.BUILDINGS) {
       if (!vis(b.x, b.img.width)) continue;
       const bx = Math.round(b.x - camX), by = 154 - b.img.height;
