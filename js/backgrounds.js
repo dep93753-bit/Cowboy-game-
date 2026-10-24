@@ -355,7 +355,158 @@ const BG = (() => {
     return p.done();
   }
 
+  // ------------------------------------------------------------ prairie
+  // Rolling hills: a height line made of waves that repeat every 640px.
+  function hillLine(seed, base, amp, waves) {
+    const r = U.rng(seed), ws = waves.map(k => [k, r() * 6]);
+    return x => base - amp * (0.5 + 0.5 * ws.reduce((v, [k, ph], i) => v + Math.sin(x / 640 * Math.PI * 2 * k + ph) / (i + 1.2), 0) / 1.6);
+  }
+  function pineAt(p, x, base, h, col) {      // a pine tree silhouette
+    for (let y = 0; y < h; y++) {
+      const t = y / h, hw = Math.round((1 - t) * h * 0.28 * (0.8 + ((y % 4) / 4) * 0.4)) + 1;
+      for (let i = -hw; i <= hw; i++) p.put(x + i, base - y, i > hw * 0.4 ? U.shade(col, 0.82) : col);
+    }
+    p.put(x, base + 1, U.shade(col, 0.6)); p.put(x, base + 2, U.shade(col, 0.6));
+  }
+  function roundTree(p, x, base, h, col) {   // cottonwood / oak: trunk and a round crown
+    for (let y = 0; y < h * 0.4; y++) { p.put(x, base - y, [90, 70, 52]); p.put(x + 1, base - y, [70, 54, 40]); }
+    const cy = base - h * 0.62, rx = h * 0.42, ry = h * 0.36;
+    for (let y = -ry; y <= ry; y++) for (let i = -rx; i <= rx; i++) {
+      const e = (i / rx) ** 2 + (y / ry) ** 2 + Math.sin(i * 1.7 + y) * 0.08;
+      if (e > 1) continue;
+      p.put(x + i, cy + y, y < -ry * 0.3 && i < rx * 0.2 ? U.shade(col, 1.15) : i > rx * 0.3 || y > ry * 0.4 ? U.shade(col, 0.8) : col);
+    }
+  }
+  // a range of distant mountains (snow caps optional)
+  function mountains(seed, base, amp, col, snow) {
+    const r = U.rng(seed), p = U.pix(640, SKY_H, true);
+    const top = hillLine(seed, base, amp, [3, 5, 9, 17]);
+    for (let x = 0; x < 640; x++) {
+      const t = Math.round(top(x)), slope = top(x + 1) - top(x - 1);
+      for (let y = t; y < SKY_H; y++) {
+        let c = slope > 0.4 ? U.shade(col, 0.86) : slope < -0.4 ? U.shade(col, 1.08) : col;
+        if (snow && y - t < snow * (0.6 + 0.4 * Math.sin(x * 0.3)) && t < base - amp * 0.45) c = slope > 0.4 ? [196, 204, 220] : [236, 240, 248];
+        if (r() < 0.03) c = U.shade(c, 0.95);
+        p.put(x, y, c);
+      }
+    }
+    return p.done();
+  }
+  // rolling grass hills, with trees dotted on them
+  function grassHills(seed, base, amp, cols, trees) {
+    const r = U.rng(seed), p = U.pix(640, SKY_H, true);
+    const top = hillLine(seed, base, amp, [2, 3, 7]);
+    for (let x = 0; x < 640; x++) {
+      const t = Math.round(top(x)), slope = top(x + 1) - top(x - 1);
+      for (let y = t; y < SKY_H; y++) {
+        const band = Math.floor((y - t) / 6);
+        let c = cols[Math.min(cols.length - 1, band)];
+        if (slope > 0.5) c = U.shade(c, 0.88); else if (slope < -0.5) c = U.shade(c, 1.07);
+        if (r() < 0.05) c = U.shade(c, r() < 0.5 ? 0.92 : 1.06);
+        if (y === t) c = U.shade(cols[0], 1.12);
+        p.put(x, y, c);
+      }
+    }
+    if (trees) for (let i = 0; i < trees.n; i++) {
+      const x = Math.floor(r() * 640), b = Math.round(top(x)) + 2;
+      if (trees.kind === 'pine' || (trees.kind === 'mix' && r() < 0.5)) pineAt(p, x, b, trees.h * (0.7 + r() * 0.6), trees.col);
+      else roundTree(p, x, b, trees.h * (0.7 + r() * 0.6), trees.col);
+    }
+    return p.done();
+  }
+  // farmland: a patchwork of fields over gentle hills, farmsteads far off
+  function fields(seed) {
+    const r = U.rng(seed), p = U.pix(640, SKY_H, true);
+    const top = hillLine(seed, 112, 12, [2, 5]);
+    const patches = [[214, 180, 92], [196, 160, 76], [120, 150, 70], [140, 110, 76], [170, 170, 90], [100, 136, 64]];
+    const cuts = []; for (let x = 0; x < 640; x += 30 + Math.floor(r() * 50)) cuts.push([x, U.pick(r, patches), r() < 0.5]);
+    for (let x = 0; x < 640; x++) {
+      const t = Math.round(top(x));
+      let k = 0; while (k + 1 < cuts.length && cuts[k + 1][0] <= x) k++;
+      const [, col, rows] = cuts[k];
+      for (let y = t; y < SKY_H; y++) {
+        let c = col;
+        if (rows && (y - t) % 3 === 0) c = U.shade(col, 0.86);
+        if (!rows && (x + y) % 5 === 0) c = U.shade(col, 0.92);
+        if (x === cuts[k][0]) c = [96, 120, 60];                 // hedgerow between fields
+        p.put(x, y, c);
+      }
+    }
+    for (let i = 0; i < 5; i++) {   // distant farmsteads: barn, house, silo
+      const x = Math.floor(r() * 600), b = Math.round(top(x));
+      for (let y = 0; y < 7; y++) for (let j = 0; j < 9; j++) p.put(x + j, b - y, y > 4 - Math.abs(j - 4) * 0 && j > 0 && j < 8 ? [160, 60, 46] : [130, 50, 40]);
+      for (let j = -1; j < 10; j++) p.put(x + j, b - 7 - Math.max(0, 3 - Math.abs(j - 4)), [90, 70, 60]);
+      for (let y = 0; y < 10; y++) { p.put(x + 12, b - y, [190, 190, 196]); p.put(x + 13, b - y, [160, 160, 170]); }
+      roundTree(p, x - 6, b, 9, [80, 120, 60]);
+    }
+    return p.done();
+  }
+  // forest floor: dark soil, needles, roots and moss along the trail
+  function forestFloor(seed) {
+    const r = U.rng(seed), top = 132, gh = H - top, p = U.pix(320, gh, true);
+    const soil = [[96, 78, 54], [88, 70, 48], [80, 64, 44], [74, 58, 40]];
+    for (let y = 0; y < gh; y++) for (let x = 0; x < 320; x++) {
+      let c = soil[Math.min(3, Math.floor(y / gh * 4))];
+      const n = r();
+      if (n < 0.08) c = [120, 92, 56]; else if (n < 0.12) c = [70, 96, 52]; else if (n < 0.15) c = U.shade(c, 0.85);
+      p.put(x, y, c);
+    }
+    for (let x = 0; x < 320; x++) { p.put(x, 0, [76, 110, 58]); if (r() < 0.6) p.put(x, 1, [66, 98, 50]); }
+    for (let i = 0; i < 6; i++) { let x = r() * 320, y = 6 + r() * 30; for (let k = 0; k < 14; k++) { p.put(x, y, [70, 52, 36]); x++; y += r() < 0.3 ? 1 : 0; } }   // roots
+    for (let x = 0; x < 320; x++) for (const yy of [20, 31]) if (r() < 0.8) p.put(x, yy, [70, 56, 40]);
+    return p.done();
+  }
+  // prairie ground: grass edge, a dirt wagon trail with ruts, wildflowers
+  function prairieGround(seed, opts = {}) {
+    const r = U.rng(seed), top = 132, gh = H - top, p = U.pix(320, gh, true);
+    const grass = opts.dry ? [[176, 160, 90], [164, 146, 80]] : [[112, 152, 70], [100, 140, 62]];
+    const dirt = [[176, 140, 96], [168, 132, 90], [160, 124, 84]];
+    for (let y = 0; y < gh; y++) for (let x = 0; x < 320; x++) {
+      let c;
+      if (y < 12) c = grass[(x + y) % 7 === 0 ? 1 : 0];
+      else if (y < 40) c = dirt[Math.min(2, Math.floor((y - 12) / 10))];
+      else c = grass[(x * 3 + y) % 5 === 0 ? 1 : 0];
+      const n = r();
+      if (n < 0.06) c = U.shade(c, 0.9); else if (n < 0.09) c = U.shade(c, 1.07);
+      p.put(x, y, c);
+    }
+    for (let x = 0; x < 320; x++) { if (r() < 0.7) p.put(x, 12, U.shade(grass[0], 0.85)); if (r() < 0.5) p.put(x, 40, U.shade(grass[0], 0.9)); for (const yy of [21, 31]) p.put(x, yy, U.shade(dirt[1], 0.8)); }
+    for (let i = 0; i < 30; i++) { const x = r() * 320, y = r() < 0.5 ? 2 + r() * 8 : 42 + r() * 4; p.put(x, y, U.pick(r, [[236, 200, 70], [230, 120, 150], [240, 240, 236], [150, 120, 220], [236, 110, 60]])); }
+    return p.done();
+  }
+
   const BIOMES = {
+    prairie: {
+      far: () => mountains(41, 100, 22, [130, 144, 172], 0),
+      mid: () => grassHills(43, 118, 16, [[150, 170, 96], [136, 158, 86], [124, 146, 78]], { n: 7, kind: 'round', h: 14, col: [84, 116, 62] }),
+      hills: () => grassHills(45, 128, 9, [[132, 170, 80], [120, 160, 72]], { n: 4, kind: 'round', h: 22, col: [72, 110, 56] }),
+      ground: () => prairieGround(47),
+    },
+    farm: {
+      far: () => mountains(51, 100, 20, [136, 150, 176], 0),
+      mid: () => fields(53),
+      hills: () => grassHills(55, 128, 6, [[150, 176, 84], [138, 166, 76]], { n: 3, kind: 'round', h: 20, col: [78, 118, 58] }),
+      ground: () => prairieGround(57),
+    },
+    forest: {
+      far: () => grassHills(61, 102, 22, [[96, 120, 110], [90, 112, 104]], { n: 60, kind: 'pine', h: 16, col: [80, 106, 98] }),
+      mid: () => grassHills(63, 116, 14, [[60, 92, 66], [54, 84, 60]], { n: 70, kind: 'pine', h: 30, col: [44, 76, 52] }),
+      hills: () => grassHills(65, 130, 5, [[50, 82, 50], [44, 74, 46]], { n: 26, kind: 'mix', h: 46, col: [38, 66, 42] }),
+      ground: () => forestFloor(67),
+    },
+    buttes: {
+      far: () => mountains(71, 98, 24, [140, 140, 168], 0),
+      mid: () => formations(73, [[40, 70, 70, 'mesa'], [200, 30, 64, 'butte'], [330, 90, 74, 'mesa'], [520, 24, 60, 'butte']],
+        { cap: [140, 120, 80], bands: [[190, 150, 100], [176, 136, 92], [204, 166, 112], [184, 144, 96]], talus: [150, 150, 90] }, { base: 124, band: 6 }),
+      hills: () => grassHills(75, 128, 10, [[164, 164, 86], [150, 152, 78]], { n: 3, kind: 'round', h: 18, col: [96, 120, 62] }),
+      ground: () => prairieGround(77, { dry: true }),
+    },
+    foothills: {
+      far: () => mountains(81, 96, 50, [120, 130, 160], 10),
+      mid: () => grassHills(83, 112, 22, [[110, 140, 90], [98, 128, 80]], { n: 30, kind: 'pine', h: 18, col: [60, 92, 70] }),
+      hills: () => grassHills(85, 128, 10, [[120, 156, 76], [108, 144, 68]], { n: 6, kind: 'pine', h: 30, col: [50, 84, 58] }),
+      ground: () => prairieGround(87),
+    },
     // very tight: walls close on both sides, only a sliver of sky, an
     // overhang hanging over the top and the floor in shadow
     canyon: {
@@ -415,13 +566,15 @@ const BG = (() => {
     tile(ctx, f.bottom, camX * 1.25, H - 12);
   }
 
-  function drawLayers(ctx, id, camX) {
+  function drawLayers(ctx, id, camX, alpha = 1) {
     const L = layers(id);
+    ctx.globalAlpha = alpha;
     tile(ctx, L.far, camX * 0.1, 0);
     tile(ctx, L.mid, camX * 0.22, 0);
     if (L.rim) tile(ctx, L.rim, camX * 0.6, 0);
     tile(ctx, L.hills, camX * 0.45, 0);
     tile(ctx, L.ground, camX, 132);
+    ctx.globalAlpha = 1;
   }
 
   return { drawSky, drawLayers, drawFront, light, night, skyColors };

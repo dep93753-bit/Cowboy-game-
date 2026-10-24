@@ -190,6 +190,62 @@ const Sprites = (() => {
     stand: ['.........LL.', 'lLLLLoLLLLEL', '..l.l..l.l..'],
     run: ['.........LL.', 'lLLLLoLLLLEL', '.l...ll...l.'],
   };
+  // ---- prairie & forest animals
+  const BISON_PAL = { B: [74, 50, 36], b: [50, 34, 26], R: [124, 88, 60], r: [98, 70, 48], H: [226, 214, 190], E: [12, 8, 8], L: [62, 44, 32], h: [32, 26, 22] };
+  const bisonBody = [
+    '.............BBBBBB...........',
+    '...........BBBBBBBBBB.........',
+    '..........BBBBBBBBBBBB........',
+    '....RRRRRRBBBBBBBBBBBBB.......',
+    '..RRRRRRRRRBBBBBBBBBBBBB......',
+    '.RRRRRRRRRRRBBBBBBBBBBBBBH....',
+    'rRRRRRRRRRRRBBBBBBBBBBBBBBH...',
+    'rRRRRRRRRRRRRBBBBBBBBBBEBBB...',
+    'rRRRRRRRRRRRRBBBBBBBBBBBBBBB..',
+    'rrRRRRRRRRRRRBBBBBBBBBBBBBBBB.',
+    '.rrRRRRRRRRRRbBBBBBBBBbBBBBBB.',
+    '..rrrRRRRRRRRbbBBBBBBbbbBBBB..',
+    '...rrrrrrrrrrrbbbbbbbbb.bBBb..',
+  ];
+  const BISON = {
+    stand: [...bisonBody, '....LL.LL........LL.LL...bbb..', '....LL.LL........LL.LL........', '....LL.LL........LL.LL........', '....hh.hh........hh.hh........'],
+    walk: [...bisonBody, '...LL...LL......LL...LL..bbb..', '...LL...LL.....LL....LL.......', '..LL.....LL....LL.....LL......', '..hh.....hh...hh......hh......'],
+    graze: [...bisonBody.slice(0, 7), 'rRRRRRRRRRRRRBBBBBBBBBBBBBB...', 'rRRRRRRRRRRRRBBBBBBBBBBBBBBB..', 'rrRRRRRRRRRRRBBBBBBBBBBBBBBBH.', '.rrRRRRRRRRRRbBBBBBBBBbBBBBBBH', '..rrrRRRRRRRRbbBBBBBBbbbBBBEBB', '...rrrrrrrrrrrbbbbbbbbb.bBBBBb',
+      '....LL.LL........LL.LL...bbbb.', '....LL.LL........LL.LL........', '....LL.LL........LL.LL........', '....hh.hh........hh.hh........'],
+  };
+  const BEAR_PAL = { D: [92, 62, 40], d: [64, 42, 28], n: [150, 120, 96], E: [12, 8, 8], c: [230, 226, 214] };
+  const bearBody = [
+    '.................DD.D...',
+    '......DDDDDDDDDDDDDDDD..',
+    '....DDDDDDDDDDDDDDDDDDD.',
+    '...DDDDDDDDDDDDDDDDDDEDn',
+    '..DDDDDDDDDDDDDDDDDDDDDn',
+    '..DDDDDDDDDDDDDDDDDDDDd.',
+    '..dDDDDDDDDDDDDDDDDDd...',
+    '..ddDDDDDDDDDDDDDDdd....',
+  ];
+  const BEAR = {
+    stand: [...bearBody, '...ddd.dd....ddd.dd.....', '...DD..DD....DD..DD.....', '...DD..DD....DD..DD.....', '...dd..dd....dd..dd.....'],
+    walk: [...bearBody, '..ddd...dd..ddd...dd....', '..DD....DD..DD.....DD...', '.DD......DD.DD......DD..', '.dd......dd.dd......dd..'],
+    rear: [
+      '......DD.DD.....', '......DDDDDn....', '.....DDDDEDnn...', '.....DDDDDDDD...', '....DDDDDDDD....', '..ccDDDDDDDDDcc.', '.DD.DDDDDDDD.DD.', 'DD..DDDDDDDD..DD',
+      '....DDnnnnDD....', '....DDnnnnDD....', '....dDDDDDDd....', '....dDDDDDDd....', '.....DDDDDD.....', '.....DD..DD.....', '.....DD..DD.....', '....ddd..ddd....'],
+  };
+  const DEER_PAL = { T: [176, 130, 86], t: [140, 100, 64], w: [240, 236, 226], E: [12, 8, 8], A: [210, 196, 170], n: [40, 30, 26] };
+  const deerTop = ['..............A.A.', '...............AA.', '..............TTT.', '.............TTETn', '.............TTT..', '....w.......TTT...', '..wTTTTTTTTTTTT...', '..TTTTTTTTTTTTT...', '..TTTTTTTTTTTT....', '..tTTTTTTTTTTt....'];
+  const DEER = {
+    stand: [...deerTop, '..TT.T.....TT.T...', '..T..T.....T..T...', '..T..T.....T..T...', '..t..t.....t..t...'],
+    run: [...deerTop, '.TT...T...TT...T..', 'T......T.T......T.', 'T.......TT.......T', 't.......tt.......t'],
+  };
+  const RAB_PAL = { G: [150, 136, 116], g: [120, 106, 90], w: [236, 232, 222], E: [12, 8, 8] };
+  const RABBIT = { stand: ['....gw.', '....GG.', '.GGGGGE', 'GGGGGG.', 'wGG.GG.'], run: ['.....gw', '.....GG', 'GGGGGGE', 'wGGGGG.', '.G...G.'] };
+  const PDOG_PAL = { P: [176, 140, 96], p: [140, 108, 72], E: [12, 8, 8] };
+  const PDOG = { stand: ['.PP', 'PEP', 'PPP', '.PP', 'pPP', '.PP', 'p.p'], down: ['...', '...', '...', 'PPE', 'pPP', 'PPP', 'p.p'] };
+  const COW_PAL = { W: [236, 232, 224], K: [40, 36, 36], h: [220, 210, 190], t: [60, 52, 50], p: [230, 160, 160], k: [40, 34, 32], E: [12, 8, 8] };
+  const cowTop = ['...................h..', '..WWWWWKKKWWWWWWW.KKK.', '.tWWWWKKKKWWWWWWWKKEKp', '.tWWWWWKKWWWWKKWWWKKKp', '.tWWWWWWWWWWKKKKWWWKK.', '..WWWWWWWWWWWKKWWWW...', '..WWWWWWWWWWWWWWWWW...', '..WW.WW......pp.WW....'];
+  const COW = { stand: [...cowTop, '..WW.WW.......WW.WW...', '..WW.WW.......WW.WW...', '..kk.kk.......kk.kk...'],
+    graze: [...cowTop.slice(0, 2), '.tWWWWKKKKWWWWWWWKKK..', '.tWWWWWKKWWWWKKWWWKKK.', '.tWWWWWWWWWWKKKKWWWKKE', '..WWWWWWWWWWWKKWWWWKKp', '..WWWWWWWWWWWWWWWWW...', '..WW.WW......pp.WW....', '..WW.WW.......WW.WW...', '..WW.WW.......WW.WW...', '..kk.kk.......kk.kk...'] };
+
   const creatures = {
     snake: creatureSet(SNAKE, SNAKE_PAL),
     coyote: creatureSet(COYOTE, COYOTE_PAL),
@@ -197,6 +253,14 @@ const Sprites = (() => {
     chicken: creatureSet(CHICK, CHICK_PAL),
     chickenBrown: creatureSet(CHICK, CHICK_BROWN),
     lizard: creatureSet(LIZARD, LIZ_PAL),
+    bison: creatureSet(BISON, BISON_PAL),
+    bear: creatureSet(BEAR, BEAR_PAL),
+    blackbear: creatureSet(BEAR, Object.assign({}, BEAR_PAL, { D: [44, 38, 40], d: [28, 24, 26] })),
+    deer: creatureSet(DEER, DEER_PAL),
+    rabbit: creatureSet(RABBIT, RAB_PAL),
+    pdog: creatureSet(PDOG, PDOG_PAL),
+    cow: creatureSet(COW, COW_PAL),
+    browncow: creatureSet(COW, Object.assign({}, COW_PAL, { W: [150, 100, 64], K: [236, 230, 220] })),
   };
 
   return { creatures, build, silhouette, paint };

@@ -91,6 +91,9 @@ const Game = (() => {
   // Walk through a trail to another map; your horse comes along.
   function travel(exit) {
     if (G.travelling) return;
+    if (G.scene === 'interior') leaveInterior(true);
+    if (G.player.climb) G.player.climb = null;
+    G.player.setLevel('street');
     G.travelling = true;
     UI.fade(true);
     Sound.sfx('door');
@@ -319,8 +322,25 @@ const Game = (() => {
         { label: 'Saddlebag', pick: () => { setTimeout(inventoryMenu, 0); return 'close'; } },
         { label: 'Sound', right: Sound.muted ? 'OFF' : 'ON', pick: () => { Sound.toggleMute(); return 'stay'; } },
         { label: 'Controls', pick: () => { setTimeout(controlsMenu, 0); return 'close'; } },
+        { label: 'Travel...', pick: () => { setTimeout(travelMenu, 0); return 'close'; } },
         { label: 'Change your look', pick: () => { setTimeout(() => UI.customize({ look: G.data.look, onDone: look => { G.data.look = look; save(); } }), 0); return 'close'; } },
         { label: 'Save & quit to title', pick: () => { setTimeout(toTitle, 0); return 'close'; } },
+      ],
+    });
+  }
+  // Skip straight to the start of each area.
+  const TRAVEL = [
+    { label: 'Redemption Gulch (the start)', zone: 'road', x: 92 },
+    { label: 'Canyon Pass', zone: 'canyon', x: 150 },
+    { label: 'The Prairie', zone: 'prairie', x: 160 },
+  ];
+  function travelMenu() {
+    UI.menu({
+      title: 'Travel',
+      sub: 'Skip to the start of an area. Your horse comes with you.',
+      build: () => [
+        ...TRAVEL.map(t => ({ label: t.label, right: World.zone === t.zone ? 'here' : '', pick: () => { setTimeout(() => travel({ to: t.zone, toX: t.x }), 0); return 'close'; } })),
+        { label: 'Back', pick: () => 'close' },
       ],
     });
   }
@@ -340,11 +360,13 @@ const Game = (() => {
     });
   }
 
-  function storeMenu() {
-    const stock = ['jerky', 'beans', 'peaches', 'biscuit', 'bandage', 'horsefeed'];
+  // A shop: the general stores, and traders met on the trail (opts.trader).
+  function storeMenu(opts = {}) {
+    const stock = opts.stock || ['jerky', 'beans', 'peaches', 'biscuit', 'bandage', 'horsefeed'];
+    const name = opts.name || who('shopkeep', 'Martha');
     UI.menu({
-      title: 'General Store',
-      sub: () => `${who('shopkeep', 'Martha')}: "What'll it be, Sheriff?"  ·  You have $${G.data.money}`,
+      title: opts.title || 'General Store',
+      sub: () => `${name}: "${opts.greet || "What'll it be, Sheriff?"}"  ·  You have $${G.data.money}`,
       build: () => {
         const list = stock.map(id => ({
           label: `Buy ${ITEMS[id].name}`, right: `$${ITEMS[id].price}`, disabled: G.data.money < ITEMS[id].price,
@@ -542,7 +564,8 @@ const Game = (() => {
     World.HOUSES.forEach(h => list.push({
       x: h.doorWorld, r: 18, label: `Enter ${h.name}`, box: [h.x, 154 - h.img.height, h.img.width, h.img.height], act: () => enterHouse(h),
     }));
-    G.npcs.forEach(n => n.present !== false && list.push({ x: n.x, r: 20, lvl: n.level, label: `Talk to ${n.name}`, box: [n.x - 10, (n.y || GROUND) - 62, 20, 62], act: () => talk(n) }));
+    G.npcs.forEach(n => n.present !== false && list.push({ x: n.x, r: 20, lvl: n.level, label: n.trade ? `Trade with ${n.name}` : `Talk to ${n.name}`, box: [n.x - 10, (n.y || GROUND) - 62, 20, 62],
+      act: () => (n.trade ? storeMenu({ stock: n.trade, name: n.name, title: `${n.name}'s wares`, greet: n.tradeGreet || 'Got a few things to spare, Sheriff.' }) : talk(n)) }));
     if (G.horse && !G.player.mounted) list.push({ x: G.horse.x, r: 22, label: `Ride ${G.data.horse.name}`, box: [G.horse.x - 38, GROUND - 62, 76, 62], act: mount });
     if (G.data.campfire !== null) list.push({ x: G.data.campfire, r: 20, label: 'Rest at campfire', box: [G.data.campfire - 10, GROUND - 20, 20, 20], act: campMenu });
     World.EXITS.forEach(e => list.push({ x: e.x, r: 24, label: e.label, box: [e.x - 24, 44, 48, 110], act: () => travel(e) }));
@@ -632,9 +655,10 @@ const Game = (() => {
     G.horse = h ? { type: h.type, x: h.x, face: h.face || 1, vx: 0, animT: 0, follow: false } : null;
     if (G.player) G.player.mounted = false;
   }
+  G.inRiver = x => G.scene === 'world' && World.RIVER && x > World.RIVER[0] && x < World.RIVER[1];
   G.horseSpeed = () => {
     const h = G.data.horse;
-    return Horses.TYPES[h.type].speed * (h.hunger <= 0 ? 0.5 : 1);
+    return Horses.TYPES[h.type].speed * (h.hunger <= 0 ? 0.5 : 1) * (G.inRiver(G.player.x) ? 0.6 : 1);
   };
   function mount() {
     if (!G.horse || G.scene !== 'world') return;
@@ -730,12 +754,18 @@ const Game = (() => {
     G.spawnT = (hard ? (night ? 6 : 10) : (night ? 9 : 16)) + Math.random() * (hard ? 6 : 10);
     const alive = G.enemies.filter(e => e.alive && e.fixedId === undefined).length;
     if (alive >= (night ? 3 : 1) + (hard ? 1 : 0)) return;
-    const type = night ? U.weighted(Math.random, { coyote: 6, outlaw: 3, snake: 1 }) : U.weighted(Math.random, { snake: 5, outlaw: 3 });
+    // what turns up depends on where you are: on the prairie coyotes hunt in
+    // packs at night, and bears roam the forest
+    let table = night ? { coyote: 6, outlaw: 3, snake: 1 } : { snake: 5, outlaw: 3 };
+    if (World.prairie) table = G.biome.forest ? (night ? { coyote: 4, bear: 3 } : { bear: 2, snake: 1 }) : (night ? { coyote: 8, outlaw: 2 } : { outlaw: 2, snake: 2 });
+    const type = U.weighted(Math.random, table);
     const dir = Math.random() < 0.7 ? p.face : -p.face;
     const x = p.x + dir * (190 + Math.random() * 40);
     if (x < World.TOWN_END + 150 || x > World.END - 80) return;
     if (G.campfireNear(x, 120)) return;
-    G.enemies.push(new Enemy(type, x, { tough: hard }));
+    if (G.inRiver(x)) return;
+    const pack = type === 'coyote' && World.prairie ? 2 + Math.floor(Math.random() * 2) : 1;
+    for (let k = 0; k < pack; k++) G.enemies.push(new Enemy(type, x + dir * k * 30, { tough: hard }));
   }
 
   // -------------------------------------------------------- canyon ceiling
@@ -1000,7 +1030,7 @@ const Game = (() => {
     else if (I && I.kind === 'town' && (I.building.room || I.building.id) === 'saloon') song = 'saloon';
     else if (I && I.kind === 'house') song = 'house';
     else if (I || (G.biome && G.biome.town)) song = 'town';
-    else song = G.isNight() ? 'night' : G.biome && G.biome.music === 'canyon' ? 'canyon' : 'desert';
+    else song = G.isNight() ? 'night' : G.biome && G.biome.music === 'canyon' ? 'canyon' : World.prairie ? (G.biome && G.biome.forest ? 'forest' : 'prairie') : 'desert';
     Sound.play(song);
     Sound.musicVolume(I && I.kind === 'town' && song === 'town' ? 0.45 : 1);
 
@@ -1022,8 +1052,14 @@ const Game = (() => {
 
   // ---------------------------------------------------------------- render
   function drawWorld(c, camX, withPlayer) {
-    BG.drawLayers(c, (World.biomeAt(camX + W / 2) || {}).bg || 'desert', camX);
+    // scenery for this stretch, faded into the next stretch's near a boundary
+    const mid = camX + W / 2, here = World.biomeAt(mid) || {};
+    BG.drawLayers(c, here.bg || 'desert', camX);
+    for (const [d, other] of [[here.x1 - mid, World.biomeAt(here.x1 + 1)], [mid - here.x0, World.biomeAt(here.x0 - 1)]]) {
+      if (other && other.bg !== here.bg && d < 260) BG.drawLayers(c, other.bg, camX, 0.5 * (1 - d / 260));
+    }
     if (World.life) drawCanyonLife(c, camX);
+    if (World.prairie) { drawPrairieLife(c, camX); drawRiver(c, camX, false); }
     const vis = (x, w) => x + w > camX - 10 && x < camX + W + 10;
     // rockslide closing the road
     const lit = G.data && BG.night(hour()) > 0.3;
@@ -1089,6 +1125,49 @@ const Game = (() => {
           c.fillStyle = k >= h - 1 ? '#b09a60' : '#7e6a40';
           c.fillRect(U.snap(x0 + dx + sway * 2 * (k / h) * (dx / 4 + 1)), b.base - 2 - k * 2, 2, 2);
         }
+      }
+    }
+  }
+
+  // Prairie life: hawks circling high up, and wagons crawling along the far hills.
+  function drawPrairieLife(c, camX) {
+    const t = G.clock;
+    for (let i = 0; i < 2; i++) {
+      const bx = U.snap(((i * 230 + t * 6 - camX * 0.1) % 520 + 520) % 520 - 100 + Math.cos(t * 0.3 + i * 3) * 50);
+      const by = U.snap(24 + i * 14 + Math.sin(t * 0.3 + i * 3) * 10);
+      c.fillStyle = '#4a3428';
+      const up = Math.floor(t * 2 + i) % 3 === 0;
+      c.fillRect(bx - 8, by - (up ? 2 : 0), 6, 2); c.fillRect(bx - 2, by, 4, 2); c.fillRect(bx + 2, by - (up ? 2 : 0), 6, 2); c.fillRect(bx, by + 2, 2, 2);
+    }
+    // two wagons and a rider on the far hills (they move with the hills' parallax)
+    for (const [ox, sp, kind] of [[80, 4, 'wagon'], [420, -3, 'wagon'], [260, 9, 'rider']]) {
+      const wx = U.snap((((ox + t * sp - camX * 0.45) % 700) + 700) % 700 - 140), wy = 120;
+      c.fillStyle = '#5a4a40';
+      if (kind === 'wagon') { c.fillStyle = '#e8e0cc'; c.fillRect(wx, wy - 6, 10, 4); c.fillStyle = '#5a4a40'; c.fillRect(wx, wy - 2, 10, 2); c.fillRect(wx + (sp > 0 ? 12 : -6), wy - 4, 4, 4); }
+      else { c.fillRect(wx, wy - 4, 8, 2); c.fillRect(wx + 2, wy - 8, 2, 4); }
+    }
+  }
+  // The river crossing: water across the trail, and (in front) the water
+  // line over the legs of anyone wading through.
+  function drawRiver(c, camX, front) {
+    const R = World.RIVER;
+    if (!R || R[1] < camX || R[0] > camX + W) return;
+    const t = G.clock;
+    for (let wx = U.snap(R[0]); wx < R[1]; wx += 2) {
+      const sx = wx - camX;
+      if (sx < -2 || sx > W) continue;
+      const edge = Math.min(wx - R[0], R[1] - wx);
+      if (front) {
+        if (edge < 6) continue;
+        const y = GROUND - 10 + U.snap(Math.sin(t * 3 + wx * 0.08) * 1.5);
+        c.fillStyle = 'rgba(96,150,196,0.78)'; c.fillRect(sx, y, 2, GROUND + 6 - y);
+        if ((wx + Math.floor(t * 20)) % 14 < 4) { c.fillStyle = '#d8ecf8'; c.fillRect(sx, y, 2, 2); }
+        continue;
+      }
+      for (let y = 132; y < H; y += 2) {
+        let col = y < 136 ? '#8cc0e4' : (y + Math.floor(wx / 2) + Math.floor(t * 6)) % 9 === 0 ? '#a8d4ee' : y > 160 ? '#4a86b8' : '#5e98c8';
+        if (edge < 10) col = edge < 4 ? '#6e5a40' : '#7a8a70';            // muddy banks
+        c.fillStyle = col; c.fillRect(sx, y, 2, 2);
       }
     }
   }
@@ -1160,6 +1239,7 @@ const Game = (() => {
       else G.player.draw(lctx, camX);
       if (G.scene === 'world') for (const p of World.PROPS) if (p.front && p.x + p.img.width > camX && p.x < camX + W) lctx.drawImage(p.img, Math.round(p.x - camX), p.base - p.img.height);
       for (const q of G.particles) { lctx.fillStyle = q.col; lctx.fillRect(U.snap(q.x - camX), U.snap(q.y), 2, 2); }
+      if (G.scene === 'world' && World.prairie) drawRiver(lctx, camX, true);
       // the near canyon walls pass in front of everything
       if (G.scene === 'world') { Ceil.draw(lctx, camX); BG.drawFront(lctx, G.biome && !G.biome.town ? G.biome.bg : null, camX); }
     }

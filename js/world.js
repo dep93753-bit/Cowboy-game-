@@ -251,8 +251,9 @@ const World = (() => {
     add(Buildings.canyonGate({ seed: 9, w: 120, slot: 48, left: false, right: true }), 0, 154, { back: true });
     add(Props.signpost('BADLANDS|<'), 250, 153);
     add(Props.signpost('SILVERBEND|>'), 380, 153);
-    add(Props.signpost('PRAIRIE|COMING SOON'), C_END - 120, 153);
-    add(Buildings.boulders(5), C_END - 40, 156);
+    // the far end: the canyon walls close to a slot that opens onto the prairie
+    add(Buildings.canyonGate({ seed: 12, w: 120, slot: 60, right: false }), C_END - 220, 154, { back: true });
+    add(Props.signpost('PRAIRIE >'), C_END - 300, 153);
     // ---- Silverbend: a cliff-walled pocket, the town climbing its back wall
     add(Buildings.pocketWall(SB[1] - SB[0] - 80), SB[0] + 40, 154, { back: true });
     add(Buildings.buttress(3, false), SB[0] - 40, 154, { back: true });
@@ -298,6 +299,149 @@ const World = (() => {
   // a stack of crates from the room furniture, outside
   function FURprop() { const p = U.pix(30, 24); for (const [x, y, w, h] of [[0, 8, 16, 16], [14, 12, 16, 12], [6, 0, 14, 8]]) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) p.put(x + i, y + j, i === 0 || j === 0 || i === w - 1 || j === h - 1 || i === j % w ? [100, 70, 44] : [156, 112, 68]); } Props.outline(p); return p.done(); }
 
+  // ------------------------------------------------------------ prairie
+  // About as long as the badlands and the canyon together, and never the
+  // same for long: rolling grass, farmland and Willow Creek, open range
+  // with bison, a cottonwood and pine forest with a river to ford, painted
+  // buttes, then the foothills.
+  const P_END = 20000;
+  const WC = [5700, 7400];               // Willow Creek
+  const RIVER = [12360, 12660];
+  const P_BIOMES = [
+    { id: 'pr1', name: 'Rolling Prairie', x0: -1e9, x1: 3500, bg: 'prairie' },
+    { id: 'pr2', name: 'Willow Creek Farms', x0: 3500, x1: WC[0], bg: 'farm' },
+    { id: 'wc', name: 'Willow Creek', x0: WC[0], x1: WC[1], town: true, bg: 'farm', music: 'town' },
+    { id: 'pr3', name: 'Willow Creek Farms', x0: WC[1], x1: 8400, bg: 'farm' },
+    { id: 'pr4', name: 'Open Range', x0: 8400, x1: 10600, bg: 'prairie' },
+    { id: 'fo1', name: 'Cottonwood Forest', x0: 10600, x1: 14700, bg: 'forest', forest: true },
+    { id: 'pr5', name: 'Painted Buttes', x0: 14700, x1: 17400, bg: 'buttes' },
+    { id: 'pr6', name: 'The Foothills', x0: 17400, x1: 1e9, bg: 'foothills' },
+  ];
+  const P_BUILDINGS = [
+    { id: 'wc_church', farm: 'church', room: 'church', label: 'Willow Creek Church', x: 5760, cast: {} },
+    { id: 'wc_store', farm: 'store', room: 'store', label: 'Mercantile', x: 5900, cast: { shopkeep: { name: 'Mrs. Hale', look: 'townswoman' } } },
+    { id: 'wc_doctor', farm: 'doctor', room: 'doctor', label: "Doc Linden's", x: 6060, cast: { doc: { name: 'Doc Linden' } } },
+    { id: 'wc_saloon', farm: 'saloon', room: 'saloon', label: 'The Golden Sheaf', x: 6180, cast: {
+      bartender: { name: 'Swede', talk: [
+        ['Swede (Bartender)', 'Fella with a silver tooth came through. Paid for a room, never slept in it. Rode north before dawn.'],
+        ['Swede (Bartender)', "North is the forest, then the river, then the buttes. Long way to run from a sheriff."],
+      ] },
+      singer: { name: 'Miss Dahlia', lines: [['They say the bison herds are thinner every year. Still enough to flatten a man, mind.']] },
+      gambler: { name: 'Lucky Abe', lines: [['Bears in the cottonwoods this time of year. Don\'t go punching one for sport.']] },
+      townsman: { name: 'Farmhand', look: 'cowhand', lines: [['Harvest is early. Good wheat, if the hail holds off.']] },
+    } },
+    { id: 'wc_mill', farm: 'mill', room: 'pr_mill', label: 'Grain Mill', x: 6420, cast: { cook: { name: 'Olsen (Miller)', look: 'oldtimer', lines: [
+      ['The creek turns the wheel, the wheel turns the stones, the stones turn wheat into flour. Simple as that.'],
+      ['Every farmer for forty miles brings their grain here. Hear all sorts of news.'],
+    ] } } },
+    { id: 'wc_stable', farm: 'stable', room: 'stable', label: 'Livery', x: 6620, cast: { stablehand: { name: 'Jonah' } } },
+  ];
+  const P_HOUSES = [
+    { id: 'p_soddy', name: 'Empty Sod House', type: 'shack', x: 2400, seed: 61 },
+    { id: 'p_farm', name: 'Burned-Out Farm', type: 'farmhouse', x: 4400, seed: 67 },
+    { id: 'p_barn', name: 'Leaning Barn', type: 'barn', x: 8000, seed: 71 },
+    { id: 'p_cabin', name: "Trapper's Lodge", type: 'shack', x: 11400, seed: 73 },
+    { id: 'p_station', name: 'Stage Stop', type: 'waystation', x: 15200, seed: 79 },
+    { id: 'p_mission', name: 'Old Mission', type: 'chapel', x: 18200, seed: 83 },
+  ];
+  const T = (id, kind, name, x, range, extra) => Object.assign({ id, kind, name, x, work: 'travel', range, speed: 16 + (x % 7) }, extra);
+  const P_NPCS = [
+    // Willow Creek
+    { id: 'hale', kind: 'farmer', name: 'Mr. Hale', x: 5960, wander: 40, hours: [7, 19], greet: ['Fine day, Sheriff.'], lines: [
+      ['My wife runs the Mercantile. I run the farm. We both run from the bears.'],
+      ['Saw a black duster at the crossing two days back. Fella didn\'t stop to water his horse.'],
+    ] },
+    { id: 'ruth', kind: 'townswoman', name: 'Ruth', x: 6300, wander: 50, hours: [8, 18], greet: ['Good afternoon.'], lines: [['The mill wheel never stops. You can hear it from my porch all night.']] },
+    { id: 'ben', kind: 'kid', name: 'Ben', x: 6150, wander: 80, hours: [8, 18], greet: ['Did you see the bison?!'], lines: [['Pa says if a bison looks at you, don\'t look back.']] },
+    { id: 'gus2', kind: 'oldtimer', name: 'Grandpa Ike', x: 6560, face: -1, hours: [9, 17], greet: ['Heh.'], lines: [['Crossed this prairie in \'52 with nothin\' but a mule and a bad attitude. Still got the attitude.']] },
+    // travelers on the trail
+    T('sett1', 'farmer', 'Settler (Amos)', 1400, [900, 3000], { wagon: 'mule', lines: [['Headed for Willow Creek. Heard the soil\'s so rich you can plant a nail and grow a hammer.'], ['Watch for coyotes at night. They hunt in packs out here.']] }),
+    T('trade1', 'prospector', 'Peddler Jim', 2900, [2500, 3400], { wagon: 'mule', trade: ['jerky', 'beans', 'bread', 'apple', 'bandage', 'horsefeed'], tradeGreet: 'Fresh bread and canned goods! Cheaper than the town, nearly.' }),
+    T('rider1', 'cowhand', 'Drover', 9000, [8600, 10400], { speed: 30, lines: [['Movin\' cattle south. Don\'t spook the bison, they\'ll stampede.'], ['A rider in black passed our herd. Headin\' for the forest.']] }),
+    T('sett2', 'townswoman', 'Settler (Martha Kay)', 9800, [9200, 10500], { wagon: 'bay', lines: [['Lost a wheel at the river crossin\'. You have to wade it, there\'s no bridge.']] }),
+    T('hunter', 'townsman', 'Fur Trapper', 11800, [11000, 12200], { trade: ['jerky', 'bandage', 'steak', 'horsefeed'], tradeGreet: 'Pelts are my trade, but I got jerky for a lawman.', lines: [['Bears up ahead. Big ones.']] }),
+    T('sett3', 'farmer', 'Old Couple', 15600, [15000, 16800], { wagon: 'mule', speed: 12, lines: [['We\'re goin\' home to see the grandchildren. Forty years married and he still won\'t ask for directions.']] }),
+    T('trade2', 'stablehand', 'Horse Trader', 16900, [16500, 17300], { trade: ['horsefeed', 'jerky', 'beans', 'apple'], tradeGreet: 'Feed for your horse, food for you. Fair prices!' }),
+    T('rider2', 'deputy', 'Marshal\'s Rider', 18800, [18200, 19600], { speed: 34, lines: [['Telegram from the marshal: Calloway was seen headin\' for the mountains. You\'re close, Sheriff.']] }),
+  ];
+  const P_HITCHED = [{ x: 6040, type: 'bay', face: 1 }, { x: 6790, type: 'mule', face: -1 }];
+  const P_CRITTERS = [
+    { kind: 'dog', name: 'Sadie', x: 6000, range: 220 }, { kind: 'chicken', x: 5400, range: 40 }, { kind: 'chicken', x: 5430, range: 40, brown: true }, { kind: 'chicken', x: 7600, range: 50 },
+    { kind: 'cow', x: 4100, range: 60 }, { kind: 'cow', x: 4200, range: 60, brown: true }, { kind: 'cow', x: 4320, range: 50 }, { kind: 'cow', x: 7800, range: 70, brown: true }, { kind: 'cow', x: 7900, range: 60 },
+  ];
+  // bison herds out on the open range and the buttes; bears in the forest
+  const herd = (x, n) => Array.from({ length: n }, (_, i) => ({ type: 'bison', x: x + i * 70 + (i % 2) * 20 }));
+  const P_FIXED = [
+    ...herd(1900, 4), ...herd(8900, 6), ...herd(16000, 5),
+    { type: 'bear', x: 11300 }, { type: 'bear', x: 13300 }, { type: 'bear', x: 14200 },
+    { type: 'coyote', x: 3000 }, { type: 'coyote', x: 3060 }, { type: 'coyote', x: 10100 }, { type: 'coyote', x: 10160 }, { type: 'coyote', x: 17800 }, { type: 'coyote', x: 17850 },
+    { type: 'outlaw', x: 15800 }, { type: 'outlaw', x: 19000 },
+  ];
+  const P_PROPS = [];
+  function scatterPrairie() {
+    const r = U.rng(303);
+    const add = adder(P_PROPS);
+    // out of the canyon
+    add(Buildings.canyonGate({ seed: 14, w: 120, slot: 60, left: false, right: true }), -20, 154, { back: true });
+    add(Props.signpost('CANYON|<'), 260, 153);
+    add(Props.signpost('WILLOW CREEK|>'), 420, 153);
+    add(Props.signpost('WILLOW CREEK'), WC[0] - 80, 153);
+    add(Props.signpost('ELK RIVER|FORD'), RIVER[0] - 90, 153);
+    add(Props.signpost('MOUNTAINS|COMING SOON'), P_END - 140, 153);
+    // Willow Creek street
+    add(Buildings.windmill(0), 5600, 150, { back: true, windmill: true });
+    add(Buildings.waterTower(), 7000, 150, { back: true });
+    add(Props.hitchPost(), 6030, 156); add(Props.hitchPost(), 6390, 156); add(Props.trough(), 6160, 156);
+    add(Buildings.lampPost(), 5880, 152, { lamp: true }); add(Buildings.lampPost(), 6170, 152, { lamp: true }); add(Buildings.lampPost(), 6600, 152, { lamp: true });
+    add(Props.barrels(), 6400, 154); add(Buildings.bench(), 6120, 152); add(Buildings.wagon(), 6830, 156);
+    add(Buildings.haystack(4), 6900, 154); add(Buildings.haystack(5), 6960, 154, { back: true });
+    add(Buildings.railFence(200), 7080, 154);
+    const inTown = x => x > WC[0] - 120 && x < WC[1] + 40;
+    const nearHouse = x => P_HOUSES.some(h => x > h.x - 40 && x < h.x + 200);
+    const inRiver = x => x > RIVER[0] - 40 && x < RIVER[1] + 40;
+    // what grows where
+    const kit = {
+      prairie: [['grass', 30], ['flowers', 18], ['tallgrass', 12], ['bush', 8], ['cottonwood', 5], ['oak', 4], ['rock', 6], ['skull', 2], ['fence', 4], ['camp', 1], ['pdog', 3], ['rabbit', 3]],
+      farm: [['wheat', 16], ['fence', 10], ['haystack', 6], ['grass', 14], ['flowers', 8], ['oak', 4], ['homestead', 3], ['scarecrow', 2], ['bush', 4], ['rabbit', 2]],
+      forest: [['pine', 26], ['cottonwood', 10], ['fern', 12], ['log', 5], ['stump', 5], ['bush', 8], ['grass', 6], ['rock', 4], ['deer', 3], ['rabbit', 2]],
+      buttes: [['grass', 20], ['tallgrass', 12], ['rock', 12], ['boulders', 6], ['bush', 6], ['skull', 3], ['hoodoo', 3], ['camp', 1], ['pdog', 3], ['oak', 2]],
+      foothills: [['pine', 16], ['grass', 14], ['rock', 10], ['boulders', 6], ['flowers', 8], ['bush', 6], ['deer', 2], ['log', 2]],
+    };
+    const pickFrom = list => { let t = 0; for (const [, w] of list) t += w; let n = r() * t; for (const [k, w] of list) { n -= w; if (n <= 0) return k; } return list[0][0]; };
+    const bgAt = x => (P_BIOMES.find(b => x >= b.x0 && x < b.x1) || {}).bg;
+    for (let x = 520; x < P_END - 200; x += 22 + r() * 46) {
+      if (inTown(x) || nearHouse(x) || inRiver(x)) continue;
+      const k = pickFrom(kit[bgAt(x)] || kit.prairie), seed = Math.floor(r() * 1e6), X = Math.round(x), base = 152 + Math.floor(r() * 4);
+      if (k === 'grass') add(Buildings.grassClump(seed, false), X, base);
+      else if (k === 'tallgrass') add(Buildings.grassClump(seed, true), X, base);
+      else if (k === 'flowers') add(Buildings.flowers(seed), X, base);
+      else if (k === 'bush') add(Buildings.bush(seed), X, base);
+      else if (k === 'pine') add(Buildings.tree('pine', seed), X, 152, { back: r() < 0.5 });
+      else if (k === 'cottonwood') add(Buildings.tree('cottonwood', seed), X, 152, { back: true });
+      else if (k === 'oak') add(Buildings.tree('oak', seed), X, 152, { back: true });
+      else if (k === 'rock') add(Props.rock(seed), X, base);
+      else if (k === 'boulders') add(Buildings.boulders(seed), X, 154);
+      else if (k === 'skull') add(Props.skull(), X, base);
+      else if (k === 'hoodoo') add(Buildings.hoodoo(seed), X, 150, { back: true });
+      else if (k === 'fence') add(Buildings.railFence(80 + Math.floor(r() * 120)), X, 152, { back: true });
+      else if (k === 'wheat') add(Buildings.wheat(120 + Math.floor(r() * 140)), X, 150, { back: true });
+      else if (k === 'haystack') add(Buildings.haystack(seed), X, 154);
+      else if (k === 'scarecrow') add(Buildings.scarecrow(), X, 152, { back: true });
+      else if (k === 'homestead') { add(Buildings.homestead(seed), X, 152, { back: true }); x += 120; }
+      else if (k === 'camp') add(Buildings.camp(seed), X, 154);
+      else if (k === 'log') add(Buildings.log(seed), X, 154);
+      else if (k === 'stump') add(Buildings.stump(seed), X, 154);
+      else if (k === 'fern') add(Buildings.fern(seed), X, 154);
+      else if (k === 'pdog') P_CRITTERS.push({ kind: 'pdog', x: X, range: 0 });
+      else if (k === 'rabbit') P_CRITTERS.push({ kind: 'rabbit', x: X, range: 80 });
+      else if (k === 'deer') P_CRITTERS.push({ kind: 'deer', x: X, range: 120 });
+    }
+    // reeds and rocks on the riverbanks
+    for (const bx of [RIVER[0] - 30, RIVER[0] + 10, RIVER[1] - 30, RIVER[1] + 6]) add(Buildings.reeds(bx), bx, 156);
+    // a few foreground grass tufts and stones in front of the trail
+    for (let x = 600; x < P_END; x += 180 + r() * 260) if (!inTown(x) && !inRiver(x)) add(r() < 0.6 ? Buildings.grassClump(Math.floor(r() * 1e6), true) : Props.rock(Math.floor(r() * 1e6)), Math.round(x), 180, { front: true });
+  }
+
   const MAPS = {
     road: {
       END, TOWN_END, BIOMES, BUILDINGS, HOUSES, NPCS, PROPS, FIXED_ENEMIES, HITCHED, CRITTERS, blockedEnd: true, OBJECTS: [], LEDGE: null, BRUSH: [],
@@ -310,34 +454,39 @@ const World = (() => {
     canyon: {
       END: C_END, TOWN_END: 0, BIOMES: C_BIOMES, BUILDINGS: C_BUILDINGS, HOUSES: [], NPCS: C_NPCS, PROPS: C_PROPS, FIXED_ENEMIES: C_FIXED, HITCHED: C_HITCHED, CRITTERS: C_CRITTERS,
       OBJECTS: C_OBJECTS, LEDGE, BRUSH: C_BRUSH, life: true, POCKET: SB, ceiling: true,
-      EXITS: [{ x: 96, label: 'Head back to the badlands', to: 'road', toX: TRAIL_X + 96 }],
-      endLines: [
-        [null, 'The canyon opens out onto wide grassland. The prairie lies ahead.'],
-        [null, 'The prairie opens up in a future update.'],
-      ],
+      EXITS: [{ x: 96, label: 'Head back to the badlands', to: 'road', toX: TRAIL_X + 96 },
+        { x: C_END - 100, label: 'Head out onto the prairie', to: 'prairie', toX: 170 }],
+      endLines: [[null, 'Light ahead. The canyon opens out onto wide grassland.']],
+    },
+    prairie: {
+      END: P_END, TOWN_END: 0, BIOMES: P_BIOMES, BUILDINGS: P_BUILDINGS, HOUSES: P_HOUSES, NPCS: P_NPCS, PROPS: P_PROPS, FIXED_ENEMIES: P_FIXED, HITCHED: P_HITCHED, CRITTERS: P_CRITTERS,
+      OBJECTS: [], LEDGE: null, BRUSH: [], prairie: true, RIVER, spawns: true,
+      EXITS: [{ x: 100, label: 'Head back into the canyon', to: 'canyon', toX: C_END - 100 }],
+      endLines: [[null, 'The foothills climb toward the mountains. Snow on the peaks.'], [null, 'The mountains open up in a future update.']],
     },
   };
 
   function use(id) {
     const m = MAPS[id] || MAPS.road;
     api.zone = MAPS[id] ? id : 'road';
-    for (const k of ['END', 'TOWN_END', 'BIOMES', 'BUILDINGS', 'HOUSES', 'NPCS', 'PROPS', 'FIXED_ENEMIES', 'HITCHED', 'CRITTERS', 'EXITS', 'endLines', 'blockedEnd', 'OBJECTS', 'LEDGE', 'BRUSH', 'life', 'POCKET', 'ceiling']) api[k] = m[k];
+    for (const k of ['END', 'TOWN_END', 'BIOMES', 'BUILDINGS', 'HOUSES', 'NPCS', 'PROPS', 'FIXED_ENEMIES', 'HITCHED', 'CRITTERS', 'EXITS', 'endLines', 'blockedEnd', 'OBJECTS', 'LEDGE', 'BRUSH', 'life', 'POCKET', 'ceiling', 'prairie', 'RIVER']) api[k] = m[k];
   }
   const biomeAtIn = (x, zone) => (MAPS[zone] || MAPS.road).BIOMES.find(b => x >= b.x0 && x < b.x1);
 
   function init() {
-    [...BUILDINGS, ...C_BUILDINGS].forEach(b => {
-      const art = b.art ? Buildings.SILVER[b.art]() : Buildings.TOWN[b.id]();
+    [...BUILDINGS, ...C_BUILDINGS, ...P_BUILDINGS].forEach(b => {
+      const art = b.farm ? Buildings.FARM[b.farm]() : b.art ? Buildings.SILVER[b.art]() : Buildings.TOWN[b.id]();
       b.img = art.img; b.doorWorld = b.x + art.door;
       b.wins = art.wins.map(([x, y, w, h]) => ({ r: [x, y, w, h] }));
       b.lamps = art.lamps || []; b.smoke = art.smoke || [];
     });
-    HOUSES.forEach(h => {
+    [...HOUSES, ...P_HOUSES].forEach(h => {
       const art = Buildings.abandoned(h.type, h.seed * 7919);
       h.img = art.img; h.doorWorld = h.x + art.door; h.w = art.w;
     });
     scatter();
     scatterCanyon();
+    scatterPrairie();
     api.rockslide = U.chunky(Props.rockslide());
     use('road');
   }

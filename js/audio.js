@@ -45,7 +45,7 @@ const Sound = (() => {
 
   // Real recordings (all CC0, see assets/CREDITS.md). The synth songs and
   // synth effects below are only used if a file can't be loaded.
-  const MUSIC_FILES = { title: 'title', canyon: 'canyon', town: 'town', saloon: 'saloon', desert: 'desert', night: 'night', fight: 'fight', house: 'house', death: 'death' };
+  const MUSIC_FILES = { title: 'title', canyon: 'canyon', prairie: 'prairie', forest: 'forest', town: 'town', saloon: 'saloon', desert: 'desert', night: 'night', fight: 'fight', house: 'house', death: 'death' };
   const SFX_FILES = {
     punch: { f: ['sounds_impact3', 'sounds_impact4'], v: 0.35 },
     hit: { f: ['wpn_punch1', 'wpn_punch2', 'wpn_punch3'], v: 0.8 },
@@ -212,7 +212,7 @@ const Sound = (() => {
       old.gain.setTargetAtTime(0, ac.currentTime, 0.4);
       setTimeout(() => old.disconnect(), 2500);
     }
-    song = SONGS[name] || (name === 'canyon' ? SONGS.desert : null);
+    song = SONGS[name] || (['canyon', 'prairie', 'forest'].includes(name) ? SONGS.desert : null);
     if (!song) { songGain = null; return; }
     songGain = ac.createGain();
     songGain.gain.setValueAtTime(0, ac.currentTime);
@@ -272,6 +272,8 @@ const Sound = (() => {
     select: t => tone(sfxBus, 'square', 880, t, 0.04, 0.1),
     bark: t => { tone(sfxBus, 'square', 420, t, 0.08, 0.12, 260); tone(sfxBus, 'square', 400, t + 0.14, 0.08, 0.1, 240); },
     cluck: t => { tone(sfxBus, 'square', 700, t, 0.04, 0.06, 900); tone(sfxBus, 'square', 650, t + 0.07, 0.05, 0.06, 500); },
+    moo: t => { tone(sfxBus, 'sawtooth', 150, t, 0.6, 0.09, 120); tone(sfxBus, 'square', 110, t + 0.1, 0.5, 0.05, 95); },
+    roar: t => { tone(sfxBus, 'sawtooth', 120, t, 0.5, 0.16, 70); noise(sfxBus, t, 0.4, 0.08, 200, 1500); },
     piano: t => [523, 659, 784, 659, 698, 880, 784, 523].forEach((f, i) => tone(sfxBus, 'triangle', f, t + i * 0.14, 0.3, 0.2)),
     eat: t => { noise(sfxBus, t, 0.06, 0.2, 2000); noise(sfxBus, t + 0.12, 0.06, 0.2, 2000); },
     fire: t => noise(sfxBus, t, 0.4, 0.1, 300, 2000),

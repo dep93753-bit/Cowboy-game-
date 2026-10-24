@@ -374,6 +374,16 @@ const Rooms = (() => {
   FUR.orePack = () => mk(30, 16, p => { const d = at(p); d.box(0, 4, 14, 12, [150, 120, 80]); d.box(16, 4, 14, 12, [140, 110, 74]); d.box(6, 0, 18, 4, [96, 66, 42]); d.box(3, 2, 8, 3, U.pick(Math.random, ORE)); });
   FUR.claimMap = () => mk(30, 22, p => { const d = at(p); d.box(0, 0, 30, 22, [226, 210, 170]); for (let i = 0; i < 6; i++) d.box(3 + i * 4, 4 + (i * 7) % 12, 3, 2, [140, 90, 60]); d.box(2, 18, 26, 1, [140, 90, 60]); });
   FUR.locker = () => mk(18, 48, p => { const d = at(p); d.box(0, 0, 18, 48, [110, 116, 120]); d.panel(2, 3, 14, 42, [110, 116, 120]); d.box(13, 22, 2, 4, [60, 60, 66]); });
+  // the mill: a pair of millstones under a hopper, the drive shaft and gears, flour sacks
+  FUR.millstones = () => mk(60, 56, p => { const d = at(p);
+    d.box(4, 40, 52, 16, WOOD_D); d.box(8, 30, 44, 6, [150, 146, 140]); d.box(8, 36, 44, 4, [120, 116, 110]);
+    d.box(18, 6, 24, 4, WOOD); for (let y = 10; y < 26; y++) d.box(18 + (y - 10) / 2, y, 24 - (y - 10), 1, WOOD_L);
+    d.box(28, 26, 4, 4, IRON); d.box(20, 8, 20, 2, [226, 210, 160]); });
+  FUR.gears = () => mk(40, 40, p => { const d = at(p);
+    for (let a = 0; a < 48; a++) { const ang = a / 48 * Math.PI * 2; for (const rr of [16, 15]) d.put(20 + Math.round(Math.cos(ang) * rr), 20 + Math.round(Math.sin(ang) * rr), WOOD_D); if (a % 4 === 0) d.box(20 + Math.round(Math.cos(ang) * 17) - 1, 20 + Math.round(Math.sin(ang) * 17) - 1, 2, 2, WOOD); }
+    for (let k = 0; k < 4; k++) { const ang = k / 4 * Math.PI; for (let dd = -15; dd <= 15; dd++) d.put(20 + Math.round(Math.cos(ang) * dd), 20 + Math.round(Math.sin(ang) * dd), WOOD); }
+    d.box(18, 18, 4, 4, IRON); });
+  FUR.flour = () => mk(28, 18, p => { const d = at(p); for (const [x, y] of [[0, 4], [10, 2], [18, 5]]) { d.box(x, y, 10, 14 - y + 4, [232, 224, 200]); d.box(x + 2, y + 4, 6, 2, [180, 120, 80]); } }, OUT);
   FUR.bandages = () => mk(24, 10, p => { const d = at(p); for (let i = 0; i < 4; i++) d.box(i * 6, 2, 5, 8, [236, 232, 222]); d.box(0, 0, 24, 2, WOOD_D); }, null);
 
   function wallPlanks(p, r, w, cols, old = true) {
@@ -700,7 +710,7 @@ const Rooms = (() => {
     const who = (kind, name) => (b.cast && b.cast[kind] && b.cast[kind].name) || name;
     const r = U.rng(U.hash(b.id));
     const RW = { sheriff: 420, store: 460, saloon: 600, bank: 440, stable: 560, doctor: 380, post: 380, blacksmith: 420, church: 460,
-      sb_assay: 420, sb_saloon: 560, sb_store: 460, sb_bunk: 420, sb_clinic: 360, sb_livery: 520 }[T] || 400;
+      sb_assay: 420, sb_saloon: 560, sb_store: 460, sb_bunk: 420, sb_clinic: 360, sb_livery: 520, pr_mill: 440 }[T] || 400;
     const p = U.pix(RW, H);
     const fgc = U.canvas(RW, H), fg = fgc.getContext('2d');
     const objects = [], npcs = [], lights = [], windows = [];
@@ -721,6 +731,7 @@ const Rooms = (() => {
     else if (T === 'sb_bunk') { ceiling(p, RW, [56, 40, 30]); wallPlanks(p, r, RW, [[112, 90, 68], [104, 84, 62], [120, 96, 72]], true); floorPlanks(p, r, RW, [104, 80, 56]); }
     else if (T === 'sb_clinic') { ceiling(p, RW, [70, 56, 44]); wallPlaster(p, r, RW, false); floorPlanks(p, r, RW, [120, 92, 64]); }
     else if (T === 'sb_livery') { ceiling(p, RW, [56, 40, 30]); wallRock(p, r, RW); floorDirt(p, r, RW, true); }
+    else if (T === 'pr_mill') { ceiling(p, RW, [70, 52, 38]); wallPlanks(p, r, RW, [[150, 118, 84], [140, 110, 78], [158, 124, 88]], false); floorPlanks(p, r, RW, [150, 118, 80]); }
     const WINS = { sheriff: [150], store: [384], saloon: [470], bank: [60, 250], doctor: [120, 280], post: [300], sb_store: [380], sb_saloon: [480], sb_bunk: [190], sb_clinic: [250] }[T] || [];
     const curtain = { saloon: [120, 30, 36], bank: [60, 80, 60], doctor: [236, 236, 236] }[T];
     WINS.forEach(wx => windows.push(windowHole(p, wx, frame, false, curtain)));
@@ -938,6 +949,14 @@ const Rooms = (() => {
       lights.push({ x: 204, y: 40, r: 80, col: [255, 210, 140] });
       npc('doc', 'Doctor', 120, { face: 1 });
       objects.push({ x: 120, r: 22, label: `See ${who('doc', 'the doctor')}`, act: 'doctor' });
+    } else if (T === 'pr_mill') {
+      place(ctx, FUR.millstones(), 150); ctx.drawImage(FUR.gears(), 240, 40); ctx.fillStyle = '#6a4c30'; ctx.fillRect(220, 58, 22, 4);
+      ctx.fillStyle = '#5a3e26'; ctx.fillRect(258, 14, 4, 30);
+      for (const fx of [60, 92, 330, 362]) place(ctx, FUR.flour(), fx);
+      place(ctx, FUR.flour(), 74, FLOOR - 17); place(ctx, SEARCH.sacks.closed, 300);
+      ctx.drawImage(FUR.hangLantern(), 120, 14); ctx.drawImage(FUR.hangLantern(), 320, 14);
+      lights.push({ x: 124, y: 40, r: 90, col: [255, 210, 140] }, { x: 324, y: 40, r: 90, col: [255, 210, 140] });
+      npc('cook', 'Miller', 120, { face: 1 });
     } else if (T === 'sb_livery') {
       place(ctx, FUR.saddleRack(), 44); place(ctx, FUR.orePack(), 64); place(ctx, FUR.orePack(), 70, FLOOR - 15);
       place(ctx, FUR.hay(false), 100); ctx.drawImage(FUR.hangLantern(), 130, 14);

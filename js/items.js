@@ -13,6 +13,11 @@ const ITEMS = {
   spoon: { name: 'Silver Spoon', sell: 4 },
   harmonica: { name: 'Harmonica', sell: 6 },
   rattle: { name: 'Snake Rattle', sell: 3 },
+  steak: { name: 'Bison Steak', food: 45, sell: 3 },
+  hide: { name: 'Bison Hide', sell: 7 },
+  bearpelt: { name: 'Bear Pelt', sell: 9 },
+  apple: { name: 'Apple', food: 12, price: 1, sell: 1 },
+  bread: { name: 'Loaf of Bread', food: 30, price: 3, sell: 1 },
 };
 
 // Brawling glove upgrades: extra punch damage and better blocking.

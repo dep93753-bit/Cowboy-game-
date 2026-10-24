@@ -1003,6 +1003,264 @@ const Buildings = (() => {
     return finish(p);
   }
 
+  // --------------------------------------------------- Willow Creek (farm town)
+  // Fresh-painted clapboard in farm colours, shingle roofs, flower boxes.
+  const FARM = {};
+  function flowerBox(p, x, y, w) { rect(p, x, y, w, 2, [120, 84, 52]); for (let i = 0; i < w; i += 2) p.put(x + i, y - 1, [(i * 37) % 2 ? 230 : 236, (i * 7) % 3 ? 90 : 200, (i * 13) % 2 ? 120 : 70]); }
+  FARM.store = () => {
+    const r = U.rng(201), { p, yb, gy } = sheet(72, 70);
+    const x0 = 4, W = 64, top = 4, wall = [96, 140, 110], trim = [240, 236, 222];
+    planks(p, r, x0, top + 2, W, gy - top - 2, wall);
+    cap(p, x0, top, W, trim);
+    const sg = sign(p, x0 + 2, top + 5, W - 4, 15, [240, 232, 210], [70, 100, 80]);
+    label(sg, 'WILLOW CREEK', '#2a4a3a', -3); label(sg, 'MERCANTILE', '#7a2e22', 3);
+    const goods = [[200, 60, 50], [230, 206, 120], [80, 130, 70], [150, 150, 156], [210, 180, 130]];
+    window(p, x0 + 3, gy - 24, 18, 17, { frame: trim, single: true, goods });
+    window(p, x0 + W - 21, gy - 24, 18, 17, { frame: trim, single: true, goods });
+    flowerBox(p, x0 + 3, gy - 6, 18); flowerBox(p, x0 + W - 21, gy - 6, 18);
+    door(p, x0 + W / 2 - 7, gy - DOOR, 14, DOOR, { type: 'glass', col: [70, 100, 80], frame: trim });
+    awning(p, x0 - 1, x0 + W + 1, gy - 42, [[60, 110, 80], [240, 236, 222]]);
+    pillar(p, x0, gy - 36, gy, trim); pillar(p, x0 + W - 2, gy - 36, gy, trim);
+    const lamp = lantern(p, x0 + W / 2 - 12, gy - 31);
+    boardwalk(p, x0 - 2, x0 + W + 2, yb);
+    return { img: finish(p), door: (x0 + W / 2) * S, wins: [R([x0 + 3, gy - 24, 18, 17]), R([x0 + W - 21, gy - 24, 18, 17])], lamps: [lamp], smoke: [] };
+  };
+  FARM.saloon = () => {
+    const r = U.rng(202), { p, yb, gy } = sheet(84, 76);
+    const x0 = 4, W = 76, top = 3, wall = [196, 160, 92], trim = [110, 70, 40];
+    planks(p, r, x0, top + 2, W, gy - top - 2, wall);
+    cap(p, x0, top, W, trim);
+    const sg = sign(p, x0 + 6, top + 4, W - 12, 15, [96, 50, 30], [230, 200, 120]);
+    label(sg, 'GOLDEN SHEAF', '#f2c94c', -3); label(sg, 'SALOON & ROOMS', '#f0e4c8', 3);
+    const wins = [];
+    for (const wx of [x0 + 4, x0 + 18, x0 + W - 27, x0 + W - 13]) { window(p, wx, top + 23, 9, 10, { frame: [240, 230, 200], curtains: [70, 110, 70] }); wins.push(R([wx, top + 23, 9, 10])); }
+    balcony(p, x0, x0 + W, gy - 37, [120, 80, 46]);
+    window(p, x0 + 5, gy - 28, 15, 17, { frame: [240, 230, 200], curtains: [150, 40, 40] });
+    window(p, x0 + W - 20, gy - 28, 15, 17, { frame: [240, 230, 200], curtains: [150, 40, 40] });
+    wins.push(R([x0 + 5, gy - 28, 15, 17]), R([x0 + W - 20, gy - 28, 15, 17]));
+    door(p, x0 + W / 2 - 8, gy - DOOR, 16, DOOR, { type: 'batwing', col: [124, 82, 46], frame: [110, 70, 40] });
+    for (const px of [x0, x0 + 23, x0 + W - 25, x0 + W - 2]) pillar(p, px, gy - 33, gy, [240, 230, 200]);
+    const lamps = [lantern(p, x0 + W / 2 - 13, gy - 30), lantern(p, x0 + W / 2 + 11, gy - 30)];
+    boardwalk(p, x0 - 3, x0 + W + 3, yb);
+    const ch = chimney(p, x0 + 6, top - 4, 3);
+    return { img: finish(p), door: (x0 + W / 2) * S, wins, lamps, smoke: [ch] };
+  };
+  FARM.doctor = () => {
+    const r = U.rng(203), { p, yb, gy } = sheet(54, 70);
+    const x0 = 4, W = 46, eave = gy - 49, wall = [236, 232, 222], trim = [80, 110, 150];
+    planks(p, r, x0, eave, W, gy - eave, wall);
+    gable(p, r, x0 + W / 2, eave - 17, W / 2 + 3, eave, [80, 90, 110]);
+    window(p, x0 + W / 2 - 4, eave - 10, 8, 8, { head: 'arch', frame: trim });
+    const sg = sign(p, x0 + W / 2 - 16, eave + 2, 32, 9, [244, 240, 228], trim);
+    label(sg, 'DOCTOR', '#2a4a6a');
+    window(p, x0 + 6, gy - 28, 9, 14, { frame: [250, 250, 246], curtains: [240, 240, 240], shutters: trim });
+    window(p, x0 + W - 15, gy - 28, 9, 14, { frame: [250, 250, 246], curtains: [240, 240, 240], shutters: trim });
+    door(p, x0 + W / 2 - 6, gy - DOOR, 12, DOOR, { col: trim, frame: [250, 250, 246] });
+    boardwalk(p, x0 - 2, x0 + W + 2, yb);
+    const ch = chimney(p, x0 + W - 13, eave - 15, 8);
+    return { img: finish(p), door: (x0 + W / 2) * S, wins: [R([x0 + 6, gy - 28, 9, 14]), R([x0 + W - 15, gy - 28, 9, 14])], lamps: [], smoke: [ch] };
+  };
+  FARM.stable = () => {
+    const r = U.rng(204), { p, yb, gy } = sheet(78, 78);
+    const x0 = 4, W = 70, eave = gy - 50, red = [172, 70, 52], white = [244, 238, 224];
+    boards(p, r, x0, eave, W, gy - eave, red, 0.1);
+    for (let y = eave - 24; y < eave; y++) {
+      const t = (y - (eave - 24)) / 24, hw = Math.round(t < 0.4 ? 13 + t / 0.4 * 15 : 28 + (t - 0.4) / 0.6 * 10);
+      for (let x = x0 + W / 2 - hw; x < x0 + W / 2 + hw; x++) p.put(x, y, (y - eave) % 3 === 0 ? [80, 72, 70] : [108, 98, 94]);
+      p.put(x0 + W / 2 - hw - 1, y, INK); p.put(x0 + W / 2 + hw, y, INK);
+    }
+    rect(p, x0 - 4, eave, W + 8, 1, INK);
+    boards(p, r, x0 + W / 2 - 13, eave - 14, 26, 14, red, 0.1);
+    box(p, x0 + W / 2 - 5, eave - 12, 10, 10, [30, 20, 16]);
+    rect(p, x0 + W / 2 - 4, eave - 6, 8, 3, (i) => (i % 2 ? [226, 194, 104] : [190, 160, 76]));
+    pillar(p, x0, eave, gy, white); pillar(p, x0 + W - 2, eave, gy, white);
+    door(p, x0 + W / 2 - 13, gy - 37, 26, 37, { type: 'barn', col: red, frame: white, open: true });
+    const sg = sign(p, x0 + W / 2 - 18, eave + 2, 36, 9, white, [110, 50, 34]);
+    label(sg, 'LIVERY', '#6a2a1e');
+    const lamp = lantern(p, x0 + W / 2 - 18, gy - 30);
+    boardwalk(p, x0 - 2, x0 + W + 2, yb);
+    return { img: finish(p), door: (x0 + W / 2) * S, wins: [], lamps: [lamp], smoke: [] };
+  };
+  FARM.church = () => {
+    const r = U.rng(205), { p, yb, gy } = sheet(58, 76);
+    const x0 = 4, W = 50, eave = gy - 40, wall = [240, 236, 226], roof = [70, 80, 100];
+    planks(p, r, x0, eave, W, gy - eave, wall);
+    gable(p, r, x0 + W / 2, eave - 16, W / 2 + 3, eave, roof);
+    const sx = x0 + W / 2 - 5;
+    planks(p, r, sx, eave - 28, 10, 12, wall);
+    box(p, sx + 2, eave - 26, 6, 7, [40, 34, 34]); rect(p, sx + 4, eave - 24, 2, 3, [210, 168, 70]);
+    gable(p, r, sx + 5, eave - 35, 6, eave - 28, roof);
+    rect(p, sx + 4, eave - 41, 1, 6, [200, 170, 90]); rect(p, sx + 2, eave - 39, 5, 1, [200, 170, 90]);
+    window(p, x0 + W / 2 - 3, eave - 10, 6, 6, { head: 'arch', frame: wall, glass: [120, 160, 200], single: true });
+    for (const wx of [x0 + 5, x0 + W - 13]) window(p, wx, gy - 30, 8, 16, { head: 'arch', frame: [244, 240, 232], glass: [110, 150, 190] });
+    door(p, x0 + W / 2 - 7, gy - 3 - DOOR, 14, DOOR, { type: 'double', col: [130, 80, 46], frame: [180, 166, 140] });
+    for (let k = 0; k < 2; k++) rect(p, x0 + W / 2 - 10 - k * 2, gy - 3 + k * 2 - 1, 20 + k * 4, 2, k ? [170, 160, 146] : [210, 200, 186]);
+    rect(p, x0 - 1, gy, W + 2, 2, [110, 150, 70]); rect(p, x0 - 1, yb, W + 2, 1, INK);
+    return { img: finish(p), door: (x0 + W / 2) * S, wins: [R([x0 + 5, gy - 30, 8, 16]), R([x0 + W - 13, gy - 30, 8, 16])], lamps: [], smoke: [] };
+  };
+  // The grain mill: tall timber mill with a waterwheel turning in the creek.
+  FARM.mill = () => {
+    const r = U.rng(206), { p, yb, gy } = sheet(78, 77);
+    const x0 = 22, W = 52, eave = 22, wall = [150, 116, 82];
+    boards(p, r, x0, eave, W, gy - eave, wall, 0.2);
+    gable(p, r, x0 + W / 2, eave - 18, W / 2 + 3, eave, [96, 80, 72]);
+    window(p, x0 + W / 2 - 4, eave - 12, 8, 8, { frame: [230, 220, 196] });
+    // hoist beam and a hanging sack
+    rect(p, x0 + W / 2 - 1, eave - 20, 3, 3, [110, 80, 52]); rect(p, x0 + W / 2, eave - 17, 1, 7, [180, 160, 120]); rect(p, x0 + W / 2 - 2, eave - 10, 5, 5, [214, 196, 150]);
+    const sg = sign(p, x0 + 3, eave + 3, W - 6, 9, [240, 230, 200], [110, 80, 52]);
+    label(sg, 'GRAIN MILL', '#5a3a22');
+    window(p, x0 + 5, eave + 16, 9, 10, { frame: [230, 220, 196] }); window(p, x0 + W - 14, eave + 16, 9, 10, { frame: [230, 220, 196] });
+    door(p, x0 + W / 2 - 7, gy - DOOR, 14, DOOR, { type: 'double', col: [120, 84, 52], frame: [230, 220, 196] });
+    // waterwheel on the left side, in the creek
+    const wx = 12, wy = gy - 16, rr = 13;
+    for (let a = 0; a < 64; a++) { const ang = a / 64 * Math.PI * 2; for (const q of [rr, rr - 1]) p.put(wx + Math.round(Math.cos(ang) * q), wy + Math.round(Math.sin(ang) * q), [110, 80, 52]); }
+    for (let k = 0; k < 8; k++) { const ang = k / 8 * Math.PI * 2; for (let d = 0; d < rr; d++) p.put(wx + Math.round(Math.cos(ang) * d), wy + Math.round(Math.sin(ang) * d), [130, 96, 62]); rect(p, wx + Math.round(Math.cos(ang) * rr) - 1, wy + Math.round(Math.sin(ang) * rr) - 1, 3, 3, [96, 70, 46]); }
+    rect(p, 0, gy - 4, 26, 4, (i, j) => (j === 0 ? [150, 200, 230] : (i + j) % 4 === 0 ? [120, 170, 210] : [80, 130, 180]));
+    rect(p, x0 - 1, gy, W + 2, 2, [140, 132, 122]); rect(p, 0, yb, 78, 1, INK);
+    void r;
+    return { img: finish(p), door: (x0 + W / 2) * S, wins: [R([x0 + 5, eave + 16, 9, 10]), R([x0 + W - 14, eave + 16, 9, 10])], lamps: [], smoke: [] };
+  };
+
+  // ------------------------------------------------------- prairie & forest
+  // Trees: drawn on the half-size grid with clumps of leaves, lit from the
+  // upper left, with an ink outline from finish().
+  function tree(kind, seed) {
+    const r = U.rng(seed);
+    if (kind === 'pine') {
+      const h = 44 + Math.floor(r() * 26), W = Math.round(h * 0.62) + 4, p = U.pix(W, h + 4), cx = Math.floor(W / 2);
+      rect(p, cx - 1, h - 8, 3, 12, [96, 68, 44]); p.put(cx + 1, h - 6, [70, 50, 34]);
+      const green = [[58, 104, 64], [46, 88, 54], [74, 122, 74], [38, 74, 46]];
+      for (let tier = 0; tier < 6; tier++) {
+        const ty = Math.round(h * (0.08 + tier * 0.14)), th = Math.round(h * 0.2), hw0 = 2 + tier * (W / 13);
+        for (let y = 0; y < th; y++) {
+          const hw = Math.round(hw0 * (0.35 + 0.65 * (y / th)));
+          for (let x = -hw; x <= hw; x++) {
+            let c = x < -hw * 0.3 ? green[2] : x > hw * 0.45 ? green[3] : green[0];
+            if (y === th - 1 || (x + y * 3 + tier) % 7 === 0) c = green[1];
+            p.put(cx + x, ty + y, c);
+          }
+        }
+      }
+      p.put(cx, 1, [74, 122, 74]); p.put(cx, 2, [58, 104, 64]);
+      return finish(p);
+    }
+    // cottonwood / oak: a thick trunk, forked branches and clumps of leaves
+    const big = kind === 'cottonwood', h = (big ? 52 : 38) + Math.floor(r() * 14), W = Math.round(h * (big ? 0.9 : 0.85)), p = U.pix(W, h + 2), cx = Math.floor(W / 2);
+    const bark = [[110, 86, 64], [86, 66, 48], [134, 108, 82]];
+    for (let y = Math.round(h * 0.45); y < h + 1; y++) { const tw = 2 + Math.round((y - h * 0.45) / (h * 0.55) * 2); for (let x = -tw; x <= tw; x++) p.put(cx + x, y, x < -tw / 2 ? bark[2] : x > tw / 2 ? bark[1] : bark[0]); }
+    for (const [dx, dy] of [[-1, -1], [1, -1]]) for (let k = 0; k < h * 0.22; k++) { p.put(cx + dx * k, Math.round(h * 0.5) + dy * k, bark[1]); p.put(cx + dx * k + dx, Math.round(h * 0.5) + dy * k, bark[0]); }
+    const leaf = big ? [[118, 150, 74], [96, 130, 62], [140, 170, 90], [80, 110, 52]] : [[86, 128, 62], [70, 110, 52], [108, 148, 74], [58, 92, 44]];
+    const clumps = [];
+    for (let i = 0; i < (big ? 11 : 8); i++) clumps.push([cx + (r() - 0.5) * W * 0.75, h * (0.12 + r() * 0.36), 5 + r() * (big ? 7 : 5)]);
+    for (const [x0, y0, rr] of clumps) for (let y = -rr; y <= rr; y++) for (let x = -rr; x <= rr; x++) {
+      if (x * x + y * y > rr * rr) continue;
+      let c = leaf[0];
+      if (x + y < -rr * 0.5) c = leaf[2]; else if (x + y > rr * 0.6) c = leaf[3];
+      if ((Math.round(x0 + x) * 3 + Math.round(y0 + y) * 5) % 11 === 0) c = leaf[1];
+      p.put(x0 + x, y0 + y, c);
+    }
+    return finish(p);
+  }
+  function grassClump(seed, tall) {
+    const r = U.rng(seed), W = 16 + Math.floor(r() * 10), h = tall ? 14 : 8, p = U.pix(W, h + 1);
+    const cols = [[124, 160, 72], [104, 142, 60], [150, 176, 88], [176, 168, 96]];
+    for (let x = 0; x < W; x += 1) {
+      const bh = Math.round(h * (0.4 + r() * 0.6)), lean = r() < 0.5 ? -1 : 1, c = U.pick(r, cols);
+      for (let y = 0; y < bh; y++) p.put(x + (y > bh * 0.6 ? lean : 0), h - y, y === bh - 1 && tall && r() < 0.3 ? [214, 196, 120] : c);
+    }
+    return finish(p);
+  }
+  function flowers(seed) {
+    const r = U.rng(seed), W = 22 + Math.floor(r() * 12), p = U.pix(W, 9);
+    for (let x = 0; x < W; x++) { const bh = 2 + Math.floor(r() * 5); for (let y = 0; y < bh; y++) p.put(x, 8 - y, [98, 140, 60]); }
+    const pal = U.pick(r, [[[236, 200, 70], [210, 160, 40]], [[230, 120, 160], [190, 80, 120]], [[150, 120, 220], [110, 90, 180]], [[240, 240, 236], [210, 206, 196]]]);
+    for (let i = 0; i < W / 3; i++) { const x = Math.floor(r() * W), y = 1 + Math.floor(r() * 4); p.put(x, y, pal[0]); p.put(x + 1, y, pal[1]); p.put(x, y + 1, pal[1]); }
+    return finish(p);
+  }
+  function bush(seed) {
+    const r = U.rng(seed), W = 18 + Math.floor(r() * 10), hh = 10 + Math.floor(r() * 5), p = U.pix(W, hh);
+    const g = [[96, 132, 64], [78, 112, 52], [122, 156, 80]];
+    for (let y = 0; y < hh; y++) for (let x = 0; x < W; x++) { const e = ((x - W / 2) / (W / 2)) ** 2 + ((y - hh) / hh) ** 2; if (e > 1) continue; p.put(x, y, x + y < W * 0.6 ? g[2] : x > W * 0.65 ? g[1] : g[0]); }
+    if (r() < 0.5) for (let i = 0; i < 5; i++) p.put(Math.floor(r() * W * 0.8 + 2), Math.floor(r() * hh * 0.6 + 2), [200, 50, 60]);   // berries
+    return finish(p);
+  }
+  function wheat(w) {
+    const W = Math.round(w / 2), p = U.pix(W, 16);
+    for (let x = 0; x < W; x++) {
+      const bh = 11 + ((x * 7) % 4), c = (x % 5 === 0) ? [190, 150, 60] : [222, 186, 92];
+      for (let y = 0; y < bh; y++) p.put(x, 15 - y, y > bh - 3 ? (x % 2 ? [236, 206, 110] : [206, 166, 70]) : y < 3 ? [150, 130, 60] : c);
+    }
+    return finish(p);
+  }
+  function railFence(w) {
+    const W = Math.round(w / 2), p = U.pix(W, 14), wood = [150, 116, 80], dk = [110, 82, 54];
+    for (let x = 0; x < W; x += 12) { rect(p, x, 0, 2, 14, wood); p.put(x + 1, 0, dk); }
+    for (const y of [3, 8]) for (let x = 0; x < W; x++) { p.put(x, y + Math.round(Math.sin(x * 0.3) * 0.4), x % 12 < 2 ? dk : wood); p.put(x, y + 1, dk); }
+    return finish(p);
+  }
+  function haystack(seed) {
+    const r = U.rng(seed), p = U.pix(26, 18);
+    for (let y = 0; y < 18; y++) for (let x = 0; x < 26; x++) { const e = ((x - 13) / 13) ** 2 + ((y - 18) / 16) ** 2; if (e > 1) continue; p.put(x, y, (x + y * 2) % 5 === 0 ? [196, 160, 70] : x < 10 && y < 9 ? [236, 206, 112] : x > 17 ? [190, 152, 66] : [222, 186, 92]); }
+    void r;
+    return finish(p);
+  }
+  function scarecrow() {
+    const p = U.pix(18, 32);
+    rect(p, 8, 8, 2, 24, [120, 90, 60]); rect(p, 1, 11, 16, 2, [120, 90, 60]);
+    rect(p, 5, 11, 8, 10, [140, 90, 60]); rect(p, 6, 13, 6, 2, [180, 70, 60]);
+    rect(p, 6, 3, 6, 6, [222, 196, 130]); p.put(7, 5, [40, 30, 26]); p.put(10, 5, [40, 30, 26]);
+    rect(p, 4, 2, 10, 2, [150, 120, 70]); rect(p, 6, 0, 6, 2, [150, 120, 70]);
+    for (const x of [1, 2, 15, 16]) p.put(x, 13, [222, 196, 130]);
+    return finish(p);
+  }
+  function log(seed) {
+    const r = U.rng(seed), W = 34 + Math.floor(r() * 16), p = U.pix(W, 8);
+    rect(p, 0, 1, W - 4, 6, (i, j) => (j === 0 ? [134, 104, 72] : j > 4 ? [86, 64, 44] : (i * 3 + j) % 9 === 0 ? [96, 72, 50] : [114, 88, 62]));
+    rect(p, W - 5, 0, 5, 8, (i, j) => (((i - 2) ** 2 + (j - 4) ** 2) < 5 ? [190, 160, 112] : [150, 120, 84]));
+    for (let i = 0; i < 6; i++) p.put(Math.floor(r() * (W - 8)), 1, [96, 140, 64]);   // moss
+    return finish(p);
+  }
+  function stump(seed) {
+    const r = U.rng(seed), p = U.pix(14, 10);
+    rect(p, 2, 2, 10, 8, (i, j) => (j === 0 ? [196, 164, 116] : i > 7 ? [86, 64, 44] : [114, 88, 62]));
+    rect(p, 0, 8, 14, 2, [96, 72, 50]); void r;
+    return finish(p);
+  }
+  function fern(seed) {
+    const r = U.rng(seed), p = U.pix(18, 10);
+    for (let k = 0; k < 6; k++) { const ang = Math.PI * (0.15 + k / 5 * 0.7), len = 6 + r() * 3; for (let d = 0; d < len; d++) p.put(9 + Math.cos(ang) * d * 1.2, 9 - Math.sin(ang) * d, d > len - 2 ? [120, 170, 80] : [72, 122, 58]); }
+    return finish(p);
+  }
+  function reeds(seed) {
+    const r = U.rng(seed), p = U.pix(16, 16);
+    for (let x = 0; x < 16; x += 2) { const bh = 8 + Math.floor(r() * 7); for (let y = 0; y < bh; y++) p.put(x, 15 - y, [96, 130, 64]); if (r() < 0.5) { p.put(x, 15 - bh, [120, 84, 50]); p.put(x, 14 - bh, [120, 84, 50]); } }
+    return finish(p);
+  }
+  // a settlers' camp: canvas tent, campfire ring, a crate
+  function camp(seed) {
+    const r = U.rng(seed), p = U.pix(48, 24);
+    for (let y = 0; y < 20; y++) { const hw = Math.round(y * 0.75); for (let x = -hw; x <= hw; x++) p.put(14 + x, 3 + y, x < 0 ? [232, 222, 196] : [204, 192, 166]); }
+    rect(p, 13, 13, 3, 10, [60, 46, 40]); rect(p, 14, 0, 1, 4, [110, 80, 52]);
+    for (const [x, y] of [[30, 21], [33, 22], [37, 22], [40, 21], [31, 19], [39, 19]]) rect(p, x, y, 2, 1, [120, 116, 110]);
+    rect(p, 32, 20, 7, 2, [60, 40, 30]);
+    rect(p, 42, 16, 6, 6, [150, 104, 60]); void r;
+    return finish(p);
+  }
+  // a working homestead seen from the road (not enterable)
+  function homestead(seed) {
+    const r = U.rng(seed), { p, gy } = sheet(64, 50);
+    const x0 = 6, W = 40, eave = gy - 26, col = U.pick(r, [[226, 220, 204], [200, 186, 150], [176, 196, 200]]);
+    planks(p, r, x0, eave, W, gy - eave, col);
+    gable(p, r, x0 + W / 2, eave - 12, W / 2 + 3, eave, [120, 70, 56]);
+    window(p, x0 + 5, gy - 18, 8, 9, { frame: [240, 236, 226], curtains: [200, 80, 70] });
+    window(p, x0 + W - 13, gy - 18, 8, 9, { frame: [240, 236, 226], curtains: [200, 80, 70] });
+    door(p, x0 + W / 2 - 5, gy - 22, 10, 22, { col: [120, 80, 50] });
+    chimney(p, x0 + W - 10, eave - 10, 6);
+    rect(p, 0, gy, 64, 3, [110, 150, 70]);
+    return finish(p);
+  }
+
+  // Mining street dressing (chunky, finished at 2x)
   // Mining street dressing (chunky, finished at 2x)
   // Mining street dressing (chunky, finished at 2x)
   function oreCart() {
@@ -1028,5 +1286,6 @@ const Buildings = (() => {
     TOWN, abandoned, waterTower, windmill, wagon, well, lampPost, bench, laundry, corral, telegraphPole, DOOR_H,
     warnings, canyonGate, hoodoo, boulders, SILVER, oreCart, tailings, rails, buttress, pocketWall, ledge, LEDGE_Y,
     campsite, brokenWagon, claimStake, gear, ropeBridge,
+    tree, grassClump, flowers, bush, wheat, railFence, haystack, scarecrow, log, stump, fern, reeds, camp, homestead, FARM,
   };
 })();
