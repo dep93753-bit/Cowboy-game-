@@ -655,31 +655,39 @@ const Rooms = (() => {
   }
 
   // ------------------------------------------------------- town interiors
+  // b.room picks the layout (so Silverbend can reuse Redemption Gulch's);
+  // b.cast renames the people in it: { kind: { name, lines } }.
   function buildTown(b) {
+    const T = b.room || b.id;
+    const who = (kind, name) => (b.cast && b.cast[kind] && b.cast[kind].name) || name;
     const r = U.rng(U.hash(b.id));
-    const RW = { sheriff: 420, store: 460, saloon: 600, bank: 440, stable: 560, doctor: 380, post: 380, blacksmith: 420, church: 460 }[b.id] || 400;
+    const RW = { sheriff: 420, store: 460, saloon: 600, bank: 440, stable: 560, doctor: 380, post: 380, blacksmith: 420, church: 460 }[T] || 400;
     const p = U.pix(RW, H);
     const fgc = U.canvas(RW, H), fg = fgc.getContext('2d');
     const objects = [], npcs = [], lights = [], windows = [];
     let frame = [80, 54, 36];
-    if (b.id === 'sheriff') { ceiling(p, RW); wallLogs(p, r, RW); floorPlanks(p, r, RW, [120, 88, 58]); }
-    else if (b.id === 'store') { ceiling(p, RW); wallPaper(p, r, RW, [196, 186, 150], { wood: [110, 76, 46], motif: [170, 150, 110] }); floorPlanks(p, r, RW, [130, 96, 64]); }
-    else if (b.id === 'saloon') { ceiling(p, RW, [60, 30, 26]); wallPaper(p, r, RW, [130, 40, 44], { wood: [84, 50, 32], motif: [176, 120, 70] }); floorPlanks(p, r, RW, [116, 80, 52]); frame = [70, 40, 30]; }
-    else if (b.id === 'bank') { ceiling(p, RW); wallPaper(p, r, RW, [74, 104, 84], { wood: [96, 62, 40], motif: [110, 140, 110] }); floorPlanks(p, r, RW, [140, 104, 70]); }
-    else if (b.id === 'stable') { ceiling(p, RW, [70, 40, 30]); wallBarn(p, r, RW); floorDirt(p, r, RW, true); }
-    else if (b.id === 'doctor') { ceiling(p, RW); wallPaper(p, r, RW, [208, 214, 206], { wood: [120, 96, 70], motif: [190, 200, 196] }); floorPlanks(p, r, RW, [140, 110, 80]); }
-    else if (b.id === 'post') { ceiling(p, RW); wallPaper(p, r, RW, [150, 160, 176], { wood: [96, 70, 50], motif: [176, 184, 200] }); floorPlanks(p, r, RW, [128, 96, 64]); }
-    else if (b.id === 'blacksmith') { ceiling(p, RW, [50, 40, 36]); wallPlanks(p, r, RW, [[92, 70, 52], [84, 64, 48], [100, 76, 56]], false); floorDirt(p, r, RW, false); }
-    else if (b.id === 'church') { ceiling(p, RW, [90, 70, 50]); wallPlaster(p, r, RW, true); floorPlanks(p, r, RW, [134, 100, 66]); }
-    const WINS = { sheriff: [150], store: [384], saloon: [470], bank: [60, 250], doctor: [120, 280], post: [300] }[b.id] || [];
-    const curtain = { saloon: [120, 30, 36], bank: [60, 80, 60], doctor: [236, 236, 236] }[b.id];
+    if (T === 'sheriff') { ceiling(p, RW); wallLogs(p, r, RW); floorPlanks(p, r, RW, [120, 88, 58]); }
+    else if (T === 'store') { ceiling(p, RW); wallPaper(p, r, RW, [196, 186, 150], { wood: [110, 76, 46], motif: [170, 150, 110] }); floorPlanks(p, r, RW, [130, 96, 64]); }
+    else if (T === 'saloon') { ceiling(p, RW, [60, 30, 26]); wallPaper(p, r, RW, [130, 40, 44], { wood: [84, 50, 32], motif: [176, 120, 70] }); floorPlanks(p, r, RW, [116, 80, 52]); frame = [70, 40, 30]; }
+    else if (T === 'bank') { ceiling(p, RW); wallPaper(p, r, RW, [74, 104, 84], { wood: [96, 62, 40], motif: [110, 140, 110] }); floorPlanks(p, r, RW, [140, 104, 70]); }
+    else if (T === 'stable') { ceiling(p, RW, [70, 40, 30]); wallBarn(p, r, RW); floorDirt(p, r, RW, true); }
+    else if (T === 'doctor') { ceiling(p, RW); wallPaper(p, r, RW, [208, 214, 206], { wood: [120, 96, 70], motif: [190, 200, 196] }); floorPlanks(p, r, RW, [140, 110, 80]); }
+    else if (T === 'post') { ceiling(p, RW); wallPaper(p, r, RW, [150, 160, 176], { wood: [96, 70, 50], motif: [176, 184, 200] }); floorPlanks(p, r, RW, [128, 96, 64]); }
+    else if (T === 'blacksmith') { ceiling(p, RW, [50, 40, 36]); wallPlanks(p, r, RW, [[92, 70, 52], [84, 64, 48], [100, 76, 56]], false); floorDirt(p, r, RW, false); }
+    else if (T === 'church') { ceiling(p, RW, [90, 70, 50]); wallPlaster(p, r, RW, true); floorPlanks(p, r, RW, [134, 100, 66]); }
+    const WINS = { sheriff: [150], store: [384], saloon: [470], bank: [60, 250], doctor: [120, 280], post: [300] }[T] || [];
+    const curtain = { saloon: [120, 30, 36], bank: [60, 80, 60], doctor: [236, 236, 236] }[T];
     WINS.forEach(wx => windows.push(windowHole(p, wx, frame, false, curtain)));
     const door = doorway(p, frame);
     const img = p.done();
     const ctx = img.getContext('2d');
-    const npc = (kind, name, x, extra = {}) => npcs.push(Object.assign({ kind, name, x, face: -1, y: GROUND - 2 }, extra));
+    const npc = (kind, name, x, extra = {}) => {
+      const c = b.cast && b.cast[kind];
+      if (c && c.lines) extra = Object.assign({}, extra, { lines: c.lines });
+      npcs.push(Object.assign({ kind, name: who(kind, name), x, face: -1, y: GROUND - 2 }, extra));
+    };
 
-    if (b.id === 'sheriff') {
+    if (T === 'sheriff') {
       place(ctx, FUR.coatRack(), 48);
       ctx.drawImage(FUR.poster(true), 140, 60); ctx.drawImage(FUR.poster(false), 112, 66); ctx.drawImage(FUR.poster(false), 196, 60);
       place(ctx, FUR.desk(false), 80); place(ctx, FUR.papers(), 86, FLOOR - 20); place(ctx, FUR.lamp(), 108, FLOOR - 20);
@@ -703,7 +711,7 @@ const Rooms = (() => {
         ['Jack fights dirty. Watch for him windin\' up, then block at the last second.'],
         ['Get yourself a horse from Pete. Ain\'t no catchin\' a rider on foot.'],
       ] });
-    } else if (b.id === 'store') {
+    } else if (T === 'store') {
       for (const sy of [34, 56, 78]) for (const sx of [60, 170, 280]) ctx.drawImage(FUR.wallShelf(100, sx * 7 + sy, sy === 78 ? 'jars' : sy === 56 ? 'cans' : 'mixed'), sx, sy);
       place(ctx, SEARCH.barrel.closed, 46); place(ctx, SEARCH.crate.closed, 66); place(ctx, SEARCH.crate.closed, 66, FLOOR - 15);
       place(ctx, SEARCH.sacks.closed, 340); place(ctx, SEARCH.barrel.closed, 368); place(ctx, FUR.cloth(), 420);
@@ -713,8 +721,8 @@ const Rooms = (() => {
       place(fg, FUR.jars(), 160, FLOOR - 21); place(fg, FUR.scale(), 260, FLOOR - 21); place(fg, FUR.lamp(), 290, FLOOR - 21);
       lights.push({ x: 293, y: FLOOR - 28, r: 80, col: [255, 210, 140] });
       npc('shopkeep', 'Martha', 225, { y: GROUND - 10, front: true });
-      objects.push({ x: 225, r: 60, label: 'Shop with Martha', act: 'shop' });
-    } else if (b.id === 'saloon') {
+      objects.push({ x: 225, r: 60, label: `Shop with ${who('shopkeep', 'Martha')}`, act: 'shop' });
+    } else if (T === 'saloon') {
       ctx.drawImage(FUR.mirror(90), 70, 40);
       ctx.drawImage(FUR.bottles(96, 3), 66, 72); ctx.drawImage(FUR.wallShelf(100, 1, 'none'), 64, 72);
       ctx.drawImage(FUR.bottles(96, 5), 66, 90); ctx.drawImage(FUR.wallShelf(100, 2, 'none'), 64, 90);
@@ -743,10 +751,10 @@ const Rooms = (() => {
         ['Word is the old way station out west still has supplies nobody\'s found. Folks are scared of the snakes.'],
       ] });
       npc('townsman', 'Cowhand', 444, { face: -1, lines: [['Whiskey\'s watered down again. Don\'t tell Gus I said so.']] });
-      objects.push({ x: 118, r: 70, label: 'Talk to Gus at the bar', act: 'bar' });
+      objects.push({ x: 118, r: 70, label: `Talk to ${who('bartender', 'Gus')} at the bar`, act: 'bar' });
       objects.push({ x: 270, r: 16, label: 'Play the piano', act: 'piano' });
       objects.push({ x: RW - 50, r: 30, label: 'Go upstairs (rent a room)', act: 'stairs' });
-    } else if (b.id === 'bank') {
+    } else if (T === 'bank') {
       place(ctx, FUR.bench(44), 100);
       place(ctx, FUR.clock(), 164);
       ctx.drawImage(FUR.frame(30, 22, 4), 110, 50);
@@ -762,7 +770,7 @@ const Rooms = (() => {
         ['Jack knew the vault combination. Somebody must\'ve told him. Mighty suspicious.'],
       ] });
       objects.push({ x: 378, r: 34, label: 'Look into the vault', act: 'vault' });
-    } else if (b.id === 'stable') {
+    } else if (T === 'stable') {
       place(ctx, FUR.saddleRack(), 44); place(ctx, FUR.saddleRack(), 64);
       place(ctx, FUR.hay(false), 86); place(ctx, FUR.hay(false), 90, FLOOR - 15);
       ctx.drawImage(FUR.tools(), 60, 70); ctx.drawImage(FUR.lantern(), 120, 60);
@@ -770,9 +778,9 @@ const Rooms = (() => {
       lights.push({ x: 124, y: 66, r: 90, col: [255, 200, 120] });
       for (const sx of [190, 260, 330, 400, 470]) fg.drawImage(FUR.stall(64), sx - 32, FLOOR - 28);
       npc('stablehand', 'Pete', 136, { face: 1 });
-      objects.push({ x: 136, r: 22, label: 'Talk to Pete about horses', act: 'horses' });
+      objects.push({ x: 136, r: 22, label: `Talk to ${who('stablehand', 'Pete')} about horses`, act: 'horses' });
     }
-    if (b.id === 'doctor') {
+    if (T === 'doctor') {
       place(ctx, FUR.coatRack(), 48);
       place(ctx, SEARCH.cupboard.closed, 72);
       ctx.drawImage(FUR.wallShelf(40, 3, 'jars'), 110, 70); ctx.drawImage(FUR.frame(18, 14, 21), 200, 54);
@@ -783,8 +791,8 @@ const Rooms = (() => {
       place(ctx, FUR.lamp(), 350, FLOOR - 20);
       lights.push({ x: 352, y: FLOOR - 28, r: 60, col: [255, 210, 140] });
       npc('doc', 'Doc Halloway', 160, { face: 1 });
-      objects.push({ x: 160, r: 22, label: 'See Doc Halloway', act: 'doctor' });
-    } else if (b.id === 'post') {
+      objects.push({ x: 160, r: 22, label: `See ${who('doc', 'Doc Halloway')}`, act: 'doctor' });
+    } else if (T === 'post') {
       // wall of mail slots and the telegraph key on the counter
       for (let row = 0; row < 4; row++) for (let col = 0; col < 8; col++) {
         const x = 140 + col * 12, y = 46 + row * 12;
@@ -799,7 +807,7 @@ const Rooms = (() => {
       lights.push({ x: 153, y: FLOOR - 28, r: 60, col: [255, 210, 140] });
       npc('postmaster', 'Mr. Pike (Postmaster)', 185, { y: GROUND - 10, front: true });
       objects.push({ x: 185, r: 50, label: 'Talk to Mr. Pike', act: 'post' });
-    } else if (b.id === 'blacksmith') {
+    } else if (T === 'blacksmith') {
       // the forge: brick hearth with a fire, bellows, anvil, tools
       const fx = 150;
       for (let y = FLOOR - 40; y < FLOOR; y++) for (let x = fx; x < fx + 50; x++) { ctx.fillStyle = ((y >> 2) + (x >> 3)) % 2 ? '#7a6e64' : '#665c54'; ctx.fillRect(x, y, 1, 1); }
@@ -811,7 +819,7 @@ const Rooms = (() => {
       lights.push({ x: fx + 25, y: FLOOR - 44, r: 120, col: [255, 140, 60] });
       npc('smith', 'Hank (Blacksmith)', 228, { face: 1 });
       objects.push({ x: 228, r: 24, label: 'Talk to Hank', act: 'smith' });
-    } else if (b.id === 'church') {
+    } else if (T === 'church') {
       for (const sx of [100, 200, 300]) ctx.drawImage(FUR.stained(), sx, 44);
       for (const px of [90, 150, 210, 270]) place(ctx, FUR.pew(), px);
       place(ctx, FUR.altar(), 360); place(ctx, FUR.candle(), 352); place(ctx, FUR.candle(), 400);
@@ -821,7 +829,7 @@ const Rooms = (() => {
       objects.push({ x: 376, r: 26, label: 'Pray at the altar', act: 'pray' });
     }
     return { kind: 'town', building: b, w: RW, img: U.chunky(img), fg: U.chunky(fgc), containers: [], windows, doorRect: door, objects, npcs, lights, door: 24, name: b.label,
-      stalls: b.id === 'stable' ? [190, 260, 330] : null };
+      stalls: T === 'stable' ? [190, 260, 330] : null };
   }
 
   return { buildAbandoned, buildTown, FLOOR, FUR, SEARCH };

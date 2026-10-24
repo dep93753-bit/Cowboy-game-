@@ -36,6 +36,11 @@ const Game = (() => {
     G.data.hp = Math.max(0, G.data.hp - n);
     G.floater(G.player.x, G.player.y - 68, '-' + n, '#ff6a5a');
   };
+  // Who runs the place you're in (Silverbend renames Redemption Gulch's cast).
+  const who = (kind, name) => {
+    const b = G.interior && G.interior.building;
+    return (b && b.cast && b.cast[kind] && b.cast[kind].name) || name;
+  };
   function addItem(id, n = 1) { G.data.inv[id] = (G.data.inv[id] || 0) + n; }
   function takeItem(id, n = 1) {
     G.data.inv[id] = (G.data.inv[id] || 0) - n;
@@ -339,7 +344,7 @@ const Game = (() => {
     const stock = ['jerky', 'beans', 'peaches', 'biscuit', 'bandage', 'horsefeed'];
     UI.menu({
       title: 'General Store',
-      sub: () => `Martha: "What'll it be, Sheriff?"  ·  You have $${G.data.money}`,
+      sub: () => `${who('shopkeep', 'Martha')}: "What'll it be, Sheriff?"  ·  You have $${G.data.money}`,
       build: () => {
         const list = stock.map(id => ({
           label: `Buy ${ITEMS[id].name}`, right: `$${ITEMS[id].price}`, disabled: G.data.money < ITEMS[id].price,
@@ -353,7 +358,7 @@ const Game = (() => {
   }
   function sellMenu() {
     UI.menu({
-      title: 'Sell to Martha',
+      title: `Sell to ${who('shopkeep', 'Martha')}`,
       sub: () => `You have $${G.data.money}`,
       build: () => {
         const list = Object.keys(G.data.inv).filter(id => ITEMS[id].sell).map(id => ({
@@ -369,15 +374,16 @@ const Game = (() => {
   }
   function saloonMenu(b) {
     UI.menu({
-      title: 'Saloon & Hotel',
-      sub: () => `Gus wipes a glass. "Room or a meal, Sheriff?"  ·  You have $${G.data.money}`,
+      title: G.interior ? G.interior.building.label : 'Saloon & Hotel',
+      sub: () => `${who('bartender', 'Gus')} wipes a glass. "Room or a meal, Sheriff?"  ·  You have $${G.data.money}`,
       build: () => [
         { label: 'Rent a room & sleep (saves)', right: '$3', disabled: G.data.money < 3,
           pick: () => { G.data.money -= 3; sleep('the Saloon & Hotel', b.doorWorld); return 'close'; } },
         { label: 'Hot meal (+60 food)', right: '$4', disabled: G.data.money < 4,
           pick: () => { G.data.money -= 4; G.data.hunger = Math.min(100, G.data.hunger + 60); Sound.sfx('eat'); return 'stay'; } },
-        { label: 'Talk to Gus', pick: () => {
-          setTimeout(() => UI.dialogue([
+        { label: `Talk to ${who('bartender', 'Gus')}`, pick: () => {
+          const c = G.interior.building.cast, talk = c && c.bartender && c.bartender.talk;
+          setTimeout(() => UI.dialogue(talk || [
             ['Gus (Bartender)', "Jack drank here last night. Paid in silver dollars and grinned the whole time."],
             ['Gus (Bartender)', "Said somethin' about a hideout up in the snowy peaks. Long way off, Sheriff."],
           ]), 0);
@@ -391,7 +397,7 @@ const Game = (() => {
   function stableMenu() {
     const d = G.data;
     UI.menu({
-      title: "Pete's Stable",
+      title: `${who('stablehand', 'Pete')}'s Stable`,
       sub: () => `Pete: "Few good animals left after the drive. Pick one."  ·  You have $${d.money}`,
       build: () => {
         const trade = d.horse ? Math.floor(Horses.TYPES[d.horse.type].price / 2) : 0;
@@ -421,13 +427,13 @@ const Game = (() => {
       onDone: name => {
         d.money -= cost;
         Sound.sfx('coin');
-        const stable = World.BUILDINGS.find(b => b.id === 'stable');
+        const stable = World.BUILDINGS.find(b => (b.room || b.id) === 'stable');
         d.horse = { type, name: name || 'Horse', hunger: 100, x: stable.doorWorld + 40, face: 1 };
         makeHorse();
         UI.dialogue([
-          ['Pete', old ? `I'll look after ${old.name}. ${d.horse.name}'s waitin' out front, saddled up.` : `${d.horse.name}'s waitin' out front, saddled up. Treat 'em right.`],
-          ['Pete', `Press ${keyName('H', 'HORSE')} to climb on or off. If you leave 'em behind, ${keyName('H', 'HORSE')} whistles 'em over.`],
-          ['Pete', "Keep some horse feed in your bag. A hungry horse slows to a crawl."],
+          [who('stablehand', 'Pete'), old ? `I'll look after ${old.name}. ${d.horse.name}'s waitin' out front, saddled up.` : `${d.horse.name}'s waitin' out front, saddled up. Treat 'em right.`],
+          [who('stablehand', 'Pete'), `Press ${keyName('H', 'HORSE')} to climb on or off. If you leave 'em behind, ${keyName('H', 'HORSE')} whistles 'em over.`],
+          [who('stablehand', 'Pete'), "Keep some horse feed in your bag. A hungry horse slows to a crawl."],
         ]);
       },
     });
@@ -442,8 +448,10 @@ const Game = (() => {
     else if (act === 'cot') sleep("the Sheriff's Office", b.doorWorld);
     else if (act === 'shop') storeMenu();
     else if (act === 'bar' || act === 'stairs') saloonMenu(b);
-    else if (act === 'piano') { Sound.sfx('piano'); UI.toast('You plink out a few notes. Miss Lila winces politely.', 2); }
-    else if (act === 'vault') UI.dialogue([[null, 'The vault door hangs wide open. Not a single dollar left inside.'], [null, 'Silver scratches on the floor... Jack dragged the strongbox out the back.']]);
+    else if (act === 'piano') { Sound.sfx('piano'); UI.toast(`You plink out a few notes. ${who('singer', 'Miss Lila')} winces politely.`, 2); }
+    else if (act === 'vault') UI.dialogue(b.id === 'bank'
+      ? [[null, 'The vault door hangs wide open. Not a single dollar left inside.'], [null, 'Silver scratches on the floor... Jack dragged the strongbox out the back.']]
+      : [[null, 'Silver bars stacked to the ceiling, each stamped and weighed.'], [null, 'The assayer watches you like a hawk the whole time.']]);
     else if (act === 'horses') stableMenu();
     else if (act === 'doctor') doctorMenu();
     else if (act === 'smith') smithMenu();
@@ -460,7 +468,7 @@ const Game = (() => {
   function doctorMenu() {
     const d = G.data;
     UI.menu({
-      title: "Doc Halloway's", sub: () => `"Let's have a look at you, Sheriff."  ·  You have $${d.money}`,
+      title: `${who('doc', 'Doc Halloway')}'s`, sub: () => `"Let's have a look at you, Sheriff."  ·  You have $${d.money}`,
       build: () => [
         { label: 'Patch me up (full health)', right: '$5', disabled: d.money < 5 || d.hp >= 100, pick: () => { d.money -= 5; d.hp = 100; Sound.sfx('perfect'); return 'stay'; } },
         { label: `Buy ${ITEMS.bandage.name}`, right: `$${ITEMS.bandage.price}`, disabled: d.money < ITEMS.bandage.price, pick: () => { d.money -= ITEMS.bandage.price; addItem('bandage'); Sound.sfx('coin'); return 'stay'; } },
@@ -525,7 +533,7 @@ const Game = (() => {
       return list;
     }
     World.BUILDINGS.forEach(b => list.push({
-      x: b.doorWorld, r: 18, label: b.id === 'bank' || b.id === 'stable' ? `Visit the ${b.label}` : `Enter ${b.label}`,
+      x: b.doorWorld, r: 18, label: (b.room || b.id) === 'bank' || (b.room || b.id) === 'stable' ? `Visit the ${b.label}` : `Enter ${b.label}`,
       box: [b.x, 153 - b.img.height, b.img.width, b.img.height], act: () => enterBuilding(b),
     }));
     World.HOUSES.forEach(h => list.push({
@@ -547,6 +555,7 @@ const Game = (() => {
   }
 
   function enterBuilding(b) {
+    if (b.closed) { UI.dialogue(b.closed); return; }
     const key = 'town:' + b.id;
     const room = G.interiorCache[key] || (G.interiorCache[key] = Rooms.buildTown(b));
     enterInterior(room, b.doorWorld, b.label);
@@ -890,7 +899,7 @@ const Game = (() => {
     let song;
     if (p.dead) song = 'death';
     else if (danger) song = 'fight';
-    else if (I && I.kind === 'town' && I.building.id === 'saloon') song = 'saloon';
+    else if (I && I.kind === 'town' && (I.building.room || I.building.id) === 'saloon') song = 'saloon';
     else if (I && I.kind === 'house') song = 'house';
     else if (I || (G.biome && G.biome.town)) song = 'town';
     else song = G.isNight() ? 'night' : G.biome && G.biome.music === 'canyon' ? 'canyon' : 'desert';
@@ -918,13 +927,14 @@ const Game = (() => {
     BG.drawLayers(c, (World.biomeAt(camX + W / 2) || {}).bg || 'desert', camX);
     const vis = (x, w) => x + w > camX - 10 && x < camX + W + 10;
     // rockslide closing the road
-    if (World.blockedEnd && vis(World.END - 110, 140)) c.drawImage(World.rockslide, Math.round(World.END - 110 - camX), 164 - World.rockslide.height);
     const lit = G.data && BG.night(hour()) > 0.3;
     for (const p of World.PROPS) {
       if (!p.back || !vis(p.x, p.img.width)) continue;
       const img = p.windmill ? Town.millFrames[Math.floor(Math.max(0, G.clock) * 6) % Town.millFrames.length] : p.img;
       c.drawImage(img, Math.round(p.x - camX), p.base - img.height);
     }
+    // the rockslide fills the gorge in the canyon mouth
+    if (World.blockedEnd && vis(World.END - 110, 140)) c.drawImage(World.rockslide, Math.round(World.END - 110 - camX), 164 - World.rockslide.height);
     for (const b of World.BUILDINGS) {
       if (!vis(b.x, b.img.width)) continue;
       const bx = Math.round(b.x - camX), by = 154 - b.img.height;

@@ -628,28 +628,103 @@ const Buildings = (() => {
       p.put(x, y, c);
     }
   }
-  // The trail into (or out of) the canyon: a cleft between two rock
-  // buttresses with a timber frame and a sign over the top.
-  function canyonGate(text) {
-    const r = U.rng(U.hash(text)), { p, yb, gy } = sheet(64, 66);
-    const lw = 20, gap = 24, x1 = lw + gap;
-    redRock(p, r, 0, 4, lw, gy - 4, (x, y) => x < lw - Math.max(0, 6 - y) && x > Math.max(0, 5 - y / 3));
-    redRock(p, r, x1, 0, 64 - x1, gy, (x, y) => x > Math.max(0, 4 - y) && x < 64 - x1 - Math.max(0, 3 - y / 4));
-    rect(p, lw, 14, gap, gy - 14, (i, j) => (j < 4 ? [44, 26, 22] : [28, 16, 14]));
-    for (const px of [lw, x1 - 2]) pillar(p, px, 14, gy, [140, 100, 62]);
-    rect(p, lw - 2, 13, gap + 4, 2, [120, 84, 52]);
-    const sg = sign(p, lw - 6, 4, gap + 12, 9, [236, 214, 164], [110, 76, 46]);
-    label(sg, text, '#5a2a1a');
-    rect(p, 0, gy, 64, 3, [176, 124, 86]);
-    void yb;
+  // The canyon mouth, seen side-on: the cliffs where the badlands end. A
+  // flat-topped wall with a caprock rim, rising almost to the top of the
+  // screen and running on past the right edge. o.slot = centre (art px) of a
+  // narrow slot canyon you can walk into; o.gorge = [x0, x1] of the main
+  // gorge (where the road went), left open for the rockslide to fill.
+  function canyonGate(o = {}) {
+    const r = U.rng(o.seed || 3), W = o.w || 240, { p, gy } = sheet(W, 80);
+    const rimY = 6, slot = o.slot, gorge = o.gorge;
+    // left end: a sheer face that steps down to a rubble slope
+    const left = o.left === false ? -1 : 22;
+    const top = x => {
+      if (x < left) return gy;
+      let t = rimY + Math.round(Math.sin(x * 0.13) * 1.2 + Math.sin(x * 0.041) * 2);
+      if (x < left + 10) t += [30, 24, 24, 16, 16, 16, 9, 9, 4, 2][x - left];   // stepped end
+      if (o.right && x > W - 12) { const k = x - (W - 12); if (k > 9) return gy; t += [2, 4, 9, 9, 16, 16, 16, 24, 24, 30][k]; }
+      return t;
+    };
+    const bands = [[200, 92, 58], [186, 80, 52], [210, 108, 66], [190, 84, 54], [224, 138, 94], [178, 74, 48]];
+    for (let x = 0; x < W; x++) {
+      const t = top(x);
+      for (let y = t; y < gy; y++) {
+        const d = y - t;
+        let c = bands[Math.floor((y + Math.sin(x / 37) * 1.5) / 5) % bands.length];
+        if (d < 2) c = [214, 168, 120];                                   // caprock
+        else if (d === 2) c = [120, 60, 42];                              // its shadow
+        if ((x * 7) % 61 < 2 && d > 3 && d < 26) c = sh(c, 0.78);         // varnish streaks
+        if ((x * 13) % 97 === 0 && d > 4) c = sh(c, 0.85);                // fractures
+        if (r() < 0.05) c = sh(c, r() < 0.5 ? 0.9 : 1.08);
+        p.put(x, y, c);
+      }
+    }
+    // rubble slope at the left foot of the cliff
+    if (left > 0) for (let x = 0; x < left + 14; x++) {
+      const h = Math.max(0, Math.round((x + 4) * 0.6 - (x > left ? (x - left) * 0.4 : 0)));
+      for (let y = gy - h; y < gy; y++) p.put(x, y, r() < 0.3 ? [150, 86, 60] : r() < 0.5 ? [196, 120, 80] : [176, 100, 68]);
+    }
+    // the main gorge: open to the sky, a far wall inside, rockslide fills it
+    if (gorge) {
+      const [g0, g1] = gorge, mid = (g0 + g1) / 2;
+      for (let y = rimY - 2; y < gy; y++) {
+        const t = (y - rimY) / (gy - rimY), hw = (g1 - g0) / 2 * (0.55 + 0.45 * t);
+        for (let x = Math.floor(mid - hw); x <= Math.ceil(mid + hw); x++) {
+          const e = Math.abs(x - mid) / hw;
+          if (e > 1) continue;
+          if (y < rimY + 4 && e < 0.8) { p.put(x, y, [0, 0, 0], 0); continue; }   // sky through the gap
+          // the far wall inside the gorge: the same strata, hazy with distance
+          const far = U.lerpColor(bands[Math.floor((y + 3) / 4) % bands.length], [130, 86, 104], 0.55);
+          p.put(x, y, e > 0.85 ? (x < mid ? [236, 150, 104] : [120, 52, 40]) : sh(far, 0.85 + t * 0.2));
+        }
+      }
+    }
+    // the slot canyon: tall and narrow with wavy walls, dark inside, a sliver
+    // of light from above, and a sand trail running in
+    if (slot !== undefined) {
+      for (let y = rimY + 1; y < gy; y++) {
+        const t = (y - rimY) / (gy - rimY);
+        const hw = 2 + t * t * 9 + Math.sin(y * 0.35) * 0.9;
+        const cx = slot + Math.sin(y * 0.11) * 2.2;
+        for (let x = Math.floor(cx - hw - 2); x <= Math.ceil(cx + hw + 2); x++) {
+          const d = (x + 0.5 - cx) / hw, ad = Math.abs(d);
+          let c;
+          if (ad > 1) c = d < 0 ? [240, 160, 110] : [132, 58, 42];          // sunlit / shaded lip
+          else {
+            const glow = Math.max(0, 1 - t * 2.2) * (1 - ad);                 // daylight from the top
+            const base = ad > 0.7 ? [118, 50, 38] : ad > 0.4 ? [74, 30, 28] : [44, 20, 20];
+            c = U.lerpColor(base, [230, 150, 110], glow * 0.8);
+          }
+          p.put(x, y, c);
+        }
+      }
+      for (let y = gy - 4; y < gy; y++) for (let x = slot - 9 - (y - gy + 4) * 2; x < slot + 10 + (y - gy + 4) * 2; x++) p.put(x, y, y === gy - 4 ? [196, 150, 106] : [214, 170, 122]);
+      for (let i = 0; i < 10; i++) { const bx = slot - 26 + r() * 52; if (Math.abs(bx - slot) < 11) continue; rect(p, Math.round(bx), gy - 2 - Math.round(r() * 2), 2 + Math.round(r() * 2), 2, [168, 90, 60]); }
+    }
+    rect(p, 0, gy, W, 3, [176, 124, 86]);
     return finish(p);
   }
-  // A hoodoo: a tall rock column with a harder cap stone.
+  // A rock spire: wide at the base, tapering and leaning a little, with
+  // ragged sides and strata like the canyon walls.
   function hoodoo(seed) {
-    const r = U.rng(seed), h = 34 + Math.floor(r() * 20), w = 10 + Math.floor(r() * 6);
-    const p = U.pix(w + 8, h + 6);
-    redRock(p, r, 4, 6, w, h, (x, y) => Math.abs(x - w / 2) < w / 2 - Math.sin(y / h * Math.PI * 2.2 + seed) * 1.5 - (y < 4 ? 2 : 0));
-    rect(p, 1, 2, w + 6, 4, (i, j) => (j === 0 ? [176, 150, 120] : j === 3 ? [96, 76, 62] : [140, 118, 96]));
+    const r = U.rng(seed), h = 36 + Math.floor(r() * 22), base = 16 + Math.floor(r() * 8), tip = 4 + Math.floor(r() * 4);
+    const lean = (r() - 0.5) * 6, W = base + 10, p = U.pix(W, h + 2);
+    const wob = [r() * 6, r() * 6];
+    redRock(p, r, 0, 0, W, h + 2, (x, y) => {
+      const t = y / h;                                  // 0 at the top, 1 at the bottom
+      const hw = (tip + (base - tip) * Math.pow(t, 1.8)) / 2 + Math.sin(y * 0.5 + wob[0]) * 0.8 + Math.sin(y * 0.17 + wob[1]) * 1.2;
+      const cx = W / 2 + lean * (1 - t);
+      if (y < 3 && Math.abs(x - cx) > hw - (3 - y)) return false;   // rounded top
+      return Math.abs(x + 0.5 - cx) < hw;
+    });
+    // shade the right side, light the left
+    for (let y = 0; y < h + 2; y++) {
+      let x1 = -1, x0 = -1;
+      for (let x = 0; x < W; x++) if (p.has(x, y)) { if (x0 < 0) x0 = x; x1 = x; }
+      if (x0 < 0) continue;
+      for (let x = x1 - 1; x <= x1; x++) p.put(x, y, sh(p.get(x, y), 0.72));
+      p.put(x0, y, sh(p.get(x0, y), 1.12));
+    }
     return finish(p);
   }
   // A heap of fallen boulders.
@@ -663,8 +738,146 @@ const Buildings = (() => {
     return finish(p);
   }
 
+  // ------------------------------------------------- Silverbend (mining town)
+  // Weathered grey boards, tin roofs, stone footings, built hard against the
+  // canyon wall. Same chunky storefront toolkit as Redemption Gulch.
+  const SILVER = {};
+  const GREY = [134, 122, 106], TIN = [140, 142, 148];
+  function tinRoof(p, x0, x1, y, h) {
+    for (let yy = y; yy < y + h; yy++) for (let x = x0; x < x1; x++) p.put(x, yy, (yy - y) === 0 ? sh(TIN, 1.2) : x % 3 === 0 ? sh(TIN, 0.78) : (x * 7 + yy) % 17 === 0 ? [150, 96, 70] : TIN);
+    rect(p, x0, y + h, x1 - x0, 1, INK);
+  }
+  function footing(p, x0, w, gy) { stone(p, x0, gy - 3, w, 3, [146, 138, 128]); }
+
+  SILVER.assay = () => {
+    const r = U.rng(101), { p, yb, gy } = sheet(68, 66);
+    const x0 = 4, W = 60, top = 6, wall = [150, 140, 124], trim = [70, 60, 52];
+    stone(p, x0, top + 2, W, gy - top - 2, [160, 148, 132]);
+    cap(p, x0, top, W, trim);
+    const sg = sign(p, x0 + 1, top + 5, W - 2, 15, [44, 40, 38], [200, 190, 170]);
+    label(sg, 'ASSAY OFFICE', '#e8e4dc', -3); label(sg, 'GOLD & SILVER', '#f2c94c', 3);
+    window(p, x0 + 5, gy - 28, 11, 15, { bars: true, frame: [210, 204, 192] });
+    window(p, x0 + W - 16, gy - 28, 11, 15, { bars: true, frame: [210, 204, 192] });
+    door(p, x0 + W / 2 - 7, gy - DOOR, 14, DOOR, { col: [86, 60, 40], frame: [210, 204, 192] });
+    const lamp = lantern(p, x0 + W / 2 - 12, gy - 32);
+    boardwalk(p, x0 - 2, x0 + W + 2, yb);
+    void r; void wall;
+    return { img: finish(p), door: (x0 + W / 2) * S, wins: [R([x0 + 5, gy - 28, 11, 15]), R([x0 + W - 16, gy - 28, 11, 15])], lamps: [lamp], smoke: [] };
+  };
+
+  SILVER.store = () => {
+    const r = U.rng(102), { p, yb, gy } = sheet(70, 72);
+    const x0 = 4, W = 62, top = 4, trim = [120, 52, 40];
+    planks(p, r, x0, top + 2, W, gy - top - 2, GREY, 0.3);
+    cap(p, x0, top, W, trim);
+    const sg = sign(p, x0 + 3, top + 6, W - 6, 15, [228, 210, 160], trim);
+    label(sg, 'SILVERBEND', '#5a2a1a', -3); label(sg, 'SUPPLY CO.', '#2a3a4a', 3);
+    paint.push([x0 + 4, top + 25, 'PICKS', '#e8e0cc'], [x0 + W - 27, top + 25, 'BEANS', '#e8e0cc']);
+    const goods = [[150, 150, 156], [200, 160, 90], [160, 60, 50], [110, 130, 90]];
+    window(p, x0 + 3, gy - 24, 17, 16, { frame: [228, 210, 160], single: true, goods });
+    window(p, x0 + W - 20, gy - 24, 17, 16, { frame: [228, 210, 160], single: true, goods });
+    door(p, x0 + W / 2 - 7, gy - DOOR, 14, DOOR, { type: 'glass', col: [96, 70, 50], frame: [228, 210, 160] });
+    porch(p, x0 - 1, x0 + W + 1, gy - 40, gy, { posts: [x0, x0 + W - 2], roof: [96, 92, 90] });
+    const lamp = lantern(p, x0 + W / 2 - 12, gy - 33);
+    footing(p, x0, W, gy);
+    boardwalk(p, x0 - 2, x0 + W + 2, yb);
+    return { img: finish(p), door: (x0 + W / 2) * S, wins: [R([x0 + 3, gy - 24, 17, 16]), R([x0 + W - 20, gy - 24, 17, 16])], lamps: [lamp], smoke: [] };
+  };
+
+  SILVER.saloon = () => {
+    const r = U.rng(103), { p, yb, gy } = sheet(86, 76);
+    const x0 = 4, W = 78, top = 3, wall = [112, 84, 64], trim = [222, 196, 140];
+    planks(p, r, x0, top + 2, W, gy - top - 2, wall, 0.3);
+    cap(p, x0, top, W, trim);
+    const sg = sign(p, x0 + 6, top + 5, W - 12, 12, [40, 34, 40], [200, 200, 210]);
+    label(sg, 'THE SILVER SPUR', '#d8dce6');
+    const hs = sign(p, x0 + W / 2 - 15, top + 19, 30, 9, [120, 40, 34], trim);
+    label(hs, 'ROOMS', '#f2c94c');
+    const wins = [];
+    for (const wx of [x0 + 4, x0 + 19, x0 + W - 28, x0 + W - 13]) { window(p, wx, top + 30, 9, 12, { head: 'pediment', frame: trim, curtains: [80, 110, 150] }); wins.push(R([wx, top + 30, 9, 12])); }
+    balcony(p, x0, x0 + W, gy - 42, [90, 66, 50]);
+    window(p, x0 + 5, gy - 28, 15, 17, { frame: trim, curtains: [130, 30, 40] });
+    window(p, x0 + W - 20, gy - 28, 15, 17, { frame: trim, curtains: [130, 30, 40] });
+    wins.push(R([x0 + 5, gy - 28, 15, 17]), R([x0 + W - 20, gy - 28, 15, 17]));
+    door(p, x0 + W / 2 - 8, gy - DOOR, 16, DOOR, { type: 'batwing', col: [124, 90, 56], frame: [70, 50, 40] });
+    for (const px of [x0, x0 + 23, x0 + W - 25, x0 + W - 2]) pillar(p, px, gy - 38, gy, trim);
+    const lamps = [lantern(p, x0 + W / 2 - 13, gy - 34), lantern(p, x0 + W / 2 + 11, gy - 34)];
+    boardwalk(p, x0 - 3, x0 + W + 3, yb);
+    const ch = chimney(p, x0 + W - 10, top - 4, 3, [120, 110, 100]);
+    return { img: finish(p), door: (x0 + W / 2) * S, wins, lamps, smoke: [ch] };
+  };
+
+  SILVER.doctor = () => {
+    const r = U.rng(104), { p, yb, gy } = sheet(50, 64);
+    const x0 = 4, W = 42, eave = gy - 46, trim = [232, 228, 216];
+    planks(p, r, x0, eave, W, gy - eave, [176, 168, 150], 0.2);
+    tinRoof(p, x0 - 3, x0 + W + 3, eave - 6, 6);
+    const sg = sign(p, x0 + W / 2 - 16, eave + 2, 32, 9, [244, 240, 228], [140, 40, 40]);
+    label(sg, 'DOCTOR', '#8a1e1e');
+    window(p, x0 + 4, gy - 28, 9, 14, { frame: trim, curtains: [240, 240, 240] });
+    window(p, x0 + W - 13, gy - 28, 9, 14, { frame: trim, curtains: [240, 240, 240] });
+    door(p, x0 + W / 2 - 6, gy - DOOR, 12, DOOR, { col: [140, 40, 40], frame: trim });
+    footing(p, x0, W, gy);
+    boardwalk(p, x0 - 2, x0 + W + 2, yb);
+    const ch = chimney(p, x0 + W - 10, eave - 12, 6, [120, 110, 100]);
+    return { img: finish(p), door: (x0 + W / 2) * S, wins: [R([x0 + 4, gy - 28, 9, 14]), R([x0 + W - 13, gy - 28, 9, 14])], lamps: [], smoke: [ch] };
+  };
+
+  SILVER.stable = () => {
+    const r = U.rng(105), { p, yb, gy } = sheet(72, 70);
+    const x0 = 4, W = 64, eave = gy - 50, wood = [118, 96, 78], white = [226, 218, 200];
+    boards(p, r, x0, eave, W, gy - eave, wood, 0.4);
+    tinRoof(p, x0 - 4, x0 + W + 4, eave - 8, 8);
+    pillar(p, x0, eave, gy, white); pillar(p, x0 + W - 2, eave, gy, white);
+    door(p, x0 + W / 2 - 13, gy - 37, 26, 37, { type: 'barn', col: [126, 70, 52], frame: white, open: true });
+    for (const [dx, dy] of [[4, 0], [5, 0], [3, 1], [4, 1], [5, 1], [6, 1], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2], [5, 3], [6, 3], [7, 3]]) p.put(x0 + W / 2 + 2 + dx, gy - 24 + dy, [60, 50, 50]);
+    const sg = sign(p, x0 + W / 2 - 18, eave + 2, 36, 9, white, [90, 60, 40]);
+    label(sg, 'LIVERY', '#5a2a1a');
+    const lamp = lantern(p, x0 + W / 2 - 18, gy - 30);
+    boardwalk(p, x0 - 2, x0 + W + 2, yb);
+    return { img: finish(p), door: (x0 + W / 2) * S, wins: [], lamps: [lamp], smoke: [] };
+  };
+
+  // The mine: a timber portal cut into the cliff, rails running out of it.
+  SILVER.mine = () => {
+    const r = U.rng(106), { p, gy } = sheet(80, 74);
+    const W = 80;
+    redRock(p, r, 0, 0, W, gy, (x, y) => y >= Math.round(4 + Math.pow(Math.abs(x - W / 2) / (W / 2), 2) * 30 + Math.sin(x * 0.6) * 1.5));
+    const px = W / 2 - 11, pw = 22, ph = 34;
+    rect(p, px, gy - ph, pw, ph, (i, j) => (j < 6 ? [30, 18, 16] : [20, 12, 12]));
+    for (const tx of [px - 3, px + pw]) { rect(p, tx, gy - ph - 3, 3, ph + 3, [120, 86, 54]); rect(p, tx + 2, gy - ph - 3, 1, ph + 3, [80, 56, 36]); }
+    rect(p, px - 5, gy - ph - 5, pw + 10, 3, [130, 94, 60]); rect(p, px - 5, gy - ph - 3, pw + 10, 1, [80, 56, 36]);
+    const sg = sign(p, W / 2 - 25, gy - ph - 15, 50, 9, [228, 210, 160], [100, 70, 44]);
+    label(sg, 'SILVER MINE', '#3a2416');
+    // rails out of the dark
+    for (let x = px - 6; x < px + pw + 6; x++) { p.put(x, gy - 1, [110, 110, 118]); if (x % 3 === 0) p.put(x, gy - 2, [92, 66, 44]); }
+    const lamp = lantern(p, px + pw + 4, gy - 26);
+    rect(p, 0, gy, W, 3, [176, 124, 86]);
+    return { img: finish(p), door: (px + pw / 2) * S, wins: [], lamps: [lamp], smoke: [] };
+  };
+
+  // Mining street dressing (chunky, finished at 2x)
+  function oreCart() {
+    const p = U.pix(20, 14);
+    rect(p, 1, 1, 18, 8, (i, j) => (j === 0 ? [150, 150, 158] : i > 13 ? [86, 86, 94] : [112, 112, 120]));
+    for (let i = 3; i < 17; i += 2) p.put(i, 0, [190, 190, 200]);
+    for (const wx of [4, 14]) { rect(p, wx - 2, 9, 5, 4, [52, 48, 50]); p.put(wx, 10, [150, 150, 158]); }
+    rect(p, 0, 13, 20, 1, [110, 110, 118]);
+    return finish(p);
+  }
+  function tailings(seed) {
+    const r = U.rng(seed), p = U.pix(44, 16);
+    for (let x = 0; x < 44; x++) { const h = Math.round(14 * Math.sin((x + 0.5) / 44 * Math.PI) ** 0.8); for (let y = 16 - h; y < 16; y++) p.put(x, y, r() < 0.3 ? [120, 110, 104] : r() < 0.5 ? [150, 138, 126] : [134, 124, 114]); }
+    return finish(p);
+  }
+  function rails(len) {
+    const p = U.pix(len, 3);
+    for (let x = 0; x < len; x++) { p.put(x, 0, [120, 120, 128]); if (x % 3 === 0) { p.put(x, 1, [92, 66, 44]); p.put(x, 2, [72, 50, 34]); } }
+    return finish(p);
+  }
+
   return {
     TOWN, abandoned, waterTower, windmill, wagon, well, lampPost, bench, laundry, corral, telegraphPole, DOOR_H,
-    canyonGate, hoodoo, boulders,
+    canyonGate, hoodoo, boulders, SILVER, oreCart, tailings, rails,
   };
 })();
