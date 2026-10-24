@@ -655,7 +655,7 @@ const Game = (() => {
     G.horse = h ? { type: h.type, x: h.x, face: h.face || 1, vx: 0, animT: 0, follow: false } : null;
     if (G.player) G.player.mounted = false;
   }
-  G.inRiver = x => G.scene === 'world' && World.RIVER && x > World.RIVER[0] && x < World.RIVER[1];
+  G.inRiver = x => G.scene === 'world' && World.sink(x) > World.WATER;
   G.horseSpeed = () => {
     const h = G.data.horse;
     return Horses.TYPES[h.type].speed * (h.hunger <= 0 ? 0.5 : 1) * (G.inRiver(G.player.x) ? 0.6 : 1);
@@ -1085,7 +1085,7 @@ const Game = (() => {
     for (const h of World.HOUSES) if (vis(h.x, h.img.width)) c.drawImage(h.img, Math.round(h.x - camX), 154 - h.img.height);
     for (const p of World.PROPS) if (!p.front && !p.back && vis(p.x, p.img.width)) c.drawImage(p.img, Math.round(p.x - camX), p.base - p.img.height);
     Town.drawSmoke(c, camX);
-    for (const hh of World.HITCHED) if (vis(hh.x - 32, 64)) Horses.draw(c, { type: hh.type, face: hh.face, vx: 0, animT: 0 }, hh.x - camX, false, GROUND - 4);
+    for (const hh of World.HITCHED) if (vis(hh.x - 32, 64)) Horses.draw(c, { type: hh.type, face: hh.face, vx: 0, animT: 0, saddle: hh.saddle !== false }, hh.x - camX, false, GROUND - 4);
     if (!withPlayer) return;
     if (G.data.campfire !== null && vis(G.data.campfire - 12, 24)) drawCampfire(c, G.data.campfire - camX, G.clock);
     for (const t of G.tumbleweeds) {
@@ -1147,28 +1147,70 @@ const Game = (() => {
       else { c.fillRect(wx, wy - 4, 8, 2); c.fillRect(wx + 2, wy - 8, 2, 4); }
     }
   }
-  // The river crossing: water across the trail, and (in front) the water
-  // line over the legs of anyone wading through.
+  // The river ford sits in a dip: the trail runs down a muddy bank into a
+  // sunken riverbed and up the other side. The back pass paints the dip
+  // (the far bank, the sunken trail, water running toward you); the front
+  // pass lays the near water over the legs of anyone wading.
+  const RIVER_WATER = ['#a6d2ec', '#88bee2', '#6ca8d6', '#5692c6', '#467eb2'];
+  const RIVER_WATER_A = ['rgba(136,190,226,0.8)', 'rgba(108,168,214,0.8)', 'rgba(86,146,198,0.82)', 'rgba(70,126,178,0.84)'];
+  const RIVER_EARTH = ['#6a5236', '#5e4830', '#523e2a', '#463424'];
+  const RIVER_STONES = [[0.32, 6, 4], [0.42, 14, 3], [0.5, 2, 5], [0.6, 18, 3], [0.68, 8, 4]];
   function drawRiver(c, camX, front) {
     const R = World.RIVER;
     if (!R || R[1] < camX || R[0] > camX + W) return;
-    const t = G.clock;
+    const t = G.clock, SW = World.WATER, top = 144, y0 = top + SW, flow = Math.floor(t * 16);
+    const px = (x, y, col) => { c.fillStyle = col; c.fillRect(x, y, 2, 2); };
+    // the river widens toward you, so the shoreline runs at a slant
+    const wetAt = (s, y) => y >= y0 && s > SW - (y - y0) * 0.3;
     for (let wx = U.snap(R[0]); wx < R[1]; wx += 2) {
       const sx = wx - camX;
       if (sx < -2 || sx > W) continue;
-      const edge = Math.min(wx - R[0], R[1] - wx);
+      const s = World.sink(wx), n = (wx * 7 + 13) % 11;
+      if (!s) continue;
       if (front) {
-        if (edge < 6) continue;
-        const y = GROUND - 10 + U.snap(Math.sin(t * 3 + wx * 0.08) * 1.5);
-        c.fillStyle = 'rgba(96,150,196,0.78)'; c.fillRect(sx, y, 2, GROUND + 6 - y);
-        if ((wx + Math.floor(t * 20)) % 14 < 4) { c.fillStyle = '#d8ecf8'; c.fillRect(sx, y, 2, 2); }
+        // the near water, over the legs of anyone wading (it sits at the waterline in front of them)
+        if (s <= SW) continue;
+        const wl = GROUND + SW + U.snap(Math.sin(t * 2.4 + wx * 0.06));
+        for (let y = wl; y < H; y += 2) { c.fillStyle = RIVER_WATER_A[Math.min(3, Math.floor((y - wl) / 4))]; c.fillRect(sx, y, 2, 2); }
+        if ((wx + flow) % 18 < 6) px(sx, wl, '#e2f0fa');
+        if (s < SW + 6) px(sx, wl + 2, '#e8f4fa');
         continue;
       }
-      for (let y = 132; y < H; y += 2) {
-        let col = y < 136 ? '#8cc0e4' : (y + Math.floor(wx / 2) + Math.floor(t * 6)) % 9 === 0 ? '#a8d4ee' : y > 160 ? '#4a86b8' : '#5e98c8';
-        if (edge < 10) col = edge < 4 ? '#6e5a40' : '#7a8a70';            // muddy banks
-        c.fillStyle = col; c.fillRect(sx, y, 2, 2);
+      const lip = Math.min(s, SW), trail = top + s;
+      for (let y = top; y < H; y += 2) {
+        let col;
+        if (wetAt(s, y)) {
+          col = RIVER_WATER[Math.min(4, Math.floor((y - y0) / (H - y0) * 5))];
+          if (((y - flow + n * 5) % 22 + 22) % 22 < 2 && (wx / 2 + y / 2) % 4 === 0) col = '#d6ecf8';
+          if (y === y0) col = '#3a5a6e';
+          else if (!wetAt(s - 0.8, y)) col = '#e8f4fa';                  // foam along the shore
+          else if (!wetAt(s - 1.6, y) && (n + y) % 3) col = '#b8dcf0';
+        } else if (y < top + lip || (y < trail && s > SW)) {
+          // the far bank: grass on the lip, bare earth with roots and stones below
+          const k = y - top;
+          col = k < 2 ? '#4c7a40' : RIVER_EARTH[Math.min(3, Math.floor(k / Math.max(lip, 4) * 4))];
+          if (k >= 2 && (n + k) % 9 === 0) col = '#7a6446';
+          if (k >= 2 && (n * 3 + k) % 13 === 0) col = '#3c2c1e';
+        } else {
+          // the trail running down the bank: wet sand and mud near the water
+          const d = y - trail, damp = Math.min(1, s / SW + (wetAt(s + 4, y) ? 0.6 : 0));
+          col = d >= 28 ? '#5e8a46' : U.rgb(U.lerpColor([150, 118, 80], [104, 84, 58], damp));
+          if (d < 28 && (d === 8 || d === 18)) col = U.rgb(U.lerpColor([128, 100, 68], [84, 66, 46], damp));
+          if ((n + d) % 17 === 0) col = '#8a7e70';
+          if (wetAt(s + 1.6, y)) col = (n + y) % 4 === 0 ? '#c8b48c' : '#a89470';  // wet sand at the water's edge
+          else if (wetAt(s + 3.2, y) && (n + y) % 3 === 0) col = '#8c7656';
+        }
+        px(sx, y, col);
       }
+    }
+    if (front) return;
+    // stones poking out of the current, foam on their upstream side
+    for (const [f, dy, r] of RIVER_STONES) {
+      const x = U.snap(R[0] + (R[1] - R[0]) * f - camX), y = y0 + dy + 6;
+      if (x < -20 || x > W + 20) continue;
+      c.fillStyle = '#5c6066'; c.fillRect(x - r * 2, y - 2, r * 4, 4);
+      c.fillStyle = '#7a8088'; c.fillRect(x - r * 2 + 2, y - 4, r * 4 - 4, 2);
+      c.fillStyle = '#e8f4fa'; c.fillRect(x - r * 2 - 2, y, 2, 2); c.fillRect(x - r * 2 + ((flow >> 2) % 2) * 2, y + 2, r * 4, 2);
     }
   }
 
@@ -1185,6 +1227,13 @@ const Game = (() => {
         c.fillStyle = '#d8b080'; c.fillRect(x - 2, y - 10, 4, 2);
       }
     }
+  }
+
+  // Anyone down in the river's dip is drawn lower, following the bank.
+  function sunk(x, draw) {
+    const s = G.scene === 'world' ? World.sink(x) : 0;
+    if (!s) return draw();
+    lctx.save(); lctx.translate(0, s); draw(); lctx.restore();
   }
 
   function render() {
@@ -1227,16 +1276,16 @@ const Game = (() => {
       if (I.fg) lctx.drawImage(I.fg, -Math.round(camX), 0);
     } else {
       drawWorld(lctx, camX, true);
-      for (const n of G.npcs) if (n.present !== false) n.draw(lctx, camX);
-      for (const cr of G.critters) cr.draw(lctx, camX);
-      if (G.horse && !G.player.mounted) Horses.draw(lctx, G.horse, G.horse.x - camX, false);
+      for (const n of G.npcs) if (n.present !== false) sunk(n.x, () => n.draw(lctx, camX));
+      for (const cr of G.critters) sunk(cr.x, () => cr.draw(lctx, camX));
+      if (G.horse && !G.player.mounted) sunk(G.horse.x, () => Horses.draw(lctx, G.horse, G.horse.x - camX, false));
     }
     if (G.state !== 'title') {
       drawPickups(lctx, camX);
       if (G.scene === 'world') drawRocks(lctx, camX);
-      for (const e of G.enemies) e.draw(lctx, camX);
-      if (G.player.mounted && G.scene === 'world') Horses.draw(lctx, G.horse, G.player.x - camX, { img: G.player.set.ride.img, hip: G.player.set.rideHip });
-      else G.player.draw(lctx, camX);
+      for (const e of G.enemies) sunk(e.x, () => e.draw(lctx, camX));
+      if (G.player.mounted && G.scene === 'world') sunk(G.player.x, () => Horses.draw(lctx, G.horse, G.player.x - camX, { img: G.player.set.ride.img, hip: G.player.set.rideHip }));
+      else sunk(G.player.x, () => G.player.draw(lctx, camX));
       if (G.scene === 'world') for (const p of World.PROPS) if (p.front && p.x + p.img.width > camX && p.x < camX + W) lctx.drawImage(p.img, Math.round(p.x - camX), p.base - p.img.height);
       for (const q of G.particles) { lctx.fillStyle = q.col; lctx.fillRect(U.snap(q.x - camX), U.snap(q.y), 2, 2); }
       if (G.scene === 'world' && World.prairie) drawRiver(lctx, camX, true);

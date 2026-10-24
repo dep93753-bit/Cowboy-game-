@@ -442,37 +442,59 @@ const BG = (() => {
     return p.done();
   }
   // forest floor: dark soil, needles, roots and moss along the trail
-  function forestFloor(seed) {
-    const r = U.rng(seed), top = 132, gh = H - top, p = U.pix(320, gh, true);
-    const soil = [[96, 78, 54], [88, 70, 48], [80, 64, 44], [74, 58, 40]];
-    for (let y = 0; y < gh; y++) for (let x = 0; x < 320; x++) {
-      let c = soil[Math.min(3, Math.floor(y / gh * 4))];
-      const n = r();
-      if (n < 0.08) c = [120, 92, 56]; else if (n < 0.12) c = [70, 96, 52]; else if (n < 0.15) c = U.shade(c, 0.85);
-      p.put(x, y, c);
+  // The grass verges meet the trail in a ragged edge: blades hang over it
+  // from behind and poke up into it from the front, never a straight line.
+  function raggedEdge(p, r, W, y, dir, cols) {
+    let run = 0, h = 0;
+    for (let x = 0; x < W; x++) {
+      if (run-- <= 0) { run = 2 + Math.floor(r() * 9); h = Math.floor(r() * (r() < 0.2 ? 6 : 3)); }
+      const bh = Math.max(0, h + (r() < 0.4 ? 1 : 0) - (x % 3 === 0 ? 1 : 0));
+      for (let k = 0; k < bh; k++) p.put(x, y + dir * k, cols[k === bh - 1 ? 1 : 0]);
     }
-    for (let x = 0; x < 320; x++) { p.put(x, 0, [76, 110, 58]); if (r() < 0.6) p.put(x, 1, [66, 98, 50]); }
-    for (let i = 0; i < 6; i++) { let x = r() * 320, y = 6 + r() * 30; for (let k = 0; k < 14; k++) { p.put(x, y, [70, 52, 36]); x++; y += r() < 0.3 ? 1 : 0; } }   // roots
-    for (let x = 0; x < 320; x++) for (const yy of [20, 31]) if (r() < 0.8) p.put(x, yy, [70, 56, 40]);
-    return p.done();
   }
-  // prairie ground: grass edge, a dirt wagon trail with ruts, wildflowers
-  function prairieGround(seed, opts = {}) {
-    const r = U.rng(seed), top = 132, gh = H - top, p = U.pix(320, gh, true);
-    const grass = opts.dry ? [[176, 160, 90], [164, 146, 80]] : [[112, 152, 70], [100, 140, 62]];
-    const dirt = [[176, 140, 96], [168, 132, 90], [160, 124, 84]];
-    for (let y = 0; y < gh; y++) for (let x = 0; x < 320; x++) {
+  // A worn wagon trail between two grass verges, shared by the prairie and forest floors.
+  // rows: 0-11 back verge, 12-39 the trail (ruts at 21 and 31), 40+ front verge
+  function trailGround(seed, o) {
+    const r = U.rng(seed), top = 132, gh = H - top, TW = 960, p = U.pix(TW, gh, true);
+    for (let y = 0; y < gh; y++) for (let x = 0; x < TW; x++) {
       let c;
-      if (y < 12) c = grass[(x + y) % 7 === 0 ? 1 : 0];
-      else if (y < 40) c = dirt[Math.min(2, Math.floor((y - 12) / 10))];
-      else c = grass[(x * 3 + y) % 5 === 0 ? 1 : 0];
+      if (y < 12) c = o.verge[(x + y) % 7 === 0 ? 1 : 0];
+      else if (y < 40) c = o.dirt[Math.min(2, Math.floor((y - 12) / 10))];
+      else c = o.front[(x * 3 + y) % 5 === 0 ? 1 : 0];
       const n = r();
       if (n < 0.06) c = U.shade(c, 0.9); else if (n < 0.09) c = U.shade(c, 1.07);
       p.put(x, y, c);
     }
-    for (let x = 0; x < 320; x++) { if (r() < 0.7) p.put(x, 12, U.shade(grass[0], 0.85)); if (r() < 0.5) p.put(x, 40, U.shade(grass[0], 0.9)); for (const yy of [21, 31]) p.put(x, yy, U.shade(dirt[1], 0.8)); }
-    for (let i = 0; i < 30; i++) { const x = r() * 320, y = r() < 0.5 ? 2 + r() * 8 : 42 + r() * 4; p.put(x, y, U.pick(r, [[236, 200, 70], [230, 120, 150], [240, 240, 236], [150, 120, 220], [236, 110, 60]])); }
+    // the ruts, and the grassy ridge the wheels never touch (patchy, bare in places)
+    let ridge = 0;
+    for (let x = 0; x < TW; x++) {
+      for (const yy of [21, 31]) { p.put(x, yy, U.shade(o.dirt[1], 0.8)); if (r() < 0.3) p.put(x, yy + 1, U.shade(o.dirt[1], 0.86)); }
+      if (x % 40 === 0) ridge = r() < 0.6 ? 1 + Math.floor(r() * 3) : 0;
+      for (let k = 0; k < ridge; k++) if (r() < 0.55) p.put(x, 26 - k + Math.floor(r() * 2), o.verge[k % 2]);
+    }
+    raggedEdge(p, r, TW, 12, 1, [o.verge[0], U.shade(o.verge[0], 0.8)]);
+    raggedEdge(p, r, TW, 39, -1, [o.front[0], U.shade(o.front[0], 1.12)]);
+    // pebbles, flowers and litter
+    for (let i = 0; i < 90; i++) { const x = r() * TW, y = 14 + r() * 24; p.put(x, y, U.pick(r, o.stones)); if (r() < 0.5) p.put(x + 1, y, U.shade(o.stones[0], 0.8)); }
+    for (let i = 0; i < 90; i++) { const x = r() * TW, y = r() < 0.5 ? 2 + r() * 8 : 42 + r() * 5; p.put(x, y, U.pick(r, o.bits)); }
+    if (o.roots) for (let i = 0; i < 14; i++) { let x = r() * TW, y = 12 + r() * 4; for (let k = 0; k < 18 + r() * 20; k++) { p.put(x, y, [92, 68, 46]); p.put(x, y + 1, [70, 52, 36]); x++; if (r() < 0.25) y += r() < 0.7 ? 1 : -1; if (y > 36) break; } }
     return p.done();
+  }
+  function forestFloor(seed) {
+    return trailGround(seed, {
+      verge: [[70, 104, 56], [58, 90, 48]], front: [[66, 100, 52], [56, 88, 46]],
+      dirt: [[134, 108, 76], [124, 98, 68], [114, 90, 62]],
+      stones: [[150, 144, 134], [120, 114, 106]], bits: [[150, 104, 50], [176, 132, 60], [120, 80, 44], [220, 220, 210]], roots: true,
+    });
+  }
+  // prairie ground: grass verges, a dirt wagon trail with ruts, wildflowers
+  function prairieGround(seed, opts = {}) {
+    return trailGround(seed, {
+      verge: opts.dry ? [[176, 160, 90], [164, 146, 80]] : [[112, 152, 70], [100, 140, 62]],
+      front: opts.dry ? [[170, 154, 86], [158, 142, 78]] : [[106, 146, 66], [96, 136, 60]],
+      dirt: [[176, 140, 96], [168, 132, 90], [160, 124, 84]],
+      stones: [[196, 186, 170], [150, 140, 126]], bits: [[236, 200, 70], [230, 120, 150], [240, 240, 236], [150, 120, 220], [236, 110, 60]],
+    });
   }
 
   const BIOMES = {

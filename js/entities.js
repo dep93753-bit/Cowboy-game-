@@ -72,7 +72,7 @@ class Player {
     this.running = running;
     let speed = this.mounted ? (running ? 180 : 82) * Game.horseSpeed() : (running ? 94 : 54) * this.speedMul;
     // wading across a river is slow going (and splashy)
-    if (!this.mounted && Game.inRiver(this.x)) { speed *= 0.55; if (Math.abs(this.vx) > 10 && Math.random() < dt * 14) for (let i = 0; i < 2; i++) Game.particles.push({ x: this.x + (Math.random() - 0.5) * 16, y: GROUND - 4, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 40, life: 0.5, col: '#cfe6f4' }); }
+    if (!this.mounted && Game.inRiver(this.x)) { speed *= 0.55; if (Math.abs(this.vx) > 10 && Math.random() < dt * 14) for (let i = 0; i < 2; i++) Game.particles.push({ x: this.x + (Math.random() - 0.5) * 16, y: GROUND + World.WATER - 2, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 40, life: 0.5, col: '#cfe6f4' }); }
     if (this.punchT > 0.05 || this.blocking) speed = 0;
     if (move !== 0 && !(this.punchT > 0)) this.face = move;
 
@@ -318,15 +318,15 @@ class Enemy {
       const s = Sprites.creatures.snake;
       frame = this.state === 'attack' ? s.strike : this.state === 'windup' || this.state === 'chase' ? (Math.floor(Game.clock * 8) % 2 ? s.rattle : s.idle) : s.idle;
     } else if (this.type === 'coyote') {
-      const s = Sprites.creatures.coyote;
+      const s = Fauna.sets.coyote; anchor = s.anchor;
       frame = this.state === 'attack' ? s.bite
-        : this.moving ? (Math.floor(this.animT / 2) % 2 ? s.run0 : s.run1) : s.stand;
+        : this.moving ? Fauna.cycle(this.state === 'chase' ? s.run : s.walk, this.animT / 2) : s.stand;
     } else if (this.type === 'bison') {
-      const s = Sprites.creatures.bison;
-      frame = this.moving || this.state === 'attack' ? (Math.floor(this.animT / 2) % 2 ? s.walk : s.stand) : this.grazing ? s.graze : s.stand;
+      const s = Fauna.sets.bison; anchor = s.anchor;
+      frame = this.state === 'attack' || (this.moving && this.state === 'chase') ? Fauna.cycle(s.run, this.animT / 2) : this.moving ? Fauna.cycle(s.walk, this.animT / 2) : this.grazing ? s.graze : s.stand;
     } else if (this.type === 'bear') {
-      const s = this.black ? Sprites.creatures.blackbear : Sprites.creatures.bear;
-      frame = this.state === 'windup' || this.state === 'attack' ? s.rear : this.moving ? (Math.floor(this.animT / 2) % 2 ? s.walk : s.stand) : s.stand;
+      const s = this.black ? Fauna.sets.blackbear : Fauna.sets.bear; anchor = s.anchor;
+      frame = this.state === 'windup' || this.state === 'attack' ? s.rear : this.moving ? Fauna.cycle(s.walk, this.animT / 2) : s.stand;
     } else {
       const s = Chars.person(this.look || 'outlaw');
       const st = this.state === 'attack' ? 'punch' : this.state === 'windup' ? 'windup' : this.state === 'hurt' || this.state === 'stun' ? 'hurt'
@@ -380,6 +380,29 @@ class NPC {
       if (this.x > b || this.x < a) { this.x = U.clamp(this.x, a, b); this.dir *= -1; this.pause = 2 + Math.random() * 2; }
       return;
     }
+    if (this.work === 'plow' || this.work === 'carry') {
+      // walk the furrow (or the hay run) up and back, pausing at each end
+      if (near) { this.walking = false; this.face = Math.sign(player.x - this.x) || this.face; return; }
+      const [a, b] = this.range, sp = this.work === 'plow' ? 9 : 18;
+      if (!this.dir) this.dir = this.face || 1;
+      if (this.pause > 0) { this.pause -= dt; this.walking = false; return; }
+      this.x += this.dir * sp * dt; this.face = this.dir; this.walking = true; this.animT += dt * sp / 7;
+      if (this.work === 'plow' && Math.random() < dt * 6) Game.particles.push({ x: this.x - this.dir * 8, y: GROUND - 2, vx: -this.dir * 10, vy: -20 - Math.random() * 20, life: 0.5, col: '#7a5a3a' });
+      if (this.x > b || this.x < a) { this.x = U.clamp(this.x, a, b); this.dir *= -1; this.pause = 2 + Math.random() * 3; }
+      return;
+    }
+    if (this.work === 'hoe' || this.work === 'feed') {
+      if (near) { this.face = Math.sign(player.x - this.x) || this.face; this.swinging = false; return; }
+      this.face = this.def.face || this.face;
+      const per = this.work === 'hoe' ? 1.6 : 2.4, ph = (this.workT % per) / per, was = this.swinging;
+      this.swinging = ph > 0.6;
+      if (this.swinging && !was && Math.abs(player.x - this.x) < 240) {
+        const col = this.work === 'hoe' ? '#6e5236' : '#e8d28a';
+        for (let i = 0; i < 6; i++) Game.particles.push({ x: this.x + this.face * (this.work === 'hoe' ? 28 : 16), y: (this.work === 'hoe' ? GROUND - 2 : GROUND - 36), vx: this.face * (10 + Math.random() * 40), vy: this.work === 'hoe' ? -30 - Math.random() * 30 : -10 - Math.random() * 20, life: 0.6, col });
+      }
+      return;
+    }
+    if (this.work === 'milk') { if (near) this.face = Math.sign(player.x - this.x) || this.face; return; }
     if (this.work === 'pick') {
       if (near) { this.face = Math.sign(player.x - this.x) || this.face; this.swinging = false; return; }
       this.face = this.def.face || this.face;
@@ -426,7 +449,28 @@ class NPC {
       drawPick(ctx, x, y, this.face, ph > 0.55);
       return;
     }
+    const near = Math.abs(Game.player.x - this.x) < 40;
+    if ((this.work === 'hoe' || this.work === 'feed') && !near) {
+      const ph = (this.workT % (this.work === 'hoe' ? 1.6 : 2.4)) / (this.work === 'hoe' ? 1.6 : 2.4);
+      drawFrame(ctx, ph > 0.6 ? set.punch[2] : set.punch[0], x, y, this.face, Chars.ANCHOR);
+      if (this.work === 'hoe') drawHoe(ctx, x, y, this.face, ph > 0.6);
+      return;
+    }
+    if (this.work === 'milk' && !near) {
+      // on a stool beside the cow, the pail between their knees
+      drawFrame(ctx, set.land[0], x, y + 4, this.face, Chars.ANCHOR);
+      ctx.drawImage(PAIL_IMG, U.snap(x + this.face * 10 - PAIL_IMG.width / 2), GROUND - PAIL_IMG.height + 2);
+      return;
+    }
+    if (this.work === 'plow') {
+      // the horse out front in its traces, the plow between
+      Horses.draw(ctx, { type: this.horse || 'bay', face: this.face, vx: this.walking ? 20 : 0, animT: this.animT, saddle: false }, x + this.face * 46, false);
+      const px = U.snap(x + this.face * 14);
+      if (this.face > 0) ctx.drawImage(PLOW_IMG, px - 6, GROUND - PLOW_IMG.height + 2);
+      else { ctx.save(); ctx.translate(px, 0); ctx.scale(-1, 1); ctx.drawImage(PLOW_IMG, -6, GROUND - PLOW_IMG.height + 2); ctx.restore(); }
+    }
     const f = this.walking ? Chars.frame(set, 'walk', this.animT * 2) : Chars.frame(set, 'idle', Game.clock * 6 + this.x);
+    if (this.work === 'carry') { drawFrame(ctx, f, x, y, this.face, Chars.ANCHOR); ctx.drawImage(BALE_IMG, U.snap(x - BALE_IMG.width / 2 + this.face * 2), U.snap(y) - 74); return; }
     if (this.work === 'cart') ctx.drawImage(CART_IMG, U.snap(x + this.face * 30 - CART_IMG.width / 2), GROUND - CART_IMG.height + 2);
     if (this.wagon) {
       // a covered wagon rolling behind, a mule pulling it in front
@@ -442,6 +486,18 @@ class NPC {
 // A pickaxe in a miner's hands: raised behind the shoulder, or swung down
 // to the rock in front. Drawn in 2px blocks to stay on the pixel grid.
 const CART_IMG = Buildings.oreCart();
+const PLOW_IMG = U.chunky(Buildings.plow()), BALE_IMG = U.chunky(Buildings.bale()), PAIL_IMG = U.chunky(Buildings.pail());
+// a hoe: raised over the shoulder, or chopped down into the soil in front
+function drawHoe(ctx, x, y, face, down) {
+  const sx = U.snap(x), sy = U.snap(y);
+  const [[x0, y0], [x1, y1]] = down ? [[20, -38], [34, -4]] : [[0, -44], [-12, -70]];
+  const at = (dx, dy, w, h) => ctx.fillRect(sx + (face > 0 ? dx : -dx - w), sy + dy, w, h);
+  ctx.fillStyle = '#2a1a14';
+  for (let i = 0; i <= 10; i++) { const t = i / 10; at(U.snap(x0 + (x1 - x0) * t) - 2, U.snap(y0 + (y1 - y0) * t) - 2, 6, 6); }
+  ctx.fillStyle = '#c8904e';
+  for (let i = 0; i <= 10; i++) { const t = i / 10; at(U.snap(x0 + (x1 - x0) * t), U.snap(y0 + (y1 - y0) * t), 2, 2); }
+  ctx.fillStyle = '#2a1a14'; at(x1 - 2, y1 - 2, 10, 6); ctx.fillStyle = '#a8a8b4'; at(x1, y1, 6, 2);
+}
 const WAGON_IMG = U.chunky(Buildings.wagon());
 function drawPick(ctx, x, y, face, down) {
   const sx = U.snap(x), sy = U.snap(y);
