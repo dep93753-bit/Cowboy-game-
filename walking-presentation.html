@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WALKING — The Physical Health Benefits of Walking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pink:#ff4fa3; --orange:#ffb347; --cyan:#4ff3ff; --violet:#b07cff;
+  --glass:rgba(10,8,26,.52); --line:rgba(255,255,255,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#05030c;color:#fff;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+canvas#scene{position:fixed;inset:0;width:100%;height:100%;display:block}
+q{quotes:none}
+a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(79,243,255,.35);transition:.25s}
+a:hover{color:#fff;border-color:#fff}
+
+/* ---------- TOP SLIDE BAR ---------- */
+#topbar{position:fixed;left:0;right:0;top:0;z-index:20;display:flex;align-items:center;gap:18px;padding:12px 22px 14px;
+  background:linear-gradient(180deg,rgba(5,3,14,.85),rgba(5,3,14,.35) 70%,transparent);backdrop-filter:blur(6px)}
+.brand{font-family:Anton,Impact,sans-serif;font-size:22px;letter-spacing:2px;white-space:nowrap}
+.brand span{background:linear-gradient(90deg,var(--orange),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand i{color:var(--cyan);font-style:normal;margin:0 2px}
+#tabs{display:flex;gap:6px;flex:1;overflow-x:auto;scrollbar-width:none}
+#tabs::-webkit-scrollbar{display:none}
+#tabs button{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  color:rgba(255,255,255,.6);padding:8px 13px;border-radius:999px;font:600 12.5px Inter,sans-serif;cursor:pointer;transition:.35s;letter-spacing:.3px}
+#tabs button i{font-style:normal;font-family:Anton,sans-serif;font-size:13px;color:rgba(255,255,255,.4);transition:.35s}
+#tabs button:hover{color:#fff;background:rgba(255,255,255,.1)}
+#tabs button.on{color:#120a1c;background:linear-gradient(90deg,var(--orange),var(--pink));border-color:transparent;box-shadow:0 0 22px rgba(255,79,163,.55)}
+#tabs button.on i{color:#120a1c}
+.counter{font-family:Anton,sans-serif;font-size:20px;letter-spacing:1px;white-space:nowrap;color:rgba(255,255,255,.55)}
+.counter b{color:#fff;font-weight:400}
+#progress{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.08)}
+#progress div{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--pink),var(--orange));box-shadow:0 0 14px var(--pink);transition:width .9s cubic-bezier(.2,.8,.2,1)}
+
+/* ---------- SLIDES ---------- */
+.slide{position:fixed;z-index:10;right:4vw;top:86px;bottom:100px;width:min(640px,92vw);display:flex;flex-direction:column;justify-content:center;pointer-events:none;visibility:hidden}
+.slide.active{pointer-events:auto;visibility:visible}
+.rv{opacity:0;transform:translateY(28px) scale(.98);filter:blur(10px);transition:opacity .9s cubic-bezier(.2,.8,.2,1),transform .9s cubic-bezier(.2,.8,.2,1),filter .9s}
+.slide.active .rv{opacity:1;transform:none;filter:none}
+.slide:not(.active) .rv{transition-duration:.35s}
+.panel{background:var(--glass);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);
+  border:1px solid var(--line);border-radius:22px;padding:26px 28px;max-height:100%;overflow:auto;position:relative;
+  box-shadow:0 40px 90px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.18)}
+.panel::-webkit-scrollbar{width:6px}.panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:9px}
+.panel::before{content:"";position:absolute;inset:0;border-radius:22px;padding:1px;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,179,71,.6),transparent 35%,transparent 65%,rgba(79,243,255,.5));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.part{font:800 11.5px Inter,sans-serif;letter-spacing:3px;text-transform:uppercase;color:var(--orange);display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.part::before{content:"";width:26px;height:2px;background:linear-gradient(90deg,var(--orange),var(--pink))}
+h2{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:clamp(34px,4.2vw,52px);line-height:1;letter-spacing:1px;margin-bottom:12px;
+  background:linear-gradient(180deg,#fff 30%,#ffd9b0);-webkit-background-clip:text;background-clip:text;color:transparent}
+p{font-size:15px;line-height:1.55;color:rgba(255,255,255,.86)}
+b,strong{color:#fff}
+.quote{margin:14px 0;padding:14px 16px 14px 18px;border-left:3px solid var(--pink);background:linear-gradient(90deg,rgba(255,79,163,.14),rgba(255,79,163,0));border-radius:0 12px 12px 0}
+.quote q{quotes:none;font-size:17px;font-weight:700;line-height:1.4;display:block}
+.quote cite{display:block;margin-top:6px;font-style:normal;font-size:12.5px;color:rgba(255,255,255,.6)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 12px 11px}
+.stat .n{font-family:Anton,sans-serif;font-size:28px;line-height:1;background:linear-gradient(90deg,var(--cyan),#fff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat .l{font-size:12px;line-height:1.35;color:rgba(255,255,255,.7);margin-top:5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.card{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 14px;transition:.3s}
+.card:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
+.card.wide{grid-column:1/-1}
+.card h3{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:800;margin-bottom:5px}
+.card h3 svg{width:20px;height:20px;flex:0 0 auto}
+.card p{font-size:13px;line-height:1.45}
+.card q{quotes:none;color:#fff;font-weight:700}
+.src{display:inline-block;margin-top:6px;font-size:11.5px;font-weight:700;letter-spacing:.3px}
+.srcrow{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.srcrow:last-of-type{border-bottom:0}
+.logo{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;font:800 13px Inter,sans-serif;letter-spacing:.5px;color:#120a1c}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin:3px 0 4px}
+.badge{font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:rgba(79,243,255,.14);color:var(--cyan);border:1px solid rgba(79,243,255,.3)}
+.badge.g{background:rgba(120,255,160,.12);color:#8dffb0;border-color:rgba(120,255,160,.3)}
+.srcrow h4{font-size:14.5px}
+.srcrow p{font-size:13px;line-height:1.45}
+.checks{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.checks span{font-size:12px;font-weight:700;padding:7px 11px;border-radius:10px;background:rgba(120,255,160,.1);border:1px solid rgba(120,255,160,.28);color:#c9ffd9}
+.job{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 16px;margin-top:10px}
+.job h3{font-size:17px;font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.job h3 small{font-size:11px;font-weight:700;color:var(--orange);letter-spacing:1px;text-transform:uppercase}
+.job p{font-size:13px;margin-top:4px}
+.jobstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.jobstats div{background:rgba(0,0,0,.25);border-radius:10px;padding:8px 10px}
+.jobstats b{display:block;font-family:Anton,sans-serif;font-weight:400;font-size:22px;line-height:1.05;color:var(--cyan)}
+.jobstats span{font-size:11px;color:rgba(255,255,255,.65)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.chips span{font-size:12px;font-weight:700;padding:7px 11px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14)}
+.timeline{position:relative;margin-top:6px;padding-left:22px}
+.timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--orange),var(--pink),var(--cyan))}
+.tl{position:relative;padding:7px 0 7px 6px}
+.tl::before{content:"";position:absolute;left:-21px;top:13px;width:12px;height:12px;border-radius:50%;background:#120a1c;border:2px solid var(--orange);box-shadow:0 0 12px var(--orange)}
+.tl:nth-child(even)::before{border-color:var(--pink);box-shadow:0 0 12px var(--pink)}
+.tl .t{font:800 11px Inter,sans-serif;letter-spacing:1.6px;color:var(--orange);text-transform:uppercase}
+.tl h4{font-size:15px;margin:1px 0 1px}
+.tl p{font-size:13px;line-height:1.4}
+.bonus{margin-top:10px;padding:11px 14px;border-radius:14px;background:linear-gradient(90deg,rgba(79,243,255,.16),rgba(176,124,255,.12));border:1px solid rgba(79,243,255,.3);font-size:13px;line-height:1.45}
+ol.sources{list-style:none;counter-reset:s;margin-top:4px}
+ol.sources li{counter-increment:s;position:relative;padding:9px 0 9px 38px;border-bottom:1px solid rgba(255,255,255,.08);font-size:13.5px;line-height:1.45}
+ol.sources li::before{content:counter(s,decimal-leading-zero);position:absolute;left:0;top:9px;font-family:Anton,sans-serif;font-size:18px;color:var(--pink)}
+ol.sources li small{display:block;color:rgba(255,255,255,.55);font-size:11.5px;word-break:break-all}
+
+/* intro */
+.intro{justify-content:center}
+.intro::before{content:"";position:absolute;inset:-60px -40px;z-index:-1;background:radial-gradient(closest-side,rgba(8,4,20,.55),transparent);pointer-events:none}
+.kicker{font:800 12px Inter,sans-serif;letter-spacing:5px;color:var(--cyan);text-shadow:0 0 16px rgba(79,243,255,.7)}
+.mega{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:clamp(60px,8.6vw,150px);line-height:.9;white-space:nowrap;letter-spacing:2px;margin:6px 0 10px;
+  background:linear-gradient(100deg,#fff 0%,#ffe2b8 30%,#ff9a5a 52%,#ff4fa3 70%,#fff 90%);background-size:250% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite;filter:drop-shadow(0 12px 40px rgba(255,79,163,.45))}
+@keyframes shine{from{background-position:0% 0}to{background-position:-250% 0}}
+.lede{font-size:clamp(16px,1.6vw,20px);max-width:520px;text-shadow:0 2px 16px rgba(0,0,0,.6)}
+.hint{margin-top:18px;font-size:13px;color:rgba(255,255,255,.75)}
+kbd{font:700 11px Inter,sans-serif;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);margin:0 2px}
+.intro .chips span{background:rgba(10,8,26,.45);backdrop-filter:blur(8px)}
+
+/* ---------- CONTROLS ---------- */
+#controls{position:fixed;z-index:20;right:4vw;bottom:26px;display:flex;gap:10px}
+#controls button{font:800 14px Inter,sans-serif;letter-spacing:1.5px;cursor:pointer;border-radius:14px;padding:15px 22px;border:1px solid rgba(255,255,255,.2);
+  color:#fff;background:rgba(10,8,26,.55);backdrop-filter:blur(10px);transition:.3s}
+#controls button:hover:not(:disabled){background:rgba(255,255,255,.14)}
+#controls button:disabled{opacity:.3;cursor:default}
+#next{background:linear-gradient(90deg,var(--orange),var(--pink)) !important;color:#160a18 !important;border-color:transparent !important;
+  box-shadow:0 10px 36px rgba(255,79,163,.5);position:relative;overflow:hidden}
+#next::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:skewX(-20deg);animation:sweep 2.8s ease-in-out infinite}
+@keyframes sweep{0%,55%{left:-60%}100%{left:130%}}
+#next:hover{transform:translateY(-2px);box-shadow:0 14px 44px rgba(255,79,163,.7)}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;z-index:15;left:24px;bottom:24px;width:200px;padding:12px 14px;border-radius:14px;background:rgba(5,3,14,.45);
+  border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(8px);font-size:12px}
+.hrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.hrow span{font-weight:800;letter-spacing:2px;color:rgba(255,255,255,.55);font-size:10.5px}
+.hrow b{font-family:Anton,sans-serif;font-weight:400;font-size:20px;letter-spacing:1px}
+.bar{height:7px;border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;width:20%;background:linear-gradient(90deg,#3dffa0,#4ff3ff);box-shadow:0 0 12px #3dffa0;transition:width .6s}
+#hud small{display:block;margin-top:5px;font-size:9.5px;font-weight:800;letter-spacing:2px;color:#3dffa0}
+
+#flash{position:fixed;inset:0;z-index:30;pointer-events:none;opacity:0;background:linear-gradient(100deg,transparent 30%,rgba(255,220,190,.5) 50%,transparent 70%);background-size:300% 100%}
+#flash.go{animation:flash .9s ease-out}
+@keyframes flash{0%{opacity:1;background-position:100% 0}100%{opacity:0;background-position:0% 0}}
+#fade{position:fixed;inset:0;z-index:40;background:#000;pointer-events:none;transition:opacity 2.2s ease}
+.bars::before,.bars::after{content:"";position:fixed;left:0;right:0;height:0;background:#000;z-index:5;transition:height 1.2s cubic-bezier(.2,.8,.2,1)}
+
+@media (max-width:820px){
+  .slide{right:4vw;left:4vw;width:auto;top:74px;bottom:auto;max-height:58vh}
+  .stats,.jobstats{grid-template-columns:1fr 1fr 1fr}
+  .grid2{grid-template-columns:1fr}
+  #hud{display:none}
+  .brand{display:none}
+  #controls{left:4vw;right:4vw;justify-content:space-between}
+  #controls button{padding:13px 16px}
+}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="fade"></div>
+<div id="flash"></div>
+
+<header id="topbar">
+  <div class="brand"><span>WALK</span><i>//</i>MODE</div>
+  <nav id="tabs"></nav>
+  <div class="counter"><b id="cur">01</b> / <span id="tot">07</span></div>
+  <div id="progress"><div></div></div>
+</header>
+
+<!-- ============ SLIDE 1 · INTRO ============ -->
+<section class="slide intro" data-title="Intro" data-tod="sunset">
+  <div class="kicker rv">WELLNESS ACTIVITY PROJECT</div>
+  <h1 class="mega rv">WALKING</h1>
+  <p class="lede rv">The <b>physical health benefits</b> of the simplest workout there is — taken one step at a time.</p>
+  <div class="chips rv">
+    <span>Part 1 · The Activity</span><span>Part 2 · Benefits + Proof</span><span>Part 3 · Careers</span><span>Part 4 · Daily Routine</span>
+  </div>
+  <div class="hint rv">Press <kbd>NEXT SLIDE</kbd> or <kbd>→</kbd> to start walking</div>
+</section>
+
+<!-- ============ SLIDE 2 · PART 1 ============ -->
+<section class="slide" data-title="The Activity" data-tod="golden">
+  <div class="panel rv">
+    <div class="part rv">Part 1 · My Wellness Activity</div>
+    <h2 class="rv">Walking</h2>
+    <p class="rv">I chose walking because it works your whole body and needs no gym, no equipment and no special skill — just a pair of shoes and somewhere to go. You can do it at school, at home, at the mall or in the park.</p>
+    <div class="quote rv">
+      <q>“Walking is the most commonly reported physical activity by U.S. adults.”</q>
+      <cite>— Centers for Disease Control and Prevention (CDC), <a href="https://www.cdc.gov/mmwr/preview/mmwrhtml/mm6131a4.htm" target="_blank" rel="noopener">MMWR report</a></cite>
+    </div>
+    <div class="stats rv">
+      <div class="stat"><div class="n">$0</div><div class="l">Cost to start. No membership or equipment needed.</div></div>
+      <div class="stat"><div class="n" data-count="150">0</div><div class="l">Minutes a week of moderate activity, like brisk walking, the CDC guidelines recommend for adults.</div></div>
+      <div class="stat"><div class="n">24/7</div><div class="l">You can walk any time, anywhere, at your own pace.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 3 · PART 2 BENEFITS ============ -->
+<section class="slide" data-title="Physical Benefits" data-tod="day">
+  <div class="panel rv">
+    <div class="part rv">Part 2 · Research</div>
+    <h2 class="rv">Physical Health Benefits</h2>
+    <div class="grid2">
+      <div class="card rv">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="#ff4fa3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>Stronger Heart</h3>
+        <p>Walking just 21 minutes a day <q>“can reduce your risk of heart attack by 30%.”</q></p>
+        <a class="src" href="https://www.mayoclinichealthsystem.org/hometown-health/speaking-of-health/5-tips-for-walking-your-way-to-better-health" target="_blank" rel="noopener">Mayo Clinic Health System ↗</a>
+      </div>
+      <div class="card rv">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="#ffb347" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-10z"/></svg>Calories &amp; Endurance</h3>
+        <p>Brisk walking can <q>“improve your heart health and increase your endurance while burning calories.”</q></p>
+        <a class="src" href="https://sportsmedicine.mayoclinic.org/?p=24714" target="_blank" rel="noopener">Mayo Clinic ↗</a>
+      </div>
+      <div class="card rv">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="#4ff3ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Blood Pressure &amp; Sugar</h3>
+        <p>Regular walking helps control blood pressure, helps people manage diabetes and lowers the risk of type 2 diabetes.</p>
+        <a class="src" href="https://www.mayoclinichealthsystem.org/hometown-health/speaking-of-health/5-tips-for-walking-your-way-to-better-health" target="_blank" rel="noopener">Mayo Clinic Health System ↗</a>
+      </div>
+      <div class="card rv">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="#b07cff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11M4 9l5-5M15 20l5-5M2.5 10.5l3-3M18.5 21.5l3-3"/></svg>Muscles, Core &amp; Balance</h3>
+        <p>Walking improves balance and coordination, strengthens your core and keeps your muscles strong and mobile.</p>
+        <a class="src" href="https://www.mayoclinichealthsystem.org/hometown-health/speaking-of-health/5-tips-for-walking-your-way-to-better-health" target="_blank" rel="noopener">Mayo Clinic Health System ↗</a>
+      </div>
+      <div class="card wide rv">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="#3dffa0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Longer, Healthier Life</h3>
+        <p>Regular walking is linked to a lower risk of early death, healthier arteries and less weight gain. Talking about walking for people with heart disease, cardiologist Dr. Hicham Skali said: <q>“It’s better than any pill out there.”</q></p>
+        <a class="src" href="https://www.massgeneralbrigham.org/en/about/newsroom/articles/benefits-of-walking-for-heart-health" target="_blank" rel="noopener">Mass General Brigham ↗</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 4 · PART 2 RELIABILITY ============ -->
+<section class="slide" data-title="Reliable Sources" data-tod="dusk">
+  <div class="panel rv">
+    <div class="part rv">Part 2 · Proof</div>
+    <h2 class="rv">Why My Sources Are Reliable</h2>
+    <div class="srcrow rv">
+      <div class="logo" style="background:linear-gradient(135deg,#4ff3ff,#3d8bff)">CDC</div>
+      <div><h4>Centers for Disease Control and Prevention</h4>
+        <div class="badges"><span class="badge">.gov</span><span class="badge g">U.S. Government</span></div>
+        <p>The CDC is the U.S. government’s public health agency. Its MMWR is a scientific report that uses national health survey data.</p></div>
+    </div>
+    <div class="srcrow rv">
+      <div class="logo" style="background:linear-gradient(135deg,#ffb347,#ff7a3d)">MAYO</div>
+      <div><h4>Mayo Clinic &amp; Mayo Clinic Health System</h4>
+        <div class="badges"><span class="badge">.org</span><span class="badge g">Nonprofit hospital</span><span class="badge">Dated 2024 &amp; 2025</span></div>
+        <p>A world-famous nonprofit medical center. The articles were written by Mayo Clinic staff and show recent publish dates.</p></div>
+    </div>
+    <div class="srcrow rv">
+      <div class="logo" style="background:linear-gradient(135deg,#ff4fa3,#b07cff)">MGB</div>
+      <div><h4>Mass General Brigham</h4>
+        <div class="badges"><span class="badge g">Harvard-affiliated hospitals</span><span class="badge">Named expert</span></div>
+        <p>The article was written with a named heart doctor, cardiologist Hicham Skali, MD, MSc, so you know who the expert is.</p></div>
+    </div>
+    <div class="srcrow rv">
+      <div class="logo" style="background:linear-gradient(135deg,#3dffa0,#1fb98a)">BLS</div>
+      <div><h4>U.S. Bureau of Labor Statistics</h4>
+        <div class="badges"><span class="badge">.gov</span><span class="badge g">U.S. Dept. of Labor</span></div>
+        <p>The official government source for job pay and job growth numbers, used for my career research.</p></div>
+    </div>
+    <div class="checks rv">
+      <span>✓ Experts or doctors wrote it</span><span>✓ .gov / .org / hospital sites</span><span>✓ Recent dates</span><span>✓ Sources agree with each other</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 5 · PART 3 CAREERS ============ -->
+<section class="slide" data-title="Careers" data-tod="night">
+  <div class="panel rv">
+    <div class="part rv">Part 3 · Career Opportunities</div>
+    <h2 class="rv">Careers for People Who Love Walking</h2>
+    <div class="job rv">
+      <h3>Fitness Trainer / Instructor <small>Lead walking clubs</small></h3>
+      <p>Coach people and groups through exercise. Job growth is <q>“much faster than the average for all occupations.”</q></p>
+      <div class="jobstats">
+        <div><b data-count="46180" data-pre="$">0</b><span>Median pay (May 2024)</span></div>
+        <div><b data-count="12" data-suf="%">0</b><span>Job growth, 2024–34</span></div>
+        <div><b>HS + Cert</b><span>Diploma + fitness certification</span></div>
+      </div>
+      <a class="src" href="https://www.bls.gov/ooh/personal-care-and-service/fitness-trainers-and-instructors.htm" target="_blank" rel="noopener">BLS Occupational Outlook Handbook ↗</a>
+    </div>
+    <div class="job rv">
+      <h3>Physical Therapist <small>Help people walk again</small></h3>
+      <p>Help patients rebuild strength and get back on their feet after injuries, surgery or illness.</p>
+      <div class="jobstats">
+        <div><b data-count="101020" data-pre="$">0</b><span>Median pay (May 2024)</span></div>
+        <div><b data-count="11" data-suf="%">0</b><span>Job growth, 2024–34</span></div>
+        <div><b>DPT</b><span>Doctor of Physical Therapy + state license</span></div>
+      </div>
+      <a class="src" href="https://www.bls.gov/ooh/healthcare/physical-therapists.htm" target="_blank" rel="noopener">BLS Occupational Outlook Handbook ↗</a>
+    </div>
+    <div class="chips rv">
+      <span>🌲 Park Ranger / Trail Guide</span><span>🗺️ Walking Tour Guide</span><span>🐕 Dog Walking Business</span><span>🏙️ Urban Planner (walkable cities)</span><span>📬 Mail Carrier</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 6 · PART 4 ROUTINE ============ -->
+<section class="slide" data-title="Daily Routine" data-tod="golden">
+  <div class="panel rv">
+    <div class="part rv">Part 4 · Creative Ideas</div>
+    <h2 class="rv">Walking in My Daily Routine</h2>
+    <div class="quote rv"><q>“One way I can walk during my day is at home I can go on a walk for a bit.”</q></div>
+    <p class="rv">When I get home from school, I can put my shoes on, grab some water and take a short walk around my neighborhood. Even 10 to 20 minutes helps me get moving after sitting in class all day and clears my head before homework.</p>
+    <div class="chips rv"><span>🎧 Bring music or a podcast</span><span>🐕 Walk the dog or bring family</span><span>📱 Track my steps</span></div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 7 · SOURCES ============ -->
+<section class="slide" data-title="Sources" data-tod="night2">
+  <div class="panel rv">
+    <div class="part rv">Works Cited</div>
+    <h2 class="rv">Sources</h2>
+    <ol class="sources">
+      <li class="rv">Centers for Disease Control and Prevention — MMWR: Walking Among Adults, United States<small><a href="https://www.cdc.gov/mmwr/preview/mmwrhtml/mm6131a4.htm" target="_blank" rel="noopener">https://www.cdc.gov/mmwr/preview/mmwrhtml/mm6131a4.htm</a></small></li>
+      <li class="rv">Mayo Clinic Health System — “5 tips for walking your way to better health” (Sept. 9, 2025)<small><a href="https://www.mayoclinichealthsystem.org/hometown-health/speaking-of-health/5-tips-for-walking-your-way-to-better-health" target="_blank" rel="noopener">https://www.mayoclinichealthsystem.org/hometown-health/speaking-of-health/5-tips-for-walking-your-way-to-better-health</a></small></li>
+      <li class="rv">Mayo Clinic Staff — “Walking: Trim your waistline, improve your health” (Mar. 12, 2024)<small><a href="https://sportsmedicine.mayoclinic.org/?p=24714" target="_blank" rel="noopener">https://sportsmedicine.mayoclinic.org/?p=24714</a></small></li>
+      <li class="rv">Mass General Brigham — “Walking for Heart Health” (contributor: Hicham Skali, MD, MSc)<small><a href="https://www.massgeneralbrigham.org/en/about/newsroom/articles/benefits-of-walking-for-heart-health" target="_blank" rel="noopener">https://www.massgeneralbrigham.org/en/about/newsroom/articles/benefits-of-walking-for-heart-health</a></small></li>
+      <li class="rv">U.S. Bureau of Labor Statistics — Occupational Outlook Handbook: Fitness Trainers and Instructors<small><a href="https://www.bls.gov/ooh/personal-care-and-service/fitness-trainers-and-instructors.htm" target="_blank" rel="noopener">https://www.bls.gov/ooh/personal-care-and-service/fitness-trainers-and-instructors.htm</a></small></li>
+      <li class="rv">U.S. Bureau of Labor Statistics — Occupational Outlook Handbook: Physical Therapists<small><a href="https://www.bls.gov/ooh/healthcare/physical-therapists.htm" target="_blank" rel="noopener">https://www.bls.gov/ooh/healthcare/physical-therapists.htm</a></small></li>
+    </ol>
+    <p class="rv" style="margin-top:12px;font-weight:700">Thanks for watching. Now go take a walk. 👟</p>
+  </div>
+</section>
+
+<div id="hud">
+  <div class="hrow"><span>STEPS</span><b id="steps">0</b></div>
+  <div class="hrow"><span>DISTANCE</span><b id="dist">0.00 km</b></div>
+  <div class="bar"><i id="hp"></i></div>
+  <small>♥ HEART HEALTH</small>
+</div>
+
+<div id="controls">
+  <button id="prev">‹ BACK</button>
+  <button id="next">NEXT SLIDE ›</button>
+</div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const cv=$('#scene'), ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1,U=1;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rgba=(c,a=1)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+const mix=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];
+const pick=a=>a[Math.random()*a.length|0];
+
+/* ================= TIME-OF-DAY LIGHTING ================= */
+const TOD={
+ sunset:{top:[22,16,60],mid:[150,46,118],bot:[255,138,72],sun:[255,196,120],sunH:.10,sunR:1.35,moon:0,fog:[205,92,112],
+   l:[[118,52,104],[66,30,74],[28,15,40]],night:.35,rim:[255,150,80],amb:[130,84,120],street:[46,28,52]},
+ golden:{top:[44,74,146],mid:[226,142,116],bot:[255,204,128],sun:[255,232,168],sunH:.26,sunR:1.05,moon:0,fog:[232,164,134],
+   l:[[172,124,132],[108,70,92],[40,26,44]],night:.06,rim:[255,190,110],amb:[170,130,130],street:[58,44,56]},
+ day:{top:[28,104,196],mid:[104,166,226],bot:[236,212,178],sun:[255,250,226],sunH:.52,sunR:.8,moon:0,fog:[176,192,214],
+   l:[[138,158,190],[88,100,132],[38,40,58]],night:0,rim:[255,236,196],amb:[170,176,196],street:[56,58,70]},
+ dusk:{top:[12,10,44],mid:[88,38,120],bot:[238,88,112],sun:[255,118,102],sunH:.02,sunR:1.45,moon:0,fog:[128,58,120],
+   l:[[80,40,100],[44,24,70],[17,10,30]],night:.72,rim:[255,100,140],amb:[110,70,130],street:[30,20,44]},
+ night:{top:[3,4,16],mid:[14,14,46],bot:[58,30,92],sun:[200,214,255],sunH:.48,sunR:.62,moon:1,fog:[48,30,90],
+   l:[[34,26,70],[22,16,46],[10,8,22]],night:1,rim:[80,220,255],amb:[70,80,140],street:[16,14,30]},
+ dawn:{top:[30,50,112],mid:[198,128,170],bot:[255,192,152],sun:[255,216,172],sunH:.06,sunR:1.2,moon:0,fog:[210,150,172],
+   l:[[150,112,150],[90,70,112],[34,24,48]],night:.25,rim:[255,192,150],amb:[160,130,160],street:[50,40,60]},
+ night2:{top:[6,3,20],mid:[30,12,56],bot:[96,30,98],sun:[210,200,255],sunH:.38,sunR:.7,moon:1,fog:[70,30,96],
+   l:[[44,24,76],[26,14,50],[11,7,24]],night:1,rim:[255,90,180],amb:[90,70,140],street:[20,12,32]}
+};
+const clone=o=>JSON.parse(JSON.stringify(o));
+let cur=clone(TOD.sunset), target=TOD.sunset;
+function blendTOD(dt){
+  const k=1-Math.exp(-dt*1.5);
+  for(const key in target){
+    const v=target[key];
+    if(Array.isArray(v)){
+      if(Array.isArray(v[0])){for(let i=0;i<v.length;i++)for(let j=0;j<3;j++)cur[key][i][j]=lerp(cur[key][i][j],v[i][j],k);}
+      else for(let j=0;j<3;j++)cur[key][j]=lerp(cur[key][j],v[j],k);
+    } else cur[key]=lerp(cur[key],v,k);
+  }
+}
+
+/* ================= WORLD BUILD ================= */
+let layers=[],stars=[],clouds=[],TW=2000,vign=null,grainPat=null,blinkers=[];
+function buildWorld(){
+  TW=Math.max(2000,Math.ceil(W*1.8));
+  const HY=H*.62;
+  const sm=W<700?.7:1;
+  const defs=[
+    {speed:.05,base:HY+2,hMin:.06,hMax:.19,wMin:24,wMax:66,gap:[0,6],win:.22,ws:2.4*U},
+    {speed:.15,base:HY+H*.025,hMin:.09,hMax:.30,wMin:40,wMax:110,gap:[4,24],win:.32,ws:3.3*U},
+    {speed:.42,base:H*.705,hMin:.13,hMax:.42,wMin:90,wMax:200,gap:[20,80],win:.42,ws:5*U,neon:true}
+  ];
+  layers=defs.map(d=>{
+    const bs=[];let x=0;
+    while(true){
+      const w=rnd(d.wMin,d.wMax)*sm*U;
+      let h=H*rnd(d.hMin,d.hMax); if(Math.random()<.12)h*=1.35;
+      if(x+w>TW-8)break;
+      bs.push({x,w,h,ant:Math.random()<.28,step:Math.random()<.3});
+      x+=w+rnd(d.gap[0],d.gap[1])*U;
+    }
+    const top=Math.ceil(Math.max(...bs.map(b=>b.h))+4);
+    const wc=document.createElement('canvas');wc.width=TW;wc.height=top;const g=wc.getContext('2d');
+    const s=d.ws;
+    bs.forEach(b=>{
+      const by=top;
+      for(let yy=by-b.h+s*2;yy<by-s*2.5;yy+=s*2.3){
+        const rowLit=Math.random()<.85;
+        for(let xx=b.x+s*1.2;xx<b.x+b.w-s*2;xx+=s*1.95){
+          if(rowLit&&Math.random()<d.win){
+            const warm=Math.random()<.68;
+            g.fillStyle=warm?`rgba(255,${190+Math.random()*55|0},${105+Math.random()*70|0},${.5+Math.random()*.5})`
+                            :`rgba(${150+Math.random()*60|0},215,255,${.45+Math.random()*.5})`;
+            g.fillRect(xx,yy,s*1.05,s*1.3);
+          }
+        }
+      }
+    });
+    let neon=null;
+    if(d.neon){
+      neon=document.createElement('canvas');neon.width=TW;neon.height=top;const n=neon.getContext('2d');
+      const words=['OPEN 24/7','WALK','CAFÉ','STEP CITY','GYM','PARK','JUICE','SHOES'];
+      const cols=['#ff4fa3','#4ff3ff','#ffb347','#b07cff','#3dffa0'];
+      bs.forEach((b,i)=>{
+        if(i%3!==1)return;
+        const word=words[(i/3|0)%words.length], c=cols[i%cols.length];
+        const fs=Math.max(11,Math.min(b.w*.16,24*U));
+        n.font=`800 ${fs}px Inter, Arial, sans-serif`;n.textAlign='center';n.textBaseline='middle';
+        const tp=top-b.h;
+        const vertical=b.h>b.w*1.5&&word.length<=5;
+        const draw=()=>{
+          if(vertical){for(let j=0;j<word.length;j++)n.fillText(word[j],b.x+b.w*.2,tp+fs*1.8+j*fs*1.15);}
+          else n.fillText(word,b.x+b.w/2,tp+fs*1.9);
+        };
+        n.shadowColor=c;n.shadowBlur=18*U;n.fillStyle=c;draw();draw();
+        n.shadowBlur=4;n.fillStyle='rgba(255,255,255,.9)';n.font=`800 ${fs*.96}px Inter, Arial, sans-serif`;draw();
+      });
+    }
+    return {...d,bs,wc,neon};
+  });
+  stars=[];for(let i=0;i<220;i++)stars.push({x:Math.random(),y:Math.random()*.9,r:Math.random()<.1?2:1,a:rnd(.3,1),f:rnd(1,4),p:rnd(0,6)});
+  clouds=[];for(let i=0;i<8;i++){const w=rnd(140,380)*U;clouds.push({x:rnd(0,W*1.5),y:rnd(.06,.42)*HY,w,v:rnd(4,12),a:rnd(.5,1),puffs:[[0,0,1],[w*.45,w*.05,.7],[-w*.4,w*.06,.65]]});}
+  // vignette
+  vign=document.createElement('canvas');vign.width=W;vign.height=H;const vg=vign.getContext('2d');
+  const gr=vg.createRadialGradient(W*.45,H*.55,Math.min(W,H)*.3,W*.5,H*.5,Math.max(W,H)*.78);
+  gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,.62)');vg.fillStyle=gr;vg.fillRect(0,0,W,H);
+  // grain
+  const gc=document.createElement('canvas');gc.width=gc.height=180;const gx=gc.getContext('2d');const id=gx.createImageData(180,180);
+  for(let i=0;i<id.data.length;i+=4){const v=Math.random()*255;id.data[i]=id.data[i+1]=id.data[i+2]=v;id.data[i+3]=255;}
+  gx.putImageData(id,0,0);grainPat=ctx.createPattern(gc,'repeat');
+}
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,1.5);W=innerWidth;H=innerHeight;U=H/900;
+  cv.width=W*DPR|0;cv.height=H*DPR|0;ctx.setTransform(DPR,0,0,DPR,0,0);
+  buildWorld();
+}
+
+/* ================= DRAW HELPERS ================= */
+function glow(x,y,r,c,a){
+  if(a<=0.003||r<=0)return;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const g=ctx.createRadialGradient(x,y,0,x,y,r);
+  g.addColorStop(0,rgba(c,a));g.addColorStop(.35,rgba(c,a*.35));g.addColorStop(1,rgba(c,0));
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.restore();
+}
+const HYf=()=>H*.62;
+function sunPos(){const HY=HYf();return [W*(W<820?.5:.62),HY-cur.sunH*HY];}
+
+function drawSky(t){
+  const HY=HYf();
+  const g=ctx.createLinearGradient(0,0,0,HY);
+  g.addColorStop(0,rgba(cur.top));g.addColorStop(.58,rgba(cur.mid));g.addColorStop(1,rgba(cur.bot));
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,HY+4);
+  if(cur.night>.05){
+    for(const s of stars){const a=cur.night*s.a*(.55+.45*Math.sin(t*s.f+s.p));ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fillRect(s.x*W,s.y*HY,s.r,s.r);}
+  }
+}
+function drawSun(t){
+  const [sx,sy]=sunPos();const r=cur.sunR*H*.055;const day=1-cur.moon;
+  glow(sx,sy,H*.95,cur.sun,.30*day+.06);
+  glow(sx,sy,H*.38,cur.sun,.38*day+.10);
+  glow(sx,sy,r*2.6,[255,255,240],.5*day+.15);
+  ctx.save();
+  const g=ctx.createRadialGradient(sx-r*.2,sy-r*.2,0,sx,sy,r);
+  g.addColorStop(0,'rgba(255,255,250,1)');g.addColorStop(.7,rgba(mix(cur.sun,[255,255,255],.5)));g.addColorStop(1,rgba(cur.sun,.95));
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill();
+  if(cur.moon>.3){ctx.globalAlpha=cur.moon*.18;ctx.fillStyle='#6a6f90';
+    [[-.3,-.2,.22],[.25,.15,.16],[.05,.4,.12],[-.1,.1,.08]].forEach(([a,b,c])=>{ctx.beginPath();ctx.arc(sx+a*r,sy+b*r,c*r,0,7);ctx.fill();});}
+  ctx.restore();
+}
+function drawClouds(t,scroll){
+  const HY=HYf();
+  const col=mix(cur.mid,cur.sun,.25+.35*(1-cur.night));
+  const under=mix(cur.bot,cur.sun,.5);
+  for(const c of clouds){
+    const span=W+c.w*3;
+    const x=((c.x-scroll*.025-t*c.v)%span+span)%span-c.w*1.5;
+    for(const [px,py,s] of c.puffs){
+      ctx.save();ctx.translate(x+px,c.y+py);ctx.scale(1,.28);
+      const rr=c.w*s;const g=ctx.createRadialGradient(0,rr*.3,0,0,0,rr);
+      g.addColorStop(0,rgba(under,.34*c.a*(1-cur.night*.5)));g.addColorStop(.5,rgba(col,.22*c.a));g.addColorStop(1,rgba(col,0));
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,rr,0,Math.PI*2);ctx.fill();ctx.restore();
+    }
+  }
+}
+function drawLayer(L,idx,scroll,t){
+  const off=((scroll*L.speed)%TW+TW)%TW;
+  const col=cur.l[idx];
+  const [sx]=sunPos();
+  const rimBase=((1-cur.night)*.5+.1)*(idx===0?.35:idx===1?.65:1);
+  for(let k=0;k<2;k++){
+    const ox=k*TW-off;
+    if(ox>W||ox+TW<0)continue;
+    for(const b of L.bs){
+      const x=b.x+ox;if(x>W||x+b.w<0)continue;
+      const y=L.base-b.h;
+      ctx.fillStyle=rgba(col);ctx.fillRect(x,y,b.w,b.h+3);
+      let topY=y;
+      if(b.step){ctx.fillRect(x+b.w*.2,y-b.h*.12,b.w*.6,b.h*.12+1);topY=y-b.h*.12;}
+      if(b.ant){ctx.fillRect(x+b.w*.5-1,topY-b.h*.2,2,b.h*.2);blinkers.push([x+b.w*.5,topY-b.h*.2,idx]);}
+      ctx.fillStyle=rgba(cur.rim,rimBase);
+      const w2=Math.max(1.5,b.w*.035);
+      if(x+b.w/2<sx)ctx.fillRect(x+b.w-w2,y,w2,b.h);else ctx.fillRect(x,y,w2,b.h);
+      ctx.fillRect(x,y,b.w,1.5);
+      if(b.step)ctx.fillRect(x+b.w*.2,topY,b.w*.6,1.5);
+    }
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    ctx.globalAlpha=clamp(.06+cur.night*.95,0,1)*(idx===0?.6:1);
+    ctx.drawImage(L.wc,ox,L.base-L.wc.height);
+    if(L.neon){ctx.globalAlpha=clamp(.22+cur.night*.85,0,1)*(.92+.08*Math.sin(t*20));ctx.drawImage(L.neon,ox,L.base-L.neon.height);}
+    ctx.restore();
+  }
+}
+function haze(y0,y1,a){
+  const g=ctx.createLinearGradient(0,y0,0,y1);
+  g.addColorStop(0,rgba(cur.fog,0));g.addColorStop(1,rgba(cur.fog,a));
+  ctx.fillStyle=g;ctx.fillRect(0,y0,W,y1-y0);
+}
+function godRays(t){
+  if(cur.moon>.8)return;
+  const [sx,sy]=sunPos();const len=Math.max(W,H)*1.3;const a0=.075*(1-cur.moon)*(1-cur.night*.4);
+  ctx.save();ctx.globalCompositeOperation='lighter';ctx.translate(sx,sy);
+  const g=ctx.createRadialGradient(0,0,0,0,0,len);g.addColorStop(0,rgba(cur.sun,a0));g.addColorStop(1,rgba(cur.sun,0));
+  ctx.fillStyle=g;
+  for(let i=0;i<16;i++){
+    const a=i/16*Math.PI*2+t*.015, w=.035+.03*Math.sin(i*3.7+t*.4);
+    ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,len,a-w,a+w);ctx.closePath();ctx.fill();
+  }
+  ctx.restore();
+}
+function drawBlinkers(t){
+  const on=Math.sin(t*3)>.2;if(!on){blinkers.length=0;return;}
+  for(const [x,y,i] of blinkers){glow(x,y,(i===2?14:8)*U,[255,40,60],.9);ctx.fillStyle='#ff6070';ctx.fillRect(x-1,y-1,2,2);}
+  blinkers.length=0;
+}
+function drawRoad(scroll){
+  const rT=H*.705,rB=H*.82;const [sx]=sunPos();
+  let g=ctx.createLinearGradient(0,rT,0,rB);
+  g.addColorStop(0,rgba(mix(cur.street,cur.bot,.3)));g.addColorStop(.25,rgba(cur.street));g.addColorStop(1,rgba(mix(cur.street,[0,0,0],.35)));
+  ctx.fillStyle=g;ctx.fillRect(0,rT,W,rB-rT);
+  // wet sun reflection
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const rw=W*.12;g=ctx.createLinearGradient(sx-rw,0,sx+rw,0);
+  const ra=(1-cur.moon)*.32+cur.moon*.1;
+  g.addColorStop(0,rgba(cur.sun,0));g.addColorStop(.5,rgba(cur.sun,ra));g.addColorStop(1,rgba(cur.sun,0));
+  ctx.fillStyle=g;ctx.fillRect(sx-rw,rT,rw*2,rB-rT);
+  ctx.restore();
+  // lane dashes
+  const ly=lerp(rT,rB,.6);const sp=150*U;const off=(scroll*.8)%sp;
+  ctx.fillStyle=rgba(mix([235,225,200],cur.amb,.3),.5);
+  for(let x=-off;x<W;x+=sp)ctx.fillRect(x,ly-1.5*U,sp*.5,3*U);
+}
+function drawSidewalk(scroll){
+  const rB=H*.82;
+  ctx.fillStyle=rgba(mix(cur.rim,[255,255,255],.3),.55);ctx.fillRect(0,rB,W,2*U);
+  ctx.fillStyle=rgba(mix(cur.street,[0,0,0],.5));ctx.fillRect(0,rB+2*U,W,H*.012);
+  const sT=rB+2*U+H*.012;
+  const base=mix(mix([120,112,122],cur.amb,.45),[0,0,0],cur.night*.55);
+  const g=ctx.createLinearGradient(0,sT,0,H);
+  g.addColorStop(0,rgba(mix(base,cur.bot,.15)));g.addColorStop(1,rgba(mix(base,[0,0,0],.45)));
+  ctx.fillStyle=g;ctx.fillRect(0,sT,W,H-sT);
+  const sp=170*U;const off=scroll%sp;
+  ctx.strokeStyle='rgba(0,0,0,.22)';ctx.lineWidth=1.5;
+  for(let x=-off;x<W+sp;x+=sp){ctx.beginPath();ctx.moveTo(x,sT);ctx.lineTo(x-sp*.25,H);ctx.stroke();}
+  ctx.beginPath();ctx.moveTo(0,lerp(sT,H,.33));ctx.lineTo(W,lerp(sT,H,.33));ctx.stroke();
+  // sun sheen on sidewalk
+  const [sx]=sunPos();
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const gg=ctx.createRadialGradient(sx,sT,0,sx,sT,W*.4);gg.addColorStop(0,rgba(cur.sun,.12*(1-cur.moon)));gg.addColorStop(1,rgba(cur.sun,0));
+  ctx.fillStyle=gg;ctx.fillRect(0,sT,W,H-sT);ctx.restore();
+}
+
+/* cars */
+let cars=[],carTimer=.5;
+const CARCOLS=[[210,30,60],[22,22,28],[235,235,240],[255,140,30],[40,90,210],[30,170,160],[140,140,150]];
+function updateCars(dt){
+  carTimer-=dt;
+  if(carTimer<=0){carTimer=rnd(1.1,3);const lane=Math.random()<.5?0:1;const dir=lane===0?1:-1;
+    cars.push({lane,v:dir*rnd(260,480)*U,x:dir>0?-250*U:W+250*U,col:pick(CARCOLS)});}
+  cars.forEach(c=>c.x+=c.v*dt);cars=cars.filter(c=>c.x>-400*U&&c.x<W+400*U);
+}
+function drawCar(c){
+  const rT=H*.705,rB=H*.82;const y=lerp(rT,rB,c.lane===0?.4:.86);
+  const s=c.lane===0?.82:1;const L=H*.13,h=L*.24;const dir=Math.sign(c.v);
+  ctx.save();ctx.translate(c.x,y);ctx.scale(dir*s,s);
+  ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.ellipse(0,0,L*.56,h*.2,0,0,7);ctx.fill();
+  const body=mix(mix(c.col,cur.amb,.25),[0,0,0],cur.night*.55);
+  ctx.fillStyle=rgba(body);ctx.beginPath();
+  ctx.moveTo(-L/2,-h*.25);ctx.lineTo(-L/2,-h*.85);ctx.quadraticCurveTo(-L/2,-h,-L*.4,-h);ctx.lineTo(-L*.27,-h);
+  ctx.lineTo(-L*.13,-h*1.72);ctx.lineTo(L*.14,-h*1.72);ctx.lineTo(L*.3,-h*1.02);ctx.lineTo(L*.45,-h*.95);
+  ctx.quadraticCurveTo(L/2,-h*.9,L/2,-h*.5);ctx.lineTo(L/2,-h*.25);ctx.closePath();ctx.fill();
+  ctx.fillStyle=rgba(mix(cur.top,[0,0,0],.25),.92);ctx.beginPath();
+  ctx.moveTo(-L*.22,-h*1.04);ctx.lineTo(-L*.11,-h*1.6);ctx.lineTo(L*.12,-h*1.6);ctx.lineTo(L*.25,-h*1.04);ctx.closePath();ctx.fill();
+  ctx.fillStyle=rgba(cur.rim,.45*(1-cur.night)+.15);ctx.fillRect(-L*.13,-h*1.74,L*.27,2*U);ctx.fillRect(-L*.48,-h*1.0,L*.95,1.5*U);
+  ctx.fillStyle='#0a0a10';[-.3,.3].forEach(p=>{ctx.beginPath();ctx.arc(L*p,-h*.25,h*.38,0,7);ctx.fill();});
+  ctx.fillStyle='#55556a';[-.3,.3].forEach(p=>{ctx.beginPath();ctx.arc(L*p,-h*.25,h*.16,0,7);ctx.fill();});
+  const I=.35+cur.night*.75;
+  glow(L*.49,-h*.6,h*1.4,[255,245,215],.55*I);
+  ctx.save();ctx.globalCompositeOperation='lighter';const bg=ctx.createLinearGradient(L*.5,0,L*1.9,0);
+  bg.addColorStop(0,rgba([255,240,200],.22*cur.night));bg.addColorStop(1,rgba([255,240,200],0));ctx.fillStyle=bg;
+  ctx.beginPath();ctx.moveTo(L*.5,-h*.7);ctx.lineTo(L*1.9,-h*1.2);ctx.lineTo(L*1.9,h*.2);ctx.lineTo(L*.5,-h*.5);ctx.closePath();ctx.fill();ctx.restore();
+  glow(-L*.49,-h*.62,h*1.1,[255,30,50],.6*I);
+  ctx.restore();
+}
+
+/* palms & lamps */
+function palm(x,base,h,t,seed){
+  const lean=.1*Math.sin(seed*2.3);const sway=Math.sin(t*.9+seed)*h*.012;
+  const tx=x+h*lean+sway,ty=base-h;const cx=x+h*lean*.15,cy=base-h*.5;
+  const dark=rgba(mix(cur.l[2],[0,0,0],.35));
+  const N=18;
+  for(let i=0;i<N;i++){
+    const a=i/N,b=(i+1)/N;
+    const p=u=>[(1-u)*(1-u)*x+2*(1-u)*u*cx+u*u*tx,(1-u)*(1-u)*base+2*(1-u)*u*cy+u*u*ty];
+    const [x1,y1]=p(a),[x2,y2]=p(b);
+    ctx.strokeStyle=dark;ctx.lineWidth=lerp(h*.034,h*.018,a);ctx.lineCap='butt';
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2+1);ctx.stroke();
+    if(i%2===0){ctx.strokeStyle=rgba(cur.rim,.28*(1-cur.night)+.06);ctx.lineWidth=lerp(h*.008,h*.005,a);ctx.beginPath();ctx.moveTo(x1+h*.01,y1);ctx.lineTo(x2+h*.01,y2);ctx.stroke();}
+  }
+  for(let i=0;i<10;i++){
+    const ang=-Math.PI/2+(i-4.5)*.4+Math.sin(t*1.3+seed+i)*.05;
+    const len=h*(.3+.06*Math.sin(i*1.9+seed));
+    const ex=tx+Math.cos(ang)*len, ey=ty+Math.sin(ang)*len+len*.55;
+    const mx=tx+Math.cos(ang)*len*.6, my=ty+Math.sin(ang)*len*.6-len*.18;
+    const nx=-(ey-ty),ny=ex-tx;const nl=Math.hypot(nx,ny)||1;const wv=len*.07;
+    ctx.fillStyle=dark;ctx.beginPath();ctx.moveTo(tx,ty);
+    ctx.quadraticCurveTo(mx+nx/nl*wv,my+ny/nl*wv,ex,ey);
+    ctx.quadraticCurveTo(mx-nx/nl*wv,my-ny/nl*wv,tx,ty);ctx.fill();
+    ctx.strokeStyle=rgba(cur.rim,.32*(1-cur.night)+.07);ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(tx,ty);ctx.quadraticCurveTo(mx,my,ex,ey);ctx.stroke();
+  }
+  ctx.fillStyle=dark;ctx.beginPath();ctx.arc(tx,ty,h*.022,0,7);ctx.fill();
+}
+function lamp(x){
+  const by=H*.835,h=H*.4,top=by-h;const c=rgba(mix(cur.l[2],[0,0,0],.4));
+  const [sx]=sunPos();
+  ctx.fillStyle=c;ctx.fillRect(x-3*U,top,6*U,h);ctx.fillRect(x-7*U,by-10*U,14*U,10*U);
+  ctx.strokeStyle=c;ctx.lineWidth=4*U;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x,top+8*U);ctx.quadraticCurveTo(x,top-16*U,x+34*U,top-13*U);ctx.stroke();
+  ctx.fillRect(x+26*U,top-18*U,32*U,8*U);
+  ctx.fillStyle=rgba(cur.rim,.4*(1-cur.night)+.05);ctx.fillRect(x<sx?x+1*U:x-3*U,top,2*U,h);
+  const I=.1+.9*cur.night;const lc=[255,206,140];const lx=x+42*U,ly=top-9*U;
+  glow(lx,ly,80*U,lc,.5*I);glow(lx,ly,16*U,[255,250,230],.95*I);
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const g=ctx.createLinearGradient(0,ly,0,H*.9);g.addColorStop(0,rgba(lc,.2*I));g.addColorStop(1,rgba(lc,0));
+  ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(lx-14*U,ly);ctx.lineTo(lx+14*U,ly);ctx.lineTo(lx+H*.13,H*.9);ctx.lineTo(lx-H*.13,H*.9);ctx.closePath();ctx.fill();
+  ctx.translate(lx,H*.885);ctx.scale(1,.18);const pg=ctx.createRadialGradient(0,0,0,0,0,H*.17);
+  pg.addColorStop(0,rgba(lc,.4*I));pg.addColorStop(1,rgba(lc,0));ctx.fillStyle=pg;ctx.beginPath();ctx.arc(0,0,H*.17,0,7);ctx.fill();
+  ctx.restore();
+  // wet reflection on road
+  ctx.save();ctx.globalCompositeOperation='lighter';const rg=ctx.createLinearGradient(0,H*.72,0,H*.82);
+  rg.addColorStop(0,rgba(lc,0));rg.addColorStop(1,rgba(lc,.16*I));ctx.fillStyle=rg;ctx.fillRect(lx-6*U,H*.72,12*U,H*.1);ctx.restore();
+}
+
+/* ================= THE WALKER ================= */
+function shade(c,f=1){return rgba(mix(mix(c,cur.amb,.2),[0,0,0],cur.night*.38+(1-f)));}
+function seg(x1,y1,x2,y2,w,col,rim){
+  ctx.lineCap='round';ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  if(rim){ctx.strokeStyle=rim;ctx.lineWidth=w*.3;ctx.beginPath();ctx.moveTo(x1+w*.3,y1);ctx.lineTo(x2+w*.3,y2);ctx.stroke();}
+}
+function legPose(ph,L1,L2){
+  const a1=.42*Math.sin(ph);
+  const bend=.08+.95*Math.pow(Math.max(0,Math.cos(ph+.5)),1.3);
+  const a2=a1-bend;
+  const kx=Math.sin(a1)*L1,ky=Math.cos(a1)*L1;
+  const ax=kx+Math.sin(a2)*L2,ay=ky+Math.cos(a2)*L2;
+  const foot=clamp(-(a2)*.35-.05,-.5,.4)*(ay<ky+L2*.97?1:.2);
+  return {kx,ky,ax,ay,foot};
+}
+function drawPerson(px,gy,k,ph,t){
+  const L1=46*k,L2=44*k,T=58*k,UA=31*k,FA=29*k,HR=12.5*k,FL=21*k,FH=7*k;
+  const F=legPose(ph,L1,L2),B=legPose(ph+Math.PI,L1,L2);
+  const hipY=gy-FH-Math.max(F.ay,B.ay);const hipX=px;
+  const lean=.08+.02*Math.sin(ph*2);
+  const shX=hipX+Math.sin(lean)*T,shY=hipY-Math.cos(lean)*T;
+  const rimA=.55*(1-cur.night)+.25;const rim=rgba(mix(cur.rim,[255,255,255],.25),rimA);
+  const SKIN=[196,138,104],HOOD=[32,186,200],PANTS=[34,34,48],HAIR=[26,20,18];
+  // shadows
+  const day=1-cur.moon;
+  ctx.save();ctx.fillStyle=`rgba(0,0,0,${.32})`;ctx.beginPath();ctx.ellipse(px,gy,26*k,5*k,0,0,7);ctx.fill();
+  ctx.fillStyle=`rgba(0,0,0,${.22*day})`;ctx.beginPath();ctx.ellipse(px-95*k,gy+3*k,95*k,7*k,0,0,7);ctx.fill();ctx.restore();
+  const leg=(P,f)=>{
+    const kx=hipX+P.kx,ky=hipY+P.ky,ax=hipX+P.ax,ay=hipY+P.ay;
+    seg(hipX,hipY,kx,ky,17*k,shade(PANTS,f),f===1?rgba(cur.rim,rimA*.5):null);
+    seg(kx,ky,ax,ay,14*k,shade(PANTS,f),f===1?rgba(cur.rim,rimA*.5):null);
+    ctx.save();ctx.translate(ax,ay);ctx.rotate(P.foot);
+    ctx.fillStyle=shade([238,238,244],f);ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(-6*k,-2*k,FL+4*k,FH+1*k,4*k);else ctx.rect(-6*k,-2*k,FL+4*k,FH+1*k);ctx.fill();
+    ctx.fillStyle=shade([255,79,163],f);ctx.fillRect(0,0,FL*.55,2*k);
+    ctx.fillStyle=shade([170,170,185],f);ctx.fillRect(-6*k,FH-2*k,FL+4*k,2.4*k);
+    ctx.restore();
+  };
+  const arm=(ph2,f)=>{
+    const ua=-.38*Math.sin(ph2);const fa=ua+.3+.4*Math.max(0,ua+.15);
+    const ex=shX+Math.sin(ua)*UA,ey=shY+Math.cos(ua)*UA;const hx=ex+Math.sin(fa)*FA,hy=ey+Math.cos(fa)*FA;
+    seg(shX,shY+3*k,ex,ey,12*k,shade(HOOD,f),f===1?rim:null);
+    seg(ex,ey,hx,hy,10.5*k,shade(HOOD,f),f===1?rim:null);
+    ctx.fillStyle=shade(SKIN,f);ctx.beginPath();ctx.arc(hx+Math.sin(fa)*3*k,hy+Math.cos(fa)*3*k,4.6*k,0,7);ctx.fill();
+  };
+  arm(ph+Math.PI,.72);   // back arm
+  leg(B,.72);            // back leg
+  // backpack
+  ctx.save();ctx.translate(shX-9*k,shY+20*k);ctx.rotate(lean);ctx.fillStyle=shade([30,30,40],.9);
+  ctx.beginPath();if(ctx.roundRect)ctx.roundRect(-12*k,-17*k,14*k,36*k,6*k);else ctx.rect(-12*k,-17*k,14*k,36*k);ctx.fill();
+  ctx.fillStyle=shade([255,179,71],.9);ctx.fillRect(-11*k,4*k,12*k,2.4*k);ctx.restore();
+  // torso
+  seg(hipX,hipY-4*k,shX,shY+6*k,30*k,shade(HOOD),rgba(cur.rim,rimA*.75));
+  ctx.fillStyle=shade([20,140,152]);ctx.fillRect(hipX-12*k,hipY-8*k,26*k,5*k);  // hoodie hem
+  ctx.fillStyle=shade(PANTS);ctx.beginPath();ctx.arc(hipX+1*k,hipY,11*k,0,7);ctx.fill();
+  leg(F,1);              // front leg
+  // neck + head
+  const nx=shX+3*k,ny=shY-2*k;seg(shX+1*k,shY+2*k,nx,ny-6*k,9*k,shade(SKIN));
+  const hx=nx+2*k,hy=ny-6*k-HR*.9;
+  ctx.fillStyle=shade([20,140,152]);ctx.beginPath();ctx.arc(shX-4*k,shY+1*k,9*k,0,7);ctx.fill(); // hood
+  ctx.fillStyle=shade(SKIN);ctx.beginPath();ctx.arc(hx,hy,HR,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(hx+HR*.92,hy-1*k);ctx.lineTo(hx+HR+3.5*k,hy+3*k);ctx.lineTo(hx+HR*.85,hy+4*k);ctx.fill(); // nose
+  ctx.fillStyle=shade(HAIR);ctx.beginPath();ctx.arc(hx-.5*k,hy-.5*k,HR*1.06,Math.PI*.88,Math.PI*1.98);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.arc(hx-HR*.55,hy-HR*.1,HR*.55,0,7);ctx.fill();
+  ctx.strokeStyle=rgba(cur.rim,rimA);ctx.lineWidth=2.2*k;ctx.beginPath();ctx.arc(hx,hy,HR-1*k,-Math.PI*.45,Math.PI*.35);ctx.stroke();
+  ctx.fillStyle=shade([220,224,236]);ctx.beginPath();ctx.arc(hx-3*k,hy+2.5*k,1.9*k,0,7);ctx.fill(); // earbud
+  glow(hx-3*k,hy+2.5*k,8*k,[79,243,255],.35*cur.night);
+  ctx.fillStyle=shade([30,20,20]);ctx.beginPath();ctx.arc(hx+HR*.55,hy-1.5*k,1.4*k,0,7);ctx.fill(); // eye
+  arm(ph,1);             // front arm
+}
+
+/* ================= POST FX ================= */
+function lensFlare(){
+  if(cur.moon>.85)return;
+  const [sx,sy]=sunPos();const day=1-cur.moon;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const g=ctx.createLinearGradient(0,0,W,0);const p=clamp(sx/W,.05,.95);
+  g.addColorStop(0,rgba(cur.sun,0));g.addColorStop(p,rgba(mix(cur.sun,[255,255,255],.5),.45*day));g.addColorStop(1,rgba(cur.sun,0));
+  ctx.fillStyle=g;ctx.fillRect(0,sy-1.2*U,W,2.4*U);
+  ctx.globalAlpha=.4;ctx.fillRect(0,sy-6*U,W,12*U);ctx.restore();
+  const cx=W/2,cy=H/2,dx=cx-sx,dy=cy-sy;
+  [[.35,22,cur.sun,.10],[.6,46,[255,79,163],.06],[.82,12,[79,243,255],.14],[1.2,80,cur.sun,.045],[1.55,28,[176,124,255],.08]]
+   .forEach(([q,r,c,a])=>glow(sx+dx*q,sy+dy*q,r*U,c,a*day));
+}
+
+/* ================= LOOP ================= */
+let last=performance.now(),T=0,scroll=0,phase=0,steps=0,prevS=0,zoom=1;
+const stepsEl=$('#steps'),distEl=$('#dist'),hpEl=$('#hp');
+function frame(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;
+  blendTOD(dt);
+  const k=H*.30/190;const omega=Math.PI*2*.9;
+  phase+=omega*dt;scroll+=150*k*omega/(Math.PI*2)*dt;
+  const s=Math.sin(phase);if((s>=0)!==(prevS>=0)){steps++;stepsEl.textContent=steps.toLocaleString();distEl.textContent=(steps*.00075).toFixed(2)+' km';hpEl.style.width=Math.min(100,20+steps*.6)+'%';}prevS=s;
+  zoom+=(1-zoom)*(1-Math.exp(-dt*2));
+  updateCars(dt);
+
+  const px=W<820?W*.5:W*.27, gy=H*.905;
+  ctx.save();
+  ctx.translate(px,gy);ctx.scale(zoom,zoom);ctx.translate(-px,-gy);
+  drawSky(T);
+  drawSun(T);
+  drawClouds(T,scroll);
+  drawLayer(layers[0],0,scroll,T);
+  haze(HYf()-H*.22,HYf()+4,.42);
+  drawLayer(layers[1],1,scroll,T);
+  haze(HYf()-H*.1,HYf()+H*.03,.28);
+  godRays(T);
+  drawLayer(layers[2],2,scroll,T);
+  haze(H*.5,H*.705,.18);
+  drawBlinkers(T);
+  drawRoad(scroll);
+  cars.filter(c=>c.lane===0).forEach(drawCar);
+  cars.filter(c=>c.lane===1).forEach(drawCar);
+  drawSidewalk(scroll);
+  const sp=Math.max(460*U,W*.4);
+  const pOff=(scroll*.97)%sp;
+  for(let x=-pOff-sp*.5;x<W+sp;x+=sp)palm(x,H*.835,H*.5,T,Math.floor((x+scroll*.97)/sp));
+  const lOff=scroll%sp;
+  for(let x=-lOff;x<W+sp;x+=sp)lamp(x);
+  drawPerson(px,gy,k,phase,T);
+  lensFlare();
+  ctx.restore();
+  ctx.drawImage(vign,0,0,W,H);
+  ctx.save();ctx.globalAlpha=.07;ctx.globalCompositeOperation='overlay';
+  ctx.translate(Math.random()*180|0,Math.random()*180|0);ctx.fillStyle=grainPat;ctx.fillRect(-200,-200,W+400,H+400);ctx.restore();
+  requestAnimationFrame(frame);
+}
+
+/* ================= SLIDES ================= */
+const slides=$$('.slide');let idx=-1;
+const tabs=$('#tabs');
+slides.forEach((s,i)=>{const b=document.createElement('button');b.innerHTML=`<i>${String(i+1).padStart(2,'0')}</i><span>${s.dataset.title}</span>`;b.onclick=()=>go(i);tabs.appendChild(b);});
+$('#tot').textContent=String(slides.length).padStart(2,'0');
+function countUp(el){
+  const end=+el.dataset.count,pre=el.dataset.pre||'',suf=el.dataset.suf||'';const t0=performance.now(),d=1500;
+  const tick=n=>{const p=clamp((n-t0)/d,0,1),e=1-Math.pow(1-p,3);el.textContent=pre+Math.round(end*e).toLocaleString()+suf;if(p<1)requestAnimationFrame(tick);};
+  el.textContent=pre+'0'+suf;setTimeout(()=>requestAnimationFrame(tick),500);
+}
+function go(n){
+  n=clamp(n,0,slides.length-1);if(n===idx)return;
+  if(idx>=0){const p=slides[idx];p.classList.remove('active');p.querySelectorAll('.rv').forEach(e=>e.style.transitionDelay='0s');}
+  idx=n;const s=slides[idx];
+  s.querySelectorAll('.rv').forEach((e,i)=>e.style.transitionDelay=(.12+i*.07)+'s');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>s.classList.add('active')));
+  target=TOD[s.dataset.tod]||TOD.sunset;zoom=1.07;
+  const f=$('#flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');
+  [...tabs.children].forEach((b,i)=>b.classList.toggle('on',i===idx));
+  tabs.children[idx].scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+  $('#cur').textContent=String(idx+1).padStart(2,'0');
+  $('#progress div').style.width=((idx+1)/slides.length*100)+'%';
+  $('#prev').disabled=idx===0;
+  $('#next').textContent=idx===slides.length-1?'↺ RESTART':'NEXT SLIDE ›';
+  s.querySelectorAll('[data-count]').forEach(countUp);
+}
+$('#next').onclick=()=>go(idx===slides.length-1?0:idx+1);
+$('#prev').onclick=()=>go(idx-1);
+addEventListener('keydown',e=>{
+  if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();go(idx===slides.length-1?0:idx+1);}
+  if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();go(idx-1);}
+});
+let tx0=null;
+addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;},{passive:true});
+addEventListener('touchend',e=>{if(tx0===null)return;const dx=e.changedTouches[0].clientX-tx0;if(Math.abs(dx)>60)go(dx<0?idx+1:idx-1);tx0=null;});
+
+addEventListener('resize',resize);
+resize();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>buildWorld());
+go(0);
+requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame);});
+setTimeout(()=>$('#fade').style.opacity=0,100);
+})();
+</script>
+</body>
+</html>
