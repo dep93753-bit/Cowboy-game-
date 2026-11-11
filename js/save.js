@@ -20,7 +20,7 @@ const Save = (() => {
       respawn: { x: 92, label: "the Sheriff's Office", zone: 'road' },
       campfire: null,      // x of the current campfire, if any
       flags: {},
-      look: { g: 'm', skin: 0, hair: 0, hat: 0, face: 1 },   // set in the character customiser
+      look: { g: 'm', skin: 0, hair: 0, hat: 0, face: 0 },   // set in the character customiser
       playSeconds: 0,
     };
   }

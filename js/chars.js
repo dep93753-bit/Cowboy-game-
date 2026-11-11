@@ -36,7 +36,7 @@ const Chars = (() => {
   const ramp = c => [c, shade(c, 0.78), shade(c, 0.6)];
 
   // The sheriff's default look; the customiser edits a copy of this.
-  const DEFAULT_LOOK = { g: 'm', skin: 0, hair: 0, hat: 0, face: 1 };
+  const DEFAULT_LOOK = { g: 'm', skin: 0, hair: 0, hat: 0, face: 0 };
 
   // --------------------------------------------------------- grid helpers
   const at = (g, x, y) => (y >= 0 && y < g.length && x >= 0 && x < g[0].length ? g[y][x] : '.');
